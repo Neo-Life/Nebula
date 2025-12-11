@@ -103,7 +103,7 @@ const props = defineProps<Props>();
 const emit = defineEmits<{
     newChat: [];
     selectConversation: [sessionIds: string[]];
-    editTitle: [sessionId: string, title: string];
+    editTitle: [sessionId: string, title: string | null];
     deleteConversation: [sessionId: string];
     closeMobileSidebar: [];
 }>();

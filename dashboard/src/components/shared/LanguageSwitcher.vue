@@ -12,7 +12,7 @@
       >
         <v-icon 
           size="18"
-          :color="props.variant === 'default' ? (useCustomizerStore().uiTheme === 'PurpleTheme' ? '#5e35b1' : '#d7c5fa') : undefined"
+          :color="props.variant === 'default' ? (useCustomizerStore().uiTheme === 'PurpleTheme' ? '#0284c7' : '#bae6fd') : undefined"
         >
           mdi-translate
         </v-icon>
