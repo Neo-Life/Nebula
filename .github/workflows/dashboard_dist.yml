@@ -1,0 +1,97 @@
+name: AstrBot Dashboard Dist
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - 'dashboard/**'
+  pull_request:
+    branches: ["master"]
+    paths:
+      - 'dashboard/**'
+  workflow_dispatch: {}
+
+concurrency:
+  group: dashboard-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Node.js 20 (inline, not in env)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          run_install: false
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies and build (dashboard)
+        working-directory: dashboard
+        run: |
+          set -eux
+          pnpm install --frozen-lockfile
+          pnpm run build
+
+      - name: Inject commit SHA, clean .md, package dist
+        run: |
+          set -eux
+          TARGET_DIST="dashboard/dist"
+          if [ ! -d "${TARGET_DIST}" ]; then
+            echo "Build output '${TARGET_DIST}' not found" >&2
+            ls -la
+            exit 1
+          fi
+
+          COMMIT_SHA=$(git rev-parse --verify HEAD)
+          echo "COMMIT_SHA=${COMMIT_SHA}" >> $GITHUB_ENV
+          echo "Injected COMMIT_SHA=${COMMIT_SHA}"
+
+          mkdir -p "${TARGET_DIST}/assets"
+          echo "${COMMIT_SHA}" > "${TARGET_DIST}/assets/version"
+
+          find "${TARGET_DIST}" -type f -name "*.md" -print -delete || true
+
+          ZIP_NAME="dist-${COMMIT_SHA}.zip"
+          cd dashboard
+          zip -r "../${ZIP_NAME}" dist
+          cd -
+          echo "ZIPPED=${ZIP_NAME}" >> $GITHUB_ENV
+          echo "Packaged artifact: ${ZIP_NAME}"
+
+      - name: Upload production artifact (zip)
+        uses: actions/upload-artifact@v5
+        with:
+          name: dashboard-dist-${{ env.COMMIT_SHA }}
+          path: ${{ env.ZIPPED }}
+          retention-days: 7
+
+      - name: Upload latest pointer (optional)
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: dashboard-dist-latest
+          path: dashboard/dist/assets/version
+          retention-days: 3
