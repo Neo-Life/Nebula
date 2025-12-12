@@ -1,6 +1,5 @@
 name: AstrBot Dashboard CI
 
-# 仅在 dashboard 目录变更时触发；并允许手动触发
 on:
   push:
     branches: ["master"]
@@ -10,10 +9,10 @@ on:
     branches: ["master"]
     paths:
       - "dashboard/**"
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 concurrency:
-  group: dashboard-ci-${{ github.ref }}
+  group: dashboard-ci-${{ github.workflow }}-${{ github.ref_name }}
   cancel-in-progress: true
 
 permissions:
@@ -32,53 +31,34 @@ jobs:
         run: |
           echo "Runner: $RUNNER_OS"
           echo "GITHUB_REF: $GITHUB_REF"
+          echo "GITHUB_SHA: $GITHUB_SHA"
+          echo "GITHUB_REF_NAME: $GITHUB_REF_NAME"
           echo "PATH: $PATH"
           echo "Node tool cache:"
           ls -la /opt/hostedtoolcache || true
 
-      - name: Setup Node.js 20 (explicit inline, 不用 env)
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm' # 加速 pnpm 缓存（可选）
+          # remove cache: 'pnpm' to avoid requiring pnpm before it's installed
 
-      - name: Ensure pnpm
+      - name: Ensure pnpm (use official pnpm/action-setup)
         uses: pnpm/action-setup@v2
         with:
           version: '8'
           run_install: false
 
-      - name: Fallback / guaranteed pnpm install (global)
-        run: |
-          set -eux
-          # 尝试 corepack first (Node 20 自带)
-          if command -v pnpm >/dev/null 2>&1; then
-            echo "pnpm already present: $(pnpm --version)"
-          else
-            echo "pnpm not found, try corepack prepare..."
-            corepack enable || true
-            corepack prepare pnpm@8 --activate || true
-          fi
-
-          # 最终兜底：npm 全局安装（有时 corepack/ action 失效时此法万无一失）
-          if ! command -v pnpm >/dev/null 2>&1; then
-            echo "corepack failed to provide pnpm, installing globally via npm..."
-            npm i -g pnpm@8
-          fi
-
-          echo "Final pnpm: $(pnpm --version)"
-          echo "Which pnpm: $(command -v pnpm || true)"
-          echo "NODE: $(node -v) NPM: $(npm -v)"
-
       - name: Cache pnpm store
         uses: actions/cache@v4
         with:
-          path: ~/.pnpm-store
+          path: |
+            ~/.pnpm-store
           key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-
 
-      - name: Install dependencies and build (dashboard)
+      - name: Install dependencies and build
         working-directory: dashboard
         run: |
           set -eux
@@ -101,10 +81,10 @@ jobs:
 
           COMMIT_SHA=$(git rev-parse --verify HEAD)
           echo "COMMIT_SHA=${COMMIT_SHA}" >> $GITHUB_ENV
+
           mkdir -p "${TARGET_DIST}/assets"
           echo "${COMMIT_SHA}" > "${TARGET_DIST}/assets/version"
 
-          # 删除所有 markdown 文件（按你的要求）
           find "${TARGET_DIST}" -type f -name "*.md" -print -delete || true
 
           ZIP_NAME="dashboard-dist-${COMMIT_SHA}.zip"
@@ -113,14 +93,14 @@ jobs:
           cd -
           echo "ZIPPED=${ZIP_NAME}" >> $GITHUB_ENV
 
-      - name: Upload artifact (zip)
+      - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:
           name: dashboard-dist-${{ env.COMMIT_SHA }}
           path: ${{ env.ZIPPED }}
           retention-days: 7
 
-      - name: Upload latest pointer (version file)
+      - name: Upload latest pointer
         if: always()
         uses: actions/upload-artifact@v5
         with:
