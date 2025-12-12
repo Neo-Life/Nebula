@@ -1,0 +1,77 @@
+name: Sync Upstream
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # 每天 UTC 03:00
+  workflow_dispatch:
+
+jobs:
+  sync_and_pr:
+    runs-on: ubuntu-latest
+    name: Sync latest commits from upstream repo
+    env:
+      UPSTREAM_REPO: 'astrbotdevs/astrbot'
+      UPSTREAM_BRANCH: 'master'    # 如果上游用 main，请改成 main
+      TARGET_BRANCH: 'master'      # 目标仓库的默认分支（可能是 main）
+
+    steps:
+      - name: Checkout target repository (full history, allow pushes)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_BRANCH }}
+          fetch-depth: 0
+          token: ${{ secrets.PAT }}    # 确保 secrets.PAT 已创建并有 repo 权限（写权限）
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote and fetch branches
+        run: |
+          echo "Adding upstream ${UPSTREAM_REPO} and fetching ${UPSTREAM_BRANCH}..."
+          git remote add upstream "https://github.com/${UPSTREAM_REPO}" || true
+          git fetch upstream ${UPSTREAM_BRANCH}
+          git fetch origin ${TARGET_BRANCH}
+
+      - name: Check if upstream has new commits
+        id: check_commits
+        run: |
+          # 统计上游相对于当前 origin/${TARGET_BRANCH} 的新增提交数
+          NEW_COMMITS_COUNT=$(git rev-list --count origin/${TARGET_BRANCH}..upstream/${UPSTREAM_BRANCH} || echo 0)
+          echo "new_commits=${NEW_COMMITS_COUNT}" >> $GITHUB_OUTPUT
+          echo "Upstream -> origin diff commits: ${NEW_COMMITS_COUNT}"
+
+      - name: Exit if no new commits
+        if: steps.check_commits.outputs.new_commits == '0'
+        run: |
+          echo "No new commits in upstream/${UPSTREAM_BRANCH} compared to origin/${TARGET_BRANCH}. Exiting."
+      
+      - name: Create branch from upstream and push to origin
+        if: steps.check_commits.outputs.new_commits != '0'
+        run: |
+          BRANCH_NAME="sync-upstream-${{ github.run_id }}"
+          git checkout -b "${BRANCH_NAME}" upstream/${UPSTREAM_BRANCH}
+          # 推送本地临时分支到 origin（需要 PAT 有写权限）
+          git push --set-upstream origin "${BRANCH_NAME}"
+
+      - name: Create Pull Request
+        if: steps.check_commits.outputs.new_commits != '0'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.PAT }}
+          # 与上一步推送的分支名一致
+          branch: sync-upstream-${{ github.run_id }}
+          base: ${{ env.TARGET_BRANCH }}
+          delete-branch: true
+          title: 'chore: 同步上游仓库更新 (自动 PR)'
+          body: |
+            检测到上游仓库 `${{ env.UPSTREAM_REPO }}` 有新更新。
+            
+            这个 PR 是自动生成的。
+            
+            ### ⚠️ 合并前检查清单：
+            1. 查看 **Files changed**，确认上游的修改没有破坏你的自定义逻辑。
+            2. 如果有文件冲突，GitHub 会提示无法合并，请在本地拉取解决。
+          labels: automated pr
+          maintainer-can-modify: true
