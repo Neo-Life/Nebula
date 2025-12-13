@@ -31,7 +31,7 @@ jobs:
         run: |
           set -eux
           git fetch --force --prune https://github.com/AstrBotDevs/AstrBot.git "refs/tags/*:refs/tags/upstream/*"
-          latest_tag="$(git for-each-ref 'refs/tags/upstream' --sort=-v:refname --format='%(refname:strip=2)' | head -n1)"
+          latest_tag="$(git for-each-ref 'refs/tags/upstream' --sort=-v:refname --format='%(refname:strip=3)' | head -n1)"
           if [ -z "${latest_tag}" ]; then
             latest_tag="unknown"
           fi
@@ -47,16 +47,22 @@ jobs:
         with:
           version: '8'
           run_install: false
-          cache: 'pnpm'
-          cache-dependency-path: dashboard/pnpm-lock.yaml
+          package_json_file: dashboard/package.json
 
       - name: Install dependencies and build
         working-directory: dashboard
         run: |
           set -eux
+          pnpm config set store-dir ../.pnpm-store
           pnpm --version
           pnpm install --frozen-lockfile
           pnpm run build
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: .pnpm-store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('dashboard/pnpm-lock.yaml') }}
 
       - name: Inject commit SHA, clean markdown and zip dist
         run: |
