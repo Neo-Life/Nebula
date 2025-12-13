@@ -60,7 +60,18 @@
 
   &:hover,
   &:focus-visible {
-    box-shadow: 0 5px 5px rgba(25, 47, 126, 0.651);
+    box-shadow: 0 5px 3px rgba(25, 47, 126, 0.651);
+  }
+}
+
+.v-theme--PurpleThemeDark {
+  .config-floating-btn {
+    box-shadow: 0 5px 1px rgba(154, 181, 228, 0.614);
+
+    &:hover,
+    &:focus-visible {
+      box-shadow: 0 5px 3px rgb(141, 173, 219);
+    }
   }
 }
 
