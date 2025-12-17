@@ -4,6 +4,8 @@
       <!-- 页面标题 -->
       <v-row class="d-flex justify-space-between align-center px-4 py-3 pb-8">
         <div>
+        </div>
+        <div>
           <v-btn color="success" prepend-icon="mdi-plus" class="me-2" variant="tonal"
             @click="showMcpServerDialog = true" >
             {{ tm('mcpServers.buttons.add') }}

@@ -12,13 +12,10 @@
       >
         <v-icon 
           size="18"
-          :color="props.variant === 'default' ? (useCustomizerStore().uiTheme === 'PurpleTheme' ? '#5e35b1' : '#d7c5fa') : undefined"
+          :color="iconColor"
         >
           mdi-translate
         </v-icon>
-        <v-tooltip activator="parent" location="top">
-          {{ t('core.common.language') }}
-        </v-tooltip>
       </v-btn>
     </template>
     
@@ -45,20 +42,20 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useI18n, useLanguageSwitcher } from '@/i18n/composables'
-import { useCustomizerStore } from '@/stores/customizer'
+import { useLanguageSwitcher } from '@/i18n/composables'
 import type { Locale } from '@/i18n/types'
 
-// 定义props来控制样式变体
 const props = withDefaults(defineProps<{
   variant?: 'default' | 'header' | 'chatbox'
+  color?: string | undefined
 }>(), {
-  variant: 'default'
+  variant: 'default',
+  color: undefined
 })
 
-// 使用新的i18n系统
-const { t } = useI18n()
-const { languageOptions, currentLanguage, switchLanguage, locale } = useLanguageSwitcher()
+const { languageOptions, switchLanguage, locale } = useLanguageSwitcher()
+
+const iconColor = computed(() => props.color ?? (props.variant === 'default' ? 'primary' : undefined))
 
 const languages = computed(() => 
   languageOptions.value.map(lang => ({
@@ -82,47 +79,40 @@ const changeLanguage = async (langCode: string) => {
 }
 
 /* 默认变体样式 - 圆形按钮用于登录页 */
+
 .language-switcher--default {
-  margin: 0 4px;
-  transition: all 0.3s ease;
+  margin: 0;
   border-radius: 50% !important;
   min-width: 32px !important;
   width: 32px !important;
   height: 32px !important;
+  background: transparent !important;
+  transition: background-color 0.25s ease;
 }
 
-.language-switcher--default:hover {
-  transform: scale(1.05);
-  background: rgba(94, 53, 177, 0.08) !important;
-}
-
-/* Header变体样式 - 完全继承Vuetify和action-btn的默认样式 */
-.language-switcher--header {
-  /* action-btn类已经处理了margin-right: 6px，不需要额外样式 */
-}
-
-/* ChatBox变体样式 - 与Header保持一致 */
-.language-switcher--chatbox {
-  /* 继承action-btn样式，与工具栏主题按钮保持一致 */
+.language-switcher--default:hover,
+.language-switcher--default:focus-visible {
+  background: rgba(var(--v-theme-primary), 0.16) !important;
 }
 
 /* 深色模式下的悬停效果（仅对default变体） */
-:deep(.v-theme--PurpleThemeDark) .language-switcher--default:hover {
-  background: rgba(114, 46, 209, 0.12) !important;
+:deep(.v-theme--PurpleThemeDark) .language-switcher--default:hover,
+:deep(.v-theme--PurpleThemeDark) .language-switcher--default:focus-visible {
+  background: rgba(var(--v-theme-primary), 0.24) !important;
 }
 
 .language-dropdown {
   min-width: 100px;
   width: fit-content;
-  border: 1px solid rgba(94, 53, 177, 0.15) !important;
-  background: #f8f6fc !important;
+  border: 1px solid rgba(var(--v-theme-primary), 0.15) !important;
+  background: rgb(var(--v-theme-surface)) !important;
   backdrop-filter: blur(10px);
 }
 
 /* 深色模式下的下拉框样式 */
 :deep(.v-theme--PurpleThemeDark) .language-dropdown {
-  background: #2a2733 !important;
-  border: 1px solid rgba(110, 60, 180, 0.692) !important;
+  background: rgb(var(--v-theme-surface)) !important;
+  border: 1px solid rgba(var(--v-theme-primary), 0.32) !important;
 }
 
 .language-item {
@@ -131,28 +121,28 @@ const changeLanguage = async (langCode: string) => {
 }
 
 .language-item:hover {
-  background: rgba(94, 53, 177, 0.08) !important;
+  background: rgba(var(--v-theme-primary), 0.12) !important;
 }
 
 .language-item-selected {
-  background: rgba(94, 53, 177, 0.15) !important;
+  background: rgba(var(--v-theme-primary), 0.18) !important;
   font-weight: 500;
 }
 
 .language-item-selected:hover {
-  background: rgba(94, 53, 177, 0.2) !important;
+  background: rgba(var(--v-theme-primary), 0.24) !important;
 }
 
 /* 深色模式下的列表项悬停效果 */
 :deep(.v-theme--PurpleThemeDark) .language-item:hover {
-  background: rgba(114, 46, 209, 0.12) !important;
+  background: rgba(var(--v-theme-primary), 0.18) !important;
 }
 
 :deep(.v-theme--PurpleThemeDark) .language-item-selected {
-  background: rgba(114, 46, 209, 0.2) !important;
+  background: rgba(var(--v-theme-primary), 0.26) !important;
 }
 
 :deep(.v-theme--PurpleThemeDark) .language-item-selected:hover {
-  background: rgba(114, 46, 209, 0.25) !important;
+  background: rgba(var(--v-theme-primary), 0.32) !important;
 }
 </style> 

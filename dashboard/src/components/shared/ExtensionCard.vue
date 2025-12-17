@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, inject } from 'vue';
+import { ref, inject, useAttrs } from 'vue';
 import { useCustomizerStore } from "@/stores/customizer";
 import { useModuleI18n } from '@/i18n/composables';
 import UninstallConfirmDialog from './UninstallConfirmDialog.vue';
@@ -75,10 +75,12 @@ const viewHandlers = () => {
 const viewReadme = () => {
   emit('view-readme', props.extension);
 };
+
+const attrs = useAttrs();
 </script>
 
 <template>
-  <v-card class="mx-auto d-flex flex-column" elevation="0" :style="{
+  <v-card v-bind="attrs" class="mx-auto d-flex flex-column" elevation="0" :style="{
     position: 'relative',
     backgroundColor: useCustomizerStore().uiTheme === 'PurpleTheme' ? marketMode ? '#f8f0dd' : '#ffffff' : '#282833',
     color: useCustomizerStore().uiTheme === 'PurpleTheme' ? '#000000dd' : '#ffffff'

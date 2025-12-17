@@ -67,9 +67,6 @@
   <PersonaForm 
     v-model="showCreateDialog"
     :editing-persona="null"
-    :mcp-servers="mcpServers"
-    :available-tools="availableTools"
-    :loading-tools="loadingTools"
     @saved="handlePersonaCreated"
     @error="handleError" />
 </template>

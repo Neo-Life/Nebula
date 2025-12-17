@@ -450,6 +450,13 @@
       }
     }
   },
+  "help": {
+    "helpPrefix": "如需更多信息，请查看",
+    "documentation": "官方文档",
+    "helpMiddle": "，或加入",
+    "support": "社区支持群",
+    "helpSuffix": " 获取进一步支持。"
+  },
   "system_group": {
     "name": "系统配置",
     "system": {

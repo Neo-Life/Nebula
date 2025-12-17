@@ -21,7 +21,7 @@ const { t } = useI18n();
 const isOpen = ref(false);
 const title = ref("");
 const message = ref("");
-let resolvePromise = null; // ✅ 确保 Promise 句柄可用
+let resolvePromise = null; 
 
 const open = (options) => {
   title.value = options.title || t('core.common.dialog.confirmTitle');
@@ -29,19 +29,19 @@ const open = (options) => {
   isOpen.value = true;
 
   return new Promise((resolve) => {
-    resolvePromise = resolve; // ✅ 赋值 Promise 解析方法
+    resolvePromise = resolve;
   });
 };
 
 const handleConfirm = () => {
   isOpen.value = false;
-  if (resolvePromise) resolvePromise(true); // ✅ 解析 Promise
+  if (resolvePromise) resolvePromise(true); 
 };
 
 const handleCancel = () => {
   isOpen.value = false;
-  if (resolvePromise) resolvePromise(false); // ✅ 解析 Promise
+  if (resolvePromise) resolvePromise(false);
 };
 
-defineExpose({ open }); // ✅ 确保 `confirmPlugin.ts` 可以访问 `open`
+defineExpose({ open });
 </script>

@@ -96,7 +96,7 @@ function toggleIframe() {
 
 function openIframeLink(url) {
   if (typeof window !== 'undefined') {
-    let url_ = url || "https://astrbot.app";
+    let url_ = url || "https://docs.astrbot.app";
     window.open(url_, "_blank");
   }
 }
@@ -240,15 +240,34 @@ fetchStarCount();
         </template>
       </v-list>
       <div class="sidebar-footer" v-if="!customizer.mini_sidebar">
-        <v-btn style="margin-bottom: 8px;" size="small" variant="tonal" color="primary" to="/settings">
-          🔧 {{ t('core.navigation.settings') }}
+        <v-btn
+          class="sidebar-action-btn"
+          size="small"
+          variant="tonal"
+          color="primary"
+          prepend-icon="mdi-cog-outline"
+          to="/settings"
+        >
+          {{ t('core.navigation.settings') }}
         </v-btn>
-        <v-btn style="margin-bottom: 8px;" size="small" variant="plain" @click="toggleIframe">
+        <v-btn
+          class="sidebar-action-btn"
+          size="small"
+          variant="text"
+          prepend-icon="mdi-book-open-variant"
+          @click="toggleIframe"
+        >
           {{ t('core.navigation.documentation') }}
         </v-btn>
-        <v-btn style="margin-bottom: 8px;" size="small" variant="plain" @click="openIframeLink('https://github.com/AstrBotDevs/AstrBot')">
-          {{ t('core.navigation.github') }}
-           <v-chip
+        <v-btn
+          class="sidebar-action-btn"
+          size="small"
+          variant="text"
+          prepend-icon="mdi-github"
+          @click="openIframeLink('https://github.com/AstrBotDevs/AstrBot')"
+        >
+          <span>{{ t('core.navigation.github') }}</span>
+          <v-chip
             v-if="starCount"
             size="x-small"
             variant="outlined"
@@ -282,7 +301,7 @@ fetchStarCount();
       <div style="display: flex; gap: 8px;">
         <v-btn
           icon
-          @click.stop="openIframeLink('https://astrbot.app')"
+          @click.stop="openIframeLink('https://docs.astrbot.app')"
           @mousedown.stop
           style="border-radius: 8px; border: 1px solid #ccc;"
         >
@@ -299,7 +318,7 @@ fetchStarCount();
       </div>
     </div>
     <iframe
-      src="https://astrbot.app"
+      src="https://docs.astrbot.app"
       style="width: 100%; height: calc(100% - 56px); border: none; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;"
     ></iframe>
   </div>
@@ -346,5 +365,19 @@ fetchStarCount();
 /* 确保侧边栏容器支持相对定位 */
 .leftSidebar .v-navigation-drawer__content {
   position: relative;
+}
+
+.sidebar-action-btn {
+  justify-content: flex-start;
+  text-transform: none;
+}
+
+.sidebar-action-btn :deep(.v-btn__content) {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.sidebar-action-btn :deep(.v-icon) {
+  opacity: 0.85;
 }
 </style>

@@ -39,26 +39,40 @@
 
           <v-tooltip :text="tm('actions.save')" location="left">
             <template v-slot:activator="{ props }">
-              <v-btn v-bind="props" icon="mdi-content-save" size="x-large" style="position: fixed; right: 52px; bottom: 52px;"
-                color="darkprimary" @click="updateConfig">
-              </v-btn>
+              <v-btn
+                v-bind="props"
+                class="config-floating-btn config-floating-btn--save"
+                variant="flat"
+                icon="mdi-content-save"
+                size="x-large"
+                @click="updateConfig"
+              ></v-btn>
             </template>
           </v-tooltip>
 
           <v-tooltip :text="tm('codeEditor.title')" location="left">
             <template v-slot:activator="{ props }">
-              <v-btn v-bind="props" icon="mdi-code-json" size="x-large" style="position: fixed; right: 52px; bottom: 124px;" color="primary"
-                @click="configToString(); codeEditorDialog = true">
-              </v-btn>
+              <v-btn
+                v-bind="props"
+                class="config-floating-btn config-floating-btn--editor"
+                variant="flat"
+                icon="mdi-code-json"
+                size="x-large"
+                @click="configToString(); codeEditorDialog = true"
+              ></v-btn>
             </template>
           </v-tooltip>
 
           <v-tooltip text="测试当前配置" location="left" v-if="!isSystemConfig">
             <template v-slot:activator="{ props }">
-              <v-btn v-bind="props" icon="mdi-chat-processing" size="x-large" 
-                style="position: fixed; right: 52px; bottom: 196px;" color="secondary"
-                @click="openTestChat">
-              </v-btn>
+              <v-btn
+                v-bind="props"
+                class="config-floating-btn config-floating-btn--test"
+                variant="flat"
+                icon="mdi-chat-processing"
+                size="x-large"
+                @click="openTestChat"
+              ></v-btn>
             </template>
           </v-tooltip>
 
@@ -79,11 +93,50 @@
         <v-toolbar-title>{{ tm('codeEditor.title') }}</v-toolbar-title>
         <v-spacer></v-spacer>
         <v-toolbar-items style="display: flex; align-items: center;">
-          <v-btn style="margin-left: 16px;" size="small" @click="configToString()">{{
-            tm('editor.revertCode') }}</v-btn>
-          <v-btn v-if="config_data_has_changed" style="margin-left: 16px;" size="small" @click="applyStrConfig()">{{
-            tm('editor.applyConfig') }}</v-btn>
-          <small style="margin-left: 16px;">💡 {{ tm('editor.applyTip') }}</small>
+          <v-tooltip :text="tm('editor.revertCode')" location="bottom">
+            <template #activator="{ props }">
+              <v-btn
+                v-bind="props"
+                prepend-icon="mdi-history"
+                variant="text"
+                size="small"
+                style="margin-left: 16px;"
+                :aria-label="tm('editor.revertCode')"
+                @click="configToString()"
+              >
+                {{ tm('editor.revertShort') }}
+              </v-btn>
+            </template>
+          </v-tooltip>
+          <v-tooltip v-if="config_data_has_changed" :text="tm('editor.applyConfig')" location="bottom">
+            <template #activator="{ props }">
+              <v-btn
+                v-bind="props"
+                prepend-icon="mdi-check-circle-outline"
+                variant="text"
+                size="small"
+                style="margin-left: 16px;"
+                :aria-label="tm('editor.applyConfig')"
+                @click="applyStrConfig()"
+              >
+                {{ tm('editor.applyShort') }}
+              </v-btn>
+            </template>
+          </v-tooltip>
+          <v-tooltip :text="tm('editor.applyTip')" location="bottom">
+            <template #activator="{ props }">
+              <v-btn
+                v-bind="props"
+                prepend-icon="mdi-information-outline"
+                variant="text"
+                size="small"
+                style="margin-left: 16px;"
+                :aria-label="tm('editor.applyTip')"
+              >
+                {{ tm('editor.tipShort') }}
+              </v-btn>
+            </template>
+          </v-tooltip>
         </v-toolbar-items>
       </v-toolbar>
       <v-card-text class="pa-0">

@@ -1,4 +1,4 @@
-import { createApp } from 'vue';
+import { createApp, type Plugin } from 'vue';
 import { createPinia } from 'pinia';
 import App from './App.vue';
 import { router } from './router';
@@ -21,7 +21,7 @@ setupI18n().then(() => {
   const pinia = createPinia();
   app.use(pinia);
   app.use(print);
-  app.use(VueApexCharts);
+  app.use(VueApexCharts as Plugin);
   app.use(vuetify);
   app.use(confirmPlugin);
   app.mount('#app');
@@ -40,7 +40,7 @@ setupI18n().then(() => {
   const pinia = createPinia();
   app.use(pinia);
   app.use(print);
-  app.use(VueApexCharts);
+  app.use(VueApexCharts as Plugin);
   app.use(vuetify);
   app.use(confirmPlugin);
   app.mount('#app');

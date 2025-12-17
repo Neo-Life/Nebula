@@ -98,7 +98,7 @@
 
     <!-- 添加平台适配器对话框 -->
     <AddNewPlatform v-model:show="showAddPlatformDialog" :metadata="metadata" :config_data="config_data" ref="addPlatformDialog"
-      :updating-mode="updatingMode" :updating-platform-config="updatingPlatformConfig" @update="getConfig"
+      :updating-mode="updatingMode" :updating-platform-config="updatingPlatformConfig"
       @show-toast="showToast" @refresh-config="getConfig"/>
 
     <!-- Webhook URL 对话框 -->

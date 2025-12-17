@@ -1,0 +1,108 @@
+name: AstrBot Dashboard CI
+
+on:
+  push:
+    branches: ["master"]
+    paths:
+      - "dashboard/**"
+  pull_request:
+    branches: ["master"]
+    paths:
+      - "dashboard/**"
+  workflow_dispatch:
+
+concurrency:
+  group: dashboard-ci-${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Fetch upstream latest tag
+        run: |
+          set -eux
+          git fetch --force --prune https://github.com/AstrBotDevs/AstrBot.git "refs/tags/*:refs/tags/upstream/*"
+          latest_tag="$(git for-each-ref 'refs/tags/upstream' --sort=-v:refname --format='%(refname:strip=3)' | head -n1)"
+          if [ -z "${latest_tag}" ]; then
+            latest_tag="unknown"
+          fi
+          echo "LATEST_TAG=${latest_tag}" >> $GITHUB_ENV
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+          package_json_file: dashboard/package.json
+
+      - name: Install dependencies and build
+        working-directory: dashboard
+        run: |
+          set -eux
+          pnpm config set store-dir ../.pnpm-store
+          pnpm --version
+          pnpm install --frozen-lockfile
+          pnpm run build
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: .pnpm-store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('dashboard/pnpm-lock.yaml') }}
+
+      - name: Inject commit SHA, clean markdown and zip dist
+        run: |
+          set -eux
+          TARGET_DIST="dashboard/dist"
+          if [ ! -d "${TARGET_DIST}" ]; then
+            echo "ERROR: build output '${TARGET_DIST}' not found" >&2
+            ls -la dashboard || true
+            exit 1
+          fi
+
+          COMMIT_SHA=$(git rev-parse --verify HEAD)
+          echo "COMMIT_SHA=${COMMIT_SHA}" >> $GITHUB_ENV
+
+          mkdir -p "${TARGET_DIST}/assets"
+          version_value="${LATEST_TAG}"
+          if [ "${version_value}" = "unknown" ]; then
+            version_value="${COMMIT_SHA}"
+          fi
+          echo "${version_value}" > "${TARGET_DIST}/assets/version"
+          echo "${COMMIT_SHA}" > "${TARGET_DIST}/assets/version.sha"
+
+          find "${TARGET_DIST}" -type f -name "*.md" -print -delete || true
+
+          ZIP_NAME="dashboard-dist-${COMMIT_SHA}.zip"
+          cd dashboard
+          zip -r "../${ZIP_NAME}" dist
+          cd -
+          echo "ZIPPED=${ZIP_NAME}" >> $GITHUB_ENV
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: dashboard-dist-${{ env.COMMIT_SHA }}
+          path: ${{ env.ZIPPED }}
+          retention-days: 7
+
+      - name: Upload latest pointer
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: dashboard-dist-latest
+          path: dashboard/dist/assets/version
+          retention-days: 3

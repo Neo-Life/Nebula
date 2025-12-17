@@ -439,6 +439,13 @@
       }
     }
   },
+  "help": {
+    "helpPrefix": "For more information, see the ",
+    "documentation": "official documentation",
+    "helpMiddle": ", or join the ",
+    "support": "community support group",
+    "helpSuffix": " for further assistance."
+  },
   "system_group": {
     "name": "System",
     "system": {

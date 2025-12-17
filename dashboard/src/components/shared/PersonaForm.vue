@@ -58,9 +58,9 @@
                                                 :disabled="!server.tools || server.tools.length === 0">
                                                 <v-icon start size="small">mdi-server</v-icon>
                                                 {{ server.name }}
-                                                <v-chip-text v-if="server.tools" class="ml-1">
+                                                <span v-if="server.tools" class="ml-1 text-caption">
                                                     ({{ server.tools.length }})
-                                                </v-chip-text>
+                                                </span>
                                             </v-chip>
                                         </div>
                                     </div>

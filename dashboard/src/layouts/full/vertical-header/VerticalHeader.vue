@@ -318,14 +318,14 @@ commonStore.getStartTime();
           <v-icon>mdi-arrow-up-circle</v-icon>
         </v-btn>
       </template>
-      <v-card>
+      <v-card class="update-dialog-card">
         <v-card-title class="mobile-card-title">
           <span class="text-h5">{{ t('core.header.updateDialog.title') }}</span>
           <v-btn v-if="$vuetify.display.xs" icon @click="updateStatusDialog = false">
             <v-icon>mdi-close</v-icon>
           </v-btn>
         </v-card-title>
-        <v-card-text>
+        <v-card-text class="update-dialog-content">
           <v-container>
             <v-progress-linear v-show="installLoading" class="mb-4" indeterminate color="primary"></v-progress-linear>
 
@@ -417,7 +417,7 @@ commonStore.getStartTime();
             </div>
           </v-container>
         </v-card-text>
-        <v-card-actions>
+        <v-card-actions class="update-dialog-actions">
           <v-spacer></v-spacer>
           <v-btn color="blue-darken-1" variant="text" @click="updateStatusDialog = false">
             {{ t('core.common.close') }}
@@ -543,6 +543,34 @@ commonStore.getStartTime();
   text-transform: none;
   font-weight: 500;
   border-radius: 8px;
+}
+
+.update-dialog-card {
+  display: flex;
+  flex-direction: column;
+  max-height: min(90vh, 780px);
+}
+
+.update-dialog-card .mobile-card-title {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--v-theme-surface);
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+}
+
+.update-dialog-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 24px;
+}
+
+.update-dialog-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: var(--v-theme-surface);
+  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08);
 }
 
 .account-dialog .v-avatar {

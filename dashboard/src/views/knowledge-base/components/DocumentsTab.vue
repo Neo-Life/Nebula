@@ -2,7 +2,7 @@
   <div class="documents-tab">
     <!-- 操作栏 -->
     <div class="action-bar mb-4">
-      <v-btn prepend-icon="mdi-upload" color="primary" variant="elevated" @click="showUploadDialog = true">
+      <v-btn prepend-icon="mdi-upload" color="primary" variant="flat" @click="showUploadDialog = true">
         {{ t('documents.upload') }}
       </v-btn>
       <v-text-field v-model="searchQuery" prepend-inner-icon="mdi-magnify" :placeholder="'搜索文档...'" variant="outlined"
@@ -202,7 +202,7 @@
           <v-btn variant="text" @click="closeUploadDialog" :disabled="uploading">
             {{ t('upload.cancel') }}
           </v-btn>
-          <v-btn color="primary" variant="elevated" @click="startUpload" :loading="uploading"
+          <v-btn color="primary" variant="flat" @click="startUpload" :loading="uploading"
             :disabled="isUploadDisabled">
             {{ t('upload.submit') }}
           </v-btn>
@@ -225,7 +225,7 @@
         <v-card-actions class="pa-4">
           <v-spacer />
           <v-btn variant="text" @click="showDeleteDialog = false">取消</v-btn>
-          <v-btn color="error" variant="elevated" @click="deleteDocument" :loading="deleting">
+          <v-btn color="error" variant="flat" @click="deleteDocument" :loading="deleting">
             删除
           </v-btn>
         </v-card-actions>

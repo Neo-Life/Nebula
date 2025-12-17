@@ -180,8 +180,7 @@ function getSpecialSubtype(value) {
 </script>
 
 <template>
-
-
+  <div class="astrbot-config-v4">
   <v-card v-if="shouldShowSection()" style="margin-bottom: 16px; padding-bottom: 8px; background-color: rgb(var(--v-theme-background));"
     rounded="md" variant="outlined">
     <v-card-text class="config-section" v-if="metadata[metadataKey]?.type === 'object'" style="padding-bottom: 8px;">
@@ -279,12 +278,19 @@ function getSpecialSubtype(value) {
                   style="display: flex; justify-content: end;"></v-switch>
 
                 <!-- List item for JSON selector -->
-                <ListConfigItem v-else-if="itemMeta?.type === 'list'" v-model="createSelectorModel(itemKey).value"
-                  button-text="修改" class="config-field" />
+                <template v-else-if="itemMeta?.type === 'list'">
+                  <div class="config-field">
+                    <ListConfigItem v-model="createSelectorModel(itemKey).value"
+                      button-text="修改" />
+                  </div>
+                </template>
 
                 <!-- Object editor for JSON selector -->
-                <ObjectEditor v-else-if="itemMeta?.type === 'dict'" v-model="createSelectorModel(itemKey).value"
-                  class="config-field" />
+                <template v-else-if="itemMeta?.type === 'dict'">
+                  <div class="config-field">
+                    <ObjectEditor v-model="createSelectorModel(itemKey).value" />
+                  </div>
+                </template>
 
                 <!-- Fallback for JSON selector -->
                 <v-text-field v-else v-model="createSelectorModel(itemKey).value" density="compact" variant="outlined"
@@ -376,11 +382,16 @@ function getSpecialSubtype(value) {
       </v-card-text>
     </v-card>
   </v-dialog>
+  </div>
 </template>
 
 
 
 <style scoped>
+.astrbot-config-v4 {
+  display: contents;
+}
+
 .config-section {
   margin-bottom: 4px;
 }

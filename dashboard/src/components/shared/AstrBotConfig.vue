@@ -123,7 +123,8 @@ function hasVisibleItemsAfter(items, currentIndex) {
 </script>
 
 <template>
-  <div class="config-section" v-if="iterable && metadata[metadataKey]?.type === 'object'">
+  <div class="astrbot-config">
+    <div class="config-section" v-if="iterable && metadata[metadataKey]?.type === 'object'">
     <v-list-item-title class="config-title">
       {{ metadata[metadataKey]?.description }} <span class="metadata-key">({{ metadataKey }})</span>
     </v-list-item-title>
@@ -131,9 +132,9 @@ function hasVisibleItemsAfter(items, currentIndex) {
       <span v-if="metadata[metadataKey]?.obvious_hint && metadata[metadataKey]?.hint" class="important-hint">‼️</span>
       {{ metadata[metadataKey]?.hint }}
     </v-list-item-subtitle>
-  </div>
+    </div>
 
-  <v-card-text class="px-0 py-1">
+    <v-card-text class="px-0 py-1">
     <!-- Object Type Configuration -->
     <div v-if="metadata[metadataKey]?.type === 'object' || metadata[metadataKey]?.config_template" class="object-config">
       <!-- Provider-level hint -->
@@ -352,18 +353,22 @@ function hasVisibleItemsAfter(items, currentIndex) {
                 ></v-switch>
 
                 <!-- List item -->
-                <ListConfigItem
-                  v-else-if="metadata[metadataKey].items[key]?.type === 'list' && !metadata[metadataKey].items[key]?.invisible"
-                  v-model="iterable[key]"
-                  class="config-field"
-                />
+                <template v-else-if="metadata[metadataKey].items[key]?.type === 'list' && !metadata[metadataKey].items[key]?.invisible">
+                  <div class="config-field">
+                    <ListConfigItem
+                      v-model="iterable[key]"
+                    />
+                  </div>
+                </template>
 
                 <!-- Dict item (key-value editor) -->
-                <ObjectEditor
-                  v-else-if="metadata[metadataKey].items[key]?.type === 'dict' && !metadata[metadataKey].items[key]?.invisible"
-                  v-model="iterable[key]"
-                  class="config-field"
-                />
+                <template v-else-if="metadata[metadataKey].items[key]?.type === 'dict' && !metadata[metadataKey].items[key]?.invisible">
+                  <div class="config-field">
+                    <ObjectEditor
+                      v-model="iterable[key]"
+                    />
+                  </div>
+                </template>
               </div>
 
               <!-- Fallback for unknown metadata -->
@@ -478,11 +483,13 @@ function hasVisibleItemsAfter(items, currentIndex) {
             ></v-switch>
 
             <!-- List item -->
-            <ListConfigItem
-              v-else-if="metadata[metadataKey]?.type === 'list' && !metadata[metadataKey]?.invisible"
-              v-model="iterable[metadataKey]"
-              class="config-field"
-            />
+            <template v-else-if="metadata[metadataKey]?.type === 'list' && !metadata[metadataKey]?.invisible">
+              <div class="config-field">
+                <ListConfigItem
+                  v-model="iterable[metadataKey]"
+                />
+              </div>
+            </template>
           </div>
         </v-col>
       </v-row>
@@ -515,11 +522,16 @@ function hasVisibleItemsAfter(items, currentIndex) {
       </v-card-text>
     </v-card>
   </v-dialog>
+  </div>
 </template>
 
 
 
 <style scoped>
+.astrbot-config {
+  display: contents;
+}
+
 .config-section {
   margin-bottom: 12px;
 }
