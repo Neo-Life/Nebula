@@ -58,7 +58,7 @@ jobs:
           pnpm run build
 
       - name: Cache pnpm store
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .pnpm-store
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('dashboard/pnpm-lock.yaml') }}
@@ -93,7 +93,7 @@ jobs:
           echo "ZIPPED=${ZIP_NAME}" >> $GITHUB_ENV
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: dashboard-dist-${{ env.COMMIT_SHA }}
           path: ${{ env.ZIPPED }}
@@ -101,7 +101,7 @@ jobs:
 
       - name: Upload latest pointer
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: dashboard-dist-latest
           path: dashboard/dist/assets/version
