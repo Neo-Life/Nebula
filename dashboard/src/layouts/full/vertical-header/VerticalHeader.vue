@@ -392,21 +392,39 @@ const changeLanguage = async (langCode: string) => {
         </v-btn>
       </template>
 
-      <!-- 语言切换 -->
-      <v-list-item
-        v-for="lang in languages"
-        :key="lang.code"
-        :value="lang.code"
-        @click="changeLanguage(lang.code)"
-        :class="{ 'styled-menu-item-active': currentLocale === lang.code }"
-        class="styled-menu-item"
-        rounded="md"
-      >
-        <template v-slot:prepend>
-          <span class="language-flag">{{ lang.flag }}</span>
+      <!-- 语言切换（分组，悬停展开二级菜单） -->
+      <v-menu open-on-hover offset="12" location="right" origin="start" :close-on-content-click="true">
+        <template v-slot:activator="{ props: activatorProps }">
+          <v-list-item v-bind="activatorProps" class="styled-menu-item" rounded="md">
+            <template v-slot:prepend>
+              <v-icon>mdi-translate</v-icon>
+            </template>
+            <v-list-item-title>{{ t('core.header.buttons.language') || 'Language' }}</v-list-item-title>
+            <template v-slot:append>
+              <v-icon>mdi-chevron-right</v-icon>
+            </template>
+          </v-list-item>
         </template>
-        <v-list-item-title>{{ lang.name }}</v-list-item-title>
-      </v-list-item>
+
+        <v-card class="language-dropdown" elevation="8" rounded="lg">
+          <v-list density="compact" class="pa-1">
+            <v-list-item
+              v-for="lang in languages"
+              :key="lang.code"
+              :value="lang.code"
+              @click="changeLanguage(lang.code)"
+              :class="{ 'styled-menu-item-active': currentLocale === lang.code }"
+              class="language-item"
+              rounded="md"
+            >
+              <template v-slot:prepend>
+                <span class="language-flag">{{ lang.flag }}</span>
+              </template>
+              <v-list-item-title>{{ lang.name }}</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-card>
+      </v-menu>
 
       <!-- 主题切换 -->
       <v-list-item
@@ -455,12 +473,7 @@ const changeLanguage = async (langCode: string) => {
     <!-- 更新对话框 -->
     <v-dialog v-model="updateStatusDialog" :width="$vuetify.display.smAndDown ? '100%' : '1200'"
       :fullscreen="$vuetify.display.xs">
-      <template v-slot:activator="{ props }">
-        <v-btn size="small" @click="checkUpdate(); getReleases();" class="action-btn"
-          color="var(--v-theme-surface)" variant="flat" rounded="sm" v-bind="props" icon>
-          <v-icon>mdi-arrow-up-circle</v-icon>
-        </v-btn>
-      </template>
+      <!-- activator button removed -->
       <v-card class="update-dialog-card">
         <v-card-title class="mobile-card-title">
           <span class="text-h5">{{ t('core.header.updateDialog.title') }}</span>

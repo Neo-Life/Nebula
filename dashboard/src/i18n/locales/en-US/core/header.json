@@ -7,6 +7,7 @@
   "buttons": {
     "update": "Update",
     "account": "Account",
+    "language": "Language",
     "theme": {
       "light": "Light Mode",
       "dark": "Dark Mode"
