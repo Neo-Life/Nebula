@@ -57,8 +57,8 @@
     "confirmDelete": "Are you sure you want to delete \"{name}\"? This action cannot be undone."
   },
   "modes": {
-    "darkMode": "Switch to Dark Mode",
-    "lightMode": "Switch to Light Mode"
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode"
   },  "shortcuts": {
     "help": "Get Help",
     "voiceRecord": "Record Voice",
