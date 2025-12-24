@@ -27,41 +27,40 @@
         v-if="sidebarCollapsed && !isMobile" elevation="0"></v-btn>
     </div>
 
-    <div style="overflow-y: auto; flex-grow: 1;" v-if="!sidebarCollapsed || isMobile">
-      <v-card v-if="sessions.length > 0" flat style="background-color: transparent;">
-        <v-list density="compact" nav class="conversation-list"
-          style="background-color: transparent;" :selected="selectedSessions"
-          @update:selected="$emit('selectConversation', $event)">
-          
-          <v-list-item v-for="item in sessions" :key="item.session_id" :value="item.session_id"
-            rounded="lg" class="conversation-item" color="primary">
-            
-            <v-list-item-title v-if="!sidebarCollapsed || isMobile" class="conversation-title">
-              {{ item.display_name || tm('conversation.newConversation') }}
-            </v-list-item-title>
+    <div style="overflow-y: auto; flex-grow: 1;"
+        v-if="!sidebarCollapsed || isMobile">
+        <v-card v-if="sessions.length > 0" flat style="background-color: transparent;">
+            <v-list density="compact" nav class="conversation-list"
+                style="background-color: transparent;" :selected="selectedSessions"
+                @update:selected="$emit('selectConversation', $event)">
+                <v-list-item v-for="item in sessions" :key="item.session_id" :value="item.session_id"
+                    rounded="lg" class="conversation-item" active-color="secondary">
+                    <v-list-item-title v-if="!sidebarCollapsed || isMobile" class="conversation-title"
+                        :style="{ color: isDark ? '#ffffff' : '#000000' }">
+                        {{ item.display_name || tm('conversation.newConversation') }}
+                    </v-list-item-title>
+                    <template v-if="!sidebarCollapsed || isMobile" v-slot:append>
+                        <div class="conversation-actions">
+                            <v-btn icon="mdi-pencil" size="x-small" variant="text"
+                                class="edit-title-btn"
+                                @click.stop="$emit('editTitle', item.session_id, item.display_name ?? '')" />
+                            <v-btn icon="mdi-delete" size="x-small" variant="text"
+                                class="delete-conversation-btn" color="error"
+                                @click.stop="handleDeleteConversation(item)" />
+                        </div>
+                    </template>
+                </v-list-item>
+            </v-list>
+        </v-card>
 
-            <template v-if="!sidebarCollapsed || isMobile" v-slot:append>
-              <div class="conversation-actions">
-                <v-btn icon="mdi-pencil" size="x-small" variant="text"
-                  class="edit-title-btn"
-                  @click.stop="$emit('editTitle', item.session_id, item.display_name ?? '')" />
-                <v-btn icon="mdi-delete" size="x-small" variant="text"
-                  class="delete-conversation-btn" color="error"
-                  @click.stop="handleDeleteConversation(item)" />
-              </div>
-            </template>
-          </v-list-item>
-        </v-list>
-      </v-card>
-
-      <v-fade-transition>
-        <div class="no-conversations" v-if="sessions.length === 0">
-          <v-icon icon="mdi-message-text-outline" size="large" color="grey-lighten-1"></v-icon>
-          <div class="no-conversations-text" v-if="!sidebarCollapsed || isMobile">
-            {{ tm('conversation.noHistory') }}
-          </div>
-        </div>
-      </v-fade-transition>
+        <v-fade-transition>
+            <div class="no-conversations" v-if="sessions.length === 0">
+                <v-icon icon="mdi-message-text-outline" size="large" color="grey-lighten-1"></v-icon>
+                <div class="no-conversations-text" v-if="!sidebarCollapsed || isMobile">
+                    {{ tm('conversation.noHistory') }}
+                </div>
+            </div>
+        </v-fade-transition>
     </div>
 
     <div class="sidebar-spacer" v-if="sidebarCollapsed && !isMobile"></div>
