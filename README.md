@@ -1,3 +1,7 @@
+# 不是，你们 star 是啥意思啊？这只是个 fork 仓库诶。真正的 AstrBot 可不是这个 landfillbot。
+
+所以有谁可以提个 issue 告诉我一声你们 star 的原因吗？
+
 ![astrbot-banner-xmas](https://github.com/user-attachments/assets/bf2341de-ec7a-45a7-a04a-02ad36450e99)
 
 <div align="center">
