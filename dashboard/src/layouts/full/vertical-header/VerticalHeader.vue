@@ -393,7 +393,14 @@ const changeLanguage = async (langCode: string) => {
       </template>
 
       <!-- 语言切换（分组，悬停展开二级菜单） -->
-      <v-menu open-on-hover offset="12" location="right" origin="start" :close-on-content-click="true">
+      <v-menu 
+        :open-on-hover="!$vuetify.display.mobile"
+        :open-on-click="$vuetify.display.mobile"
+        :location="$vuetify.display.mobile ? 'bottom center' : 'end center'"
+        offset="12" 
+        origin="start" 
+        :close-on-content-click="true"
+      >
         <template v-slot:activator="{ props: activatorProps }">
           <v-list-item v-bind="activatorProps" class="styled-menu-item" rounded="md">
             <template v-slot:prepend>
@@ -401,7 +408,9 @@ const changeLanguage = async (langCode: string) => {
             </template>
             <v-list-item-title>{{ t('core.header.buttons.language') || 'Language' }}</v-list-item-title>
             <template v-slot:append>
-              <v-icon>mdi-chevron-right</v-icon>
+              <v-icon>
+                {{ $vuetify.display.mobile ? 'mdi-chevron-down' : 'mdi-chevron-right' }}
+              </v-icon>
             </template>
           </v-list-item>
         </template>
@@ -421,6 +430,10 @@ const changeLanguage = async (langCode: string) => {
                 <span class="language-flag">{{ lang.flag }}</span>
               </template>
               <v-list-item-title>{{ lang.name }}</v-list-item-title>
+              
+              <template v-slot:append v-if="currentLocale === lang.code">
+                 <v-icon color="primary" size="small">mdi-check</v-icon>
+              </template>
             </v-list-item>
           </v-list>
         </v-card>
