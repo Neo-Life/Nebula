@@ -1,4 +1,4 @@
-name: 🚨 STAR = BLOCK (组织版)
+name: 🚨 STAR = BLOCK
 
 on:
   watch:
@@ -8,10 +8,10 @@ jobs:
   auto-block:
     runs-on: ubuntu-latest
     steps:
-      - name: 🛑 执行组织级拉黑
+      - name: 🛑 执行审判咯
         env:
           GH_TOKEN: ${{ secrets.PAT }}
-          # ✅ 白名单：Master 和 机器人都放进去
+          # ✅ 白名单：把 Master 和 bot 都放进去
           WHITELIST: "IGCrystal IGCrystal-G" 
         run: |
           ACTOR=${{ github.actor }}
@@ -24,7 +24,7 @@ jobs:
           # 1. 友军识别
           if [[ " $WHITELIST " =~ " $ACTOR " ]]; then
             echo "✅ 识别结果：[友军] (在白名单内)"
-            echo "指挥官或 Bot 正在作业，解除警戒。喵~ 😽"
+            echo "指挥官 和 Bot 正在作业，解除警戒。喵~ 😽"
             exit 0
           fi
 
