@@ -2,7 +2,7 @@
 
 ![LandfillBot](https://placehold.co/1200x380/333333/FF0000/png?text=LandfillBot&font=playfair+display)
 
-## 这个仓库不是 AstrBot 官方仓库。而且，据说这个仓库点不上 star 哦😐
+## 这个仓库不是 [AstrBot](https://github.com/AstrBotDevs/AstrBot) 官方仓库。而且，据说这个仓库点不上 star 哦😐
 
 </div>
 
