@@ -2,16 +2,7 @@
 
 ![LandfillBot](https://placehold.co/1200x380/333333/FF0000/png?text=LandfillBot&font=playfair+display)
 
-<img src="https://img.shields.io/badge/WARNING-这不是官方仓库-critical?style=for-the-badge&logo=x&logoColor=white" height="28">
-<img src="https://img.shields.io/badge/WARNING-已经点过_star_的将会被_BLOCK-black?style=for-the-badge&logo=github" height="28">
-
-<br/>
-<br/>
-
-| 🛑 WARNING | 📸 EVIDENCE |
-| :---: | :---: |
-| <h3> 推特来的别来了，<br>这只是一个 Fork 仓库。</h3> | <img src="https://github.com/user-attachments/assets/adb63ca4-5f14-4a8e-a90d-77fcdb575092" width="450"> |
-
+## 这个仓库不是 AstrBot 官方仓库。而且，据说这个仓库点不上 star 哦😐
 
 </div>
 
