@@ -4,9 +4,10 @@
     elevation="0"
     v-bind="$attrs" 
   >
-    <v-card-title v-if="!hideHeader" class="d-flex justify-space-between align-center pb-1 pt-3">
-      <span class="text-h2 text-truncate" :title="getItemTitle()">{{ getItemTitle() }}</span>
-      <v-tooltip location="top">
+    <v-card-title v-if="!hideHeader" class="d-flex justify-space-between align-center pb-1 pt-3 flex-shrink-0">
+      <span :class="['text-truncate', titleClass]" :title="getItemTitle()">{{ getItemTitle() }}</span>
+      
+      <v-tooltip location="top" v-if="showSwitch">
         <template v-slot:activator="{ props }">
           <v-switch
             color="primary"
@@ -24,33 +25,20 @@
     </v-card-title>
 
     <v-card-text 
-      :class="[{'pa-0': noPadding}, 'flex-grow-1']"
+      :class="[{'pa-0': noPadding}, 'flex-grow-1 d-flex flex-column']"
       style="overflow: hidden; min-height: 0;"
     >
       <slot name="item-details" :item="item"></slot>
     </v-card-text>
 
-    <v-card-actions v-if="!hideHeader" style="margin: 8px;">
-      <v-btn
-        variant="outlined"
-        color="error"
-        size="small"
-        rounded="xl"
-        :disabled="loading"
-        @click="$emit('delete', item)"
-      >
-        {{ t('core.common.itemCard.delete') }}
-      </v-btn>
-      <v-btn
-        variant="tonal"
-        color="primary"
-        size="small"
-        rounded="xl"
-        :disabled="loading"
-        @click="$emit('edit', item)"
-      >
-        {{ t('core.common.itemCard.edit') }}
-      </v-btn>
+    <v-card-actions v-if="!hideHeader" class="flex-shrink-0 align-center" style="margin: 8px;">
+      
+      <slot name="footer-start" :item="item"></slot>
+      
+      <v-spacer></v-spacer>
+      
+      <slot name="actions" :item="item"></slot>
+      
       <v-btn
         v-if="showCopyButton"
         variant="tonal"
@@ -58,12 +46,32 @@
         size="small"
         rounded="xl"
         :disabled="loading"
-        @click="$emit('copy', item)"
+        @click.stop="$emit('copy', item)"
       >
         {{ t('core.common.itemCard.copy') }}
       </v-btn>
-      <slot name="actions" :item="item"></slot>
-      <v-spacer></v-spacer>
+
+      <v-btn
+        variant="tonal"
+        color="primary"
+        size="small"
+        rounded="xl"
+        :disabled="loading"
+        @click.stop="$emit('edit', item)"
+      >
+        {{ t('core.common.itemCard.edit') }}
+      </v-btn>
+
+      <v-btn
+        variant="outlined"
+        color="error"
+        size="small"
+        rounded="xl"
+        :disabled="loading"
+        @click.stop="$emit('delete', item)"
+      >
+        {{ t('core.common.itemCard.delete') }}
+      </v-btn>
     </v-card-actions>
 
     <div class="d-flex justify-end align-center" style="position: absolute; bottom: 16px; right: 16px; opacity: 0.2; pointer-events: none;" v-if="bglogo">
@@ -87,50 +95,22 @@ export default {
     return { t };
   },
   props: {
-    item: {
-      type: Object,
-      required: true
-    },
-    titleField: {
-      type: String,
-      default: 'id'
-    },
-    enabledField: {
-      type: String,
-      default: 'enable'
-    },
-    bglogo: {
-      type: String,
-      default: null
-    },
-    loading: {
-      type: Boolean,
-      default: false
-    },
-    showCopyButton: {
-      type: Boolean,
-      default: false
-    },
-    hideHeader: {
-      type: Boolean,
-      default: false
-    },
-    noPadding: {
-      type: Boolean,
-      default: false
-    }
+    item: { type: Object, required: true },
+    titleField: { type: String, default: 'id' },
+    enabledField: { type: String, default: 'enable' },
+    bglogo: { type: String, default: null },
+    loading: { type: Boolean, default: false },
+    showCopyButton: { type: Boolean, default: false },
+    hideHeader: { type: Boolean, default: false },
+    noPadding: { type: Boolean, default: false },
+    showSwitch: { type: Boolean, default: true },
+    titleClass: { type: String, default: 'text-h6' } 
   },
   emits: ['toggle-enabled', 'delete', 'edit', 'copy'],
   methods: {
-    getItemTitle() {
-      return this.item[this.titleField];
-    },
-    getItemEnabled() {
-      return this.item[this.enabledField];
-    },
-    toggleEnabled() {
-      this.$emit('toggle-enabled', this.item);
-    }
+    getItemTitle() { return this.item[this.titleField]; },
+    getItemEnabled() { return this.item[this.enabledField]; },
+    toggleEnabled() { this.$emit('toggle-enabled', this.item); }
   }
 }
 </script>
@@ -149,20 +129,5 @@ export default {
 
 .hover-elevation:hover {
   transform: translateY(-2px);
-}
-
-.item-status-indicator {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: #ccc;
-  z-index: 10;
-}
-
-.item-status-indicator.active {
-  background-color: #4caf50;
 }
 </style>

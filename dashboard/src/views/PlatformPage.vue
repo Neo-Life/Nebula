@@ -26,9 +26,17 @@
 
         <v-row v-else>
           <v-col v-for="(platform, index) in config_data.platform || []" :key="index" cols="12" sm="6" md="6" lg="4" xl="3">
-            <item-card :item="platform" title-field="id" enabled-field="enable"
-              :bglogo="getPlatformIcon(platform.type || platform.id)" @toggle-enabled="platformStatusChange"
-              @delete="deletePlatform" @edit="editPlatform" class="platform-card-item">
+            <item-card 
+              :item="platform" 
+              title-field="id" 
+              enabled-field="enable"
+              title-class="text-h3" 
+              :bglogo="getPlatformIcon(platform.type || platform.id)" 
+              @toggle-enabled="platformStatusChange"
+              @delete="deletePlatform" 
+              @edit="editPlatform" 
+              class="platform-card-item"
+            >
               <template #item-details="{ item }">
                 <div class="platform-status-row mb-2" v-if="getPlatformStat(item.id) && (getPlatformStat(item.id)?.status !== 'running' || getPlatformStat(item.id)?.error_count > 0)">
                   <v-chip
