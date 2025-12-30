@@ -186,8 +186,8 @@ export default {
   font-weight: 600;
 }
 
-.memory-card ::v-deep .v-card-title,
-.memory-card ::v-deep .v-card-actions {
+.memory-card :deep(.v-card-title),
+.memory-card :deep(.v-card-actions) {
   display: none;
 }
 </style>
