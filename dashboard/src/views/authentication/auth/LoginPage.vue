@@ -15,9 +15,7 @@ const customizer = useCustomizerStore();
 const vuetifyTheme = useTheme();
 
 const toI18nString = (value: unknown): string => {
-  if (typeof value === 'string') {
-    return value;
-  }
+  if (typeof value === 'string') return value;
   if (Array.isArray(value)) {
     return (value as Array<unknown>)
       .filter((item): item is string => typeof item === 'string')
@@ -44,50 +42,50 @@ const toggleTheme = () => {
 const switchToDarkLabel = computed(() => toI18nString(t('theme.switchToDark')));
 const switchToLightLabel = computed(() => toI18nString(t('theme.switchToLight')));
 const themeIconColor = computed(() => 'primary');
-
-type WallpaperResponse = {
-  primaryUrl: string | null
-  proxyUrl: string | null
-  title?: string | null
-  copyright?: string | null
-  copyrightLink?: string | null
-}
-
-const heroWallpaper = ref<WallpaperResponse | null>(null);
-const heroImageRef = ref<HTMLImageElement | null>(null);
+const BASE_API_URL = 'https://api.revaea.com/pc'; 
+const currentImageUrl = ref<string>(''); 
+const carouselInterval = ref<any>(null);
 const heroImageLoaded = ref(false);
-type HeroImageMode = 'proxy' | 'primary' | 'fallback';
-const heroImageMode = ref<HeroImageMode>('fallback');
-const heroImageFallback = 'https://api.revaea.com/pc';
+const getFreshUrl = () => {
+  const timestamp = new Date().getTime();
+  const separator = BASE_API_URL.includes('?') ? '&' : '?';
+  return `${BASE_API_URL}${separator}t=${timestamp}`;
+};
 
-const heroImageUrl = computed(() => {
-  if (heroImageMode.value === 'proxy') {
-    return heroWallpaper.value?.proxyUrl ?? heroWallpaper.value?.primaryUrl ?? heroImageFallback;
+const loadNextImage = () => {
+  const nextUrl = getFreshUrl();
+  const img = new Image();
+  
+  img.src = nextUrl;
+  
+  img.onload = () => {
+    currentImageUrl.value = nextUrl;
+    heroImageLoaded.value = true;
+  };
+  
+  img.onerror = () => {
+    console.warn('Image load failed, retrying in next cycle...');
+  };
+};
+
+const startCarousel = () => {
+  stopCarousel();
+  if (!currentImageUrl.value) {
+    loadNextImage();
   }
-  if (heroImageMode.value === 'primary') {
-    return heroWallpaper.value?.primaryUrl ?? heroImageFallback;
+  
+  carouselInterval.value = setInterval(loadNextImage, 10000); 
+};
+
+const stopCarousel = () => {
+  if (carouselInterval.value) {
+    clearInterval(carouselInterval.value);
+    carouselInterval.value = null;
   }
-  return heroImageFallback;
-});
-
-const heroImageAlt = computed(() => heroWallpaper.value?.title ?? 'Bing Wallpaper');
-
-const isFallbackImage = computed(() => heroImageMode.value === 'fallback');
+};
 
 function onHeroImageLoad() {
   heroImageLoaded.value = true;
-}
-
-function onHeroImageError() {
-  heroImageLoaded.value = false;
-  if (heroImageMode.value === 'proxy' && heroWallpaper.value?.primaryUrl) {
-    heroImageMode.value = 'primary';
-    return;
-  }
-  if (heroImageMode.value !== 'fallback') {
-    heroImageMode.value = 'fallback';
-    return;
-  }
 }
 
 const LOGIN_BODY_CLASS = 'login-page-locked';
@@ -101,14 +99,12 @@ onMounted(async () => {
   }
 
   lockBodyScroll();
-  const img = heroImageRef.value;
-  if (img && img.complete && img.naturalWidth > 0) {
-    onHeroImageLoad();
-  }
+  startCarousel(); 
 });
 
 onUnmounted(() => {
   unlockBodyScroll();
+  stopCarousel();
 });
 </script>
 
@@ -117,18 +113,23 @@ onUnmounted(() => {
     <div class="mui-login__container">
         <figure
           class="mui-login__visual"
-          :class="{ 'is-loaded': heroImageLoaded, 'is-fallback': isFallbackImage }"
+          :class="{ 'is-loaded': heroImageLoaded }"
           aria-hidden="true"
         >
-          <img
-            ref="heroImageRef"
-            :src="heroImageUrl"
-            :alt="heroImageAlt"
-            decoding="async"
-            loading="eager"
-            @load="onHeroImageLoad"
-            @error="onHeroImageError"
-          >
+          <Transition name="carousel-fade">
+            <img
+              v-if="currentImageUrl"
+              :key="currentImageUrl"
+              :src="currentImageUrl"
+              alt="Random Wallpaper"
+              decoding="async"
+              loading="eager"
+              @load="onHeroImageLoad"
+            >
+          </Transition>
+
+          <div class="visual-overlay"></div>
+
           <div class="visual-controls" role="toolbar" aria-label="Login interface controls">
             <LanguageSwitcher class="visual-controls__language" :icon-color="themeIconColor" />
             <v-divider vertical class="visual-controls__divider" />
@@ -194,17 +195,11 @@ onUnmounted(() => {
 <style scoped lang="scss">
 @import '@/scss/variables';
 
-/* ========================================
-   Global Styles
-   ======================================== */
 :global(body.login-page-locked) {
   font-family: $body-font-family;
   overflow: hidden;
 }
 
-/* ========================================
-   Layout - Main Container
-   ======================================== */
 .mui-login {
   position: fixed;
   inset: 0;
@@ -231,79 +226,67 @@ onUnmounted(() => {
   backdrop-filter: blur(16px);
 }
 
-/* ========================================
-   Visual Section - Image Display
-   ======================================== */
 .mui-login__visual {
   position: relative;
+  z-index: 10;
   flex: 1.1;
   margin: 0;
   overflow: hidden;
-  background: rgb(var(--v-theme-background));
+  background: rgb(var(--v-theme-background)); 
 }
 
-.mui-login__visual::before {
-  content: '';
+.visual-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(10, 22, 50, 0.9), rgba(3, 9, 20, 0.7));
-  transition: opacity 0.8s ease;
-  opacity: 1;
-  z-index: 0;
+  background: linear-gradient(135deg, rgba(10, 22, 50, 0.4), rgba(3, 9, 20, 0.2));
+  z-index: 2; 
+  pointer-events: none;
 }
 
 .mui-login__visual img {
+  position: absolute;
+  top: 0;
+  left: 0;
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
   filter: saturate(1.1) contrast(1.05);
-  opacity: 0;
-  transform: scale(1.035) translateY(6px);
-  transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 1.1s cubic-bezier(0.2, 0.8, 0.4, 1),
-    filter 1.1s ease;
-  will-change: opacity, transform, filter;
-}
-
-.mui-login__visual::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(2, 6, 23, 0.4), rgba(15, 23, 42, 0.35));
-  pointer-events: none;
   z-index: 1;
+}
+
+.carousel-fade-enter-active {
+  transition: opacity 1.5s ease, transform 2s ease;
+  z-index: 1;
+}
+
+.carousel-fade-leave-active {
+  transition: opacity 1.5s ease;
+  z-index: 0; 
+}
+
+.carousel-fade-enter-from {
   opacity: 0;
-  transition: opacity 0.8s ease;
+  transform: scale(1.05); 
 }
 
-.mui-login__visual.is-loaded::before {
-  opacity: 0;
+.carousel-fade-leave-to {
+  opacity: 0; 
 }
 
-.mui-login__visual.is-loaded::after {
+.carousel-fade-enter-to,
+.carousel-fade-leave-from {
   opacity: 1;
+  transform: scale(1);
 }
 
-.mui-login__visual.is-loaded img {
-  opacity: 1;
-  transform: scale(1) translateY(0);
-}
-
-.mui-login__visual.is-fallback::before {
-  opacity: 1;
-  background: linear-gradient(145deg, rgba(14, 30, 64, 0.9), rgba(8, 17, 40, 0.85));
-}
-
-/* ========================================
-   Panel Section - Login Form
-   ======================================== */
 .mui-login__panel {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
   flex: 0 0 clamp(320px, 38vw, 420px);
+  z-index: 0;
   max-width: 45%;
   padding: 32px 36px;
   background: rgb(var(--v-theme-surface));
@@ -339,7 +322,7 @@ onUnmounted(() => {
   border: 1px solid rgba(var(--v-theme-on-surface), 0.15);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
   backdrop-filter: blur(12px);
-  z-index: 2;
+  z-index: 10;
   transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
@@ -378,9 +361,6 @@ onUnmounted(() => {
   background: rgba(var(--v-theme-primary), 0.16) !important;
 }
 
-/* ========================================
-   Header - Logo & Title
-   ======================================== */
 .mui-login__hero {
   margin-bottom: 6px;
 }
@@ -466,9 +446,6 @@ onUnmounted(() => {
   }
 }
 
-/* ========================================
-   Typography - Text Content
-   ======================================== */
 .mui-login__title {
   display: flex;
   align-items: center;
@@ -485,16 +462,6 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-.mui-login__description {
-  color: rgba(var(--v-theme-on-surface), 0.7);
-  font-size: 13px;
-  line-height: 1.5;
-  text-align: left;
-}
-
-/* ========================================
-   Responsive Design - Mobile & Tablet
-   ======================================== */
 @media (max-height: 600px) {
   .mui-login {
     padding: 0;
@@ -520,11 +487,6 @@ onUnmounted(() => {
   .mui-login__title {
     font-size: 20px;
     margin: 2px 0;
-  }
-
-  .mui-login__description {
-    font-size: 12px;
-    line-height: 1.4;
   }
 }
 
@@ -604,11 +566,6 @@ onUnmounted(() => {
     margin: 4px 0 2px;
   }
 
-  .mui-login__description {
-    font-size: 13px;
-    line-height: 1.5;
-  }
-
   .visual-controls {
     bottom: 16px;
     left: 16px;
@@ -625,16 +582,9 @@ onUnmounted(() => {
     filter: none;
   }
 
-  .mui-login__visual::before,
-  .mui-login__visual::after,
-  .mui-login__visual img {
+  .carousel-fade-enter-active,
+  .carousel-fade-leave-active {
     transition: none;
-  }
-
-  .mui-login__visual img {
-    opacity: 1;
-    transform: none;
-    filter: saturate(1.1) contrast(1.05);
   }
 }
 </style>
