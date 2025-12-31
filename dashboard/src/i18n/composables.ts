@@ -1,13 +1,6 @@
 import { ref, computed } from 'vue';
 import { translations as staticTranslations } from './translations';
 import type { Locale } from './types';
-import cnFlagUrl from 'flag-icons/flags/4x3/cn.svg?url';
-import usFlagUrl from 'flag-icons/flags/4x3/us.svg?url';
-
-const flagMap: Record<string, string> = {
-  'zh-CN': cnFlagUrl,
-  'en-US': usFlagUrl,
-};
 
 const currentLocale = ref<Locale>('zh-CN');
 const translations = ref<Record<string, any>>({});
@@ -30,7 +23,6 @@ function loadTranslations(locale: Locale) {
       translations.value = data;
     } else {
       console.warn(`Translations not found for locale: ${locale}`);
-      // 回退到中文
       if (locale !== 'zh-CN') {
         console.log('Falling back to zh-CN');
         translations.value = staticTranslations['zh-CN'];
@@ -38,7 +30,6 @@ function loadTranslations(locale: Locale) {
     }
   } catch (error) {
     console.error(`Failed to load translations for ${locale}:`, error);
-    // 回退到中文
     if (locale !== 'zh-CN') {
       console.log('Falling back to zh-CN');
       translations.value = staticTranslations['zh-CN'];
@@ -141,12 +132,12 @@ export function useLanguageSwitcher() {
     { 
       value: 'zh-CN', 
       label: '简体中文', 
-      flagUrl: flagMap['zh-CN'] 
+      flag: 'cn' 
     }, 
     { 
       value: 'en-US', 
       label: 'English', 
-      flagUrl: flagMap['en-US'] 
+      flag: 'us' 
     }
   ]);
   

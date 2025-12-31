@@ -121,8 +121,7 @@
               >
                 <template v-slot:prepend>
                   <span 
-                    class="language-flag-styled" 
-                    :style="{ backgroundImage: `url(${lang.flagUrl})` }"
+                    :class="['fi', `fi-${lang.flag}`, 'language-flag-styled']"
                   ></span>
                 </template>
                 <v-list-item-title>{{ lang.label }}</v-list-item-title>
@@ -163,9 +162,8 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useI18n, useModuleI18n } from '@/i18n/composables';
+import { useI18n, useModuleI18n, useLanguageSwitcher } from '@/i18n/composables';
 import type { Session } from '@/composables/useSessions';
-import { useLanguageSwitcher } from '@/i18n/composables';
 import type { Locale } from '@/i18n/types';
 import StyledMenu from '@/components/shared/StyledMenu.vue';
 import ProviderConfigDialog from '@/components/chat/ProviderConfigDialog.vue';
@@ -196,6 +194,7 @@ const { t } = useI18n();
 const { tm } = useModuleI18n('features/chat');
 const sidebarCollapsed = ref(true);
 const showProviderConfigDialog = ref(false);
+
 const { languageOptions, switchLanguage, locale } = useLanguageSwitcher();
 const currentLocale = computed(() => locale.value);
 
@@ -235,6 +234,7 @@ function handleDeleteConversation(session: Session) {
   height: 100%;
   max-height: 100%;
   position: relative;
+  transition: width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease, transform 0.3s ease;
   
   overflow: hidden;
 }
@@ -242,7 +242,7 @@ function handleDeleteConversation(session: Session) {
 .sidebar-collapsed {
   max-width: 60px;
   min-width: 60px;
-  
+  transition: width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease;
 }
 
 .mobile-sidebar {
@@ -253,6 +253,8 @@ function handleDeleteConversation(session: Session) {
   max-width: 280px !important;
   min-width: 280px !important;
   transform: translateX(-100%);
+  transition: transform 0.3s ease;
+  
   z-index: 1000;
 }
 
@@ -289,6 +291,7 @@ function handleDeleteConversation(session: Session) {
 
 .conversation-item:hover {
   background-color: rgba(var(--v-theme-primary), 0.08) !important;
+  transition: background-color 0.2s ease;
 }
 
 .conversation-item:hover .conversation-actions {
@@ -301,13 +304,13 @@ function handleDeleteConversation(session: Session) {
   gap: 4px;
   opacity: 0;
   visibility: hidden;
-  
+  transition: all 0.2s ease;
 }
 
 .edit-title-btn,
 .delete-conversation-btn {
   opacity: 0.7;
-  
+  transition: opacity 0.2s ease;
 }
 
 .edit-title-btn:hover,
@@ -320,7 +323,8 @@ function handleDeleteConversation(session: Session) {
   font-size: 14px;
   line-height: 1.3;
   margin-bottom: 2px;
-  
+  /* 标题需要 opacity 过渡来处理折叠时的隐藏 */
+  transition: opacity 0.25s ease;
 }
 
 .no-conversations {
@@ -336,7 +340,7 @@ function handleDeleteConversation(session: Session) {
 .no-conversations-text {
   font-size: 14px;
   color: var(--v-theme-secondaryText);
-  
+  transition: opacity 0.25s ease;
 }
 
 .sidebar-spacer {
@@ -380,7 +384,7 @@ function handleDeleteConversation(session: Session) {
 
 :deep(.styled-menu-item) {
   margin: 2px 0;
-  
+  transition: all 0.2s ease;
   border-radius: 6px;
 }
 

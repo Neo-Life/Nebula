@@ -7,6 +7,7 @@ import confirmPlugin from './plugins/confirmPlugin';
 import { setupI18n } from './i18n/composables';
 import '@/scss/style.scss';
 import VueApexCharts from 'vue3-apexcharts';
+import 'flag-icons/css/flag-icons.min.css'
 
 import print from 'vue3-print-nb';
 import { loader } from '@guolao/vue-monaco-editor'

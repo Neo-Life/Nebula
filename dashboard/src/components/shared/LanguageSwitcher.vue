@@ -27,8 +27,7 @@
         >
           <template v-slot:prepend>
             <span 
-              class="language-flag-styled"
-              :style="{ backgroundImage: `url(${lang.flagUrl})` }"
+              :class="['fi', `fi-${lang.flag}`, 'language-flag-styled']"
             ></span>
           </template>
           <v-list-item-title>{{ lang.label }}</v-list-item-title>

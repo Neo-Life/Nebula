@@ -290,7 +290,7 @@ watch(() => customizer.viewMode, (newMode, oldMode) => {
 // Merry Christmas! 🎄
 const isChristmas = computed(() => {
   const today = new Date();
-  const month = today.getMonth() + 1; // getMonth() 返回 0-11
+  const month = today.getMonth() + 1; 
   const day = today.getDate();
   return month === 12 && day === 25;
 });
@@ -420,8 +420,7 @@ const changeLanguage = async (langCode: string) => {
              >
                <template v-slot:prepend>
                  <span 
-                    class="language-flag-styled" 
-                    :style="{ backgroundImage: `url(${lang.flagUrl})` }"
+                    :class="['fi', `fi-${lang.flag}`, 'language-flag-styled']"
                  ></span>
                </template>
                <v-list-item-title>{{ lang.label }}</v-list-item-title>
