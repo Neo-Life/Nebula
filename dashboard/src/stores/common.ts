@@ -1,23 +1,9 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
 
-type LogCacheEntry = Record<string, unknown>
+import type { PluginMarketItem } from '@/types/extension'
 
-type PluginMarketItem = {
-  name: string
-  desc?: string
-  author?: string
-  repo?: string
-  installed: boolean
-  version: string
-  social_link?: string
-  tags: string[]
-  logo: string
-  pinned: boolean
-  stars: number
-  updated_at: string
-  display_name: string
-}
+type LogCacheEntry = Record<string, unknown>
 
 type CommonState = {
   eventSource: AbortController | null

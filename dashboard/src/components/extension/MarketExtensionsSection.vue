@@ -279,18 +279,20 @@ import { computed, ref } from 'vue'
 import defaultPluginIcon from '@/assets/images/plugin_icon.png'
 import { useModuleI18n } from '@/i18n/composables'
 
+import type { PluginMarketItem, PluginSource } from '@/types/extension'
+
 const props = defineProps<{
-  filteredMarketPlugins: Array<any>
-  paginatedPlugins: Array<any>
+  filteredMarketPlugins: PluginMarketItem[]
+  paginatedPlugins: PluginMarketItem[]
   currentPage: number
   totalPages: number
   sortBy: string
   sortOrder: string
   sortOptions: Array<{ title: string; value: string }>
   refreshingMarket: boolean
-  customSources: Array<{ name: string; url: string }>
+  customSources: PluginSource[]
   selectedSource: string | null
-  selectedSourceObj: { name: string; url: string } | null
+  selectedSourceObj: PluginSource | null
   showPluginFullName: boolean
 }>()
 
@@ -299,12 +301,12 @@ const emit = defineEmits<{
   (e: 'update:sortBy', value: string): void
   (e: 'update:sortOrder', value: string): void
   (e: 'refresh'): void
-  (e: 'handle-install-plugin', plugin: any): void
+  (e: 'handle-install-plugin', plugin: PluginMarketItem): void
   (e: 'open-install-dialog'): void
   (e: 'select-plugin-source', source: string | null): void
   (e: 'add-custom-source'): void
-  (e: 'edit-custom-source', source: { name: string; url: string }): void
-  (e: 'remove-custom-source', source: { name: string; url: string }): void
+  (e: 'edit-custom-source', source: PluginSource): void
+  (e: 'remove-custom-source', source: PluginSource): void
 }>()
 
 const { tm } = useModuleI18n('features/extension')
@@ -335,7 +337,7 @@ const selectedSourceDisplay = computed(() => {
 
 const selectedSourceTooltip = computed(() => props.selectedSource || tm('market.defaultOfficialSource'))
 
-const displayPluginName = (plugin: any) => {
+const displayPluginName = (plugin: PluginMarketItem) => {
   if (plugin.display_name?.length) {
     return plugin.display_name
   }

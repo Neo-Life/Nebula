@@ -15,6 +15,17 @@ import { pinyin } from 'pinyin-pro';
 import { useCommonStore } from '@/stores/common';
 import { useModuleI18n } from '@/i18n/composables';
 
+import type { ApiResponse } from '@/types/api';
+import type {
+  ExtensionActiveTab,
+  InstalledPlugin,
+  PluginHandlerInfo,
+  PluginMarketItem,
+  PluginSource,
+  ToastColor,
+  UninstallOptions
+} from '@/types/extension';
+
 import { ref, computed, onMounted, reactive, watch } from 'vue';
 
 const commonStore = useCommonStore();
@@ -42,22 +53,23 @@ const handleConflictConfirm = () => {
   activeTab.value = 'components';
 };
 
-const fileInput = ref<any>(null);
-const activeTab = ref('installed');
-const extension_data = reactive({
+const fileInput = ref<{ click?: () => void } | null>(null);
+const activeTab = ref<ExtensionActiveTab>('installed');
+const extension_data = reactive<ApiResponse<InstalledPlugin[]>>({
+  status: 'ok',
   data: [],
   message: ''
 });
 const showReserved = ref(false);
 const snack_message = ref('');
 const snack_show = ref(false);
-const snack_success = ref('success');
+const snack_success = ref<ToastColor>('success');
 const configDialog = ref(false);
 const extension_config = reactive({
   metadata: {},
   config: {}
 });
-const pluginMarketData = ref([]);
+const pluginMarketData = ref<PluginMarketItem[]>([]);
 const loadingDialog = reactive({
   show: false,
   title: '',
@@ -65,7 +77,8 @@ const loadingDialog = reactive({
   result: ''
 });
 const showPluginInfoDialog = ref(false);
-const selectedPlugin = ref<any>({ name: '', handlers: [] });
+type SelectedPlugin = InstalledPlugin & { handlers: PluginHandlerInfo[] };
+const selectedPlugin = ref<SelectedPlugin>({ name: '', handlers: [] });
 const curr_namespace = ref('');
 const updatingAll = ref(false);
 
@@ -89,18 +102,18 @@ const currentPage = ref(1);
 const displayItemsPerPage = 9;
 
 const dangerConfirmDialog = ref(false);
-const selectedDangerPlugin = ref(null);
+const selectedDangerPlugin = ref<PluginMarketItem | null>(null);
 
 const showUninstallDialog = ref(false);
-const pluginToUninstall = ref(null);
+const pluginToUninstall = ref<string | null>(null);
 
 const showSourceDialog = ref(false);
 const sourceName = ref('');
 const sourceUrl = ref('');
-const customSources = ref([]);
-const selectedSource = ref(null);
+const customSources = ref<PluginSource[]>([]);
+const selectedSource = ref<string | null>(null);
 const showRemoveSourceDialog = ref(false);
-const sourceToRemove = ref(null);
+const sourceToRemove = ref<PluginSource | null>(null);
 const editingSource = ref(false);
 const originalSourceUrl = ref('');
 
@@ -252,11 +265,22 @@ const toggleShowReserved = () => {
   showReserved.value = !showReserved.value;
 };
 
-const toast = (message: any, success: any, timeToClose?: number) => {
-  const normalized =
-    typeof message === 'string'
-      ? message
-      : (message?.message ?? message?.toString?.() ?? JSON.stringify(message));
+const toast = (message: unknown, success: ToastColor, timeToClose?: number) => {
+  const normalized = (() => {
+    if (typeof message === 'string') return message;
+    if (message instanceof Error) return message.message;
+
+    if (typeof message === 'object' && message !== null && 'message' in message) {
+      const maybeMessage = (message as { message?: unknown }).message;
+      if (typeof maybeMessage === 'string') return maybeMessage;
+    }
+
+    try {
+      return String(message);
+    } catch {
+      return JSON.stringify(message);
+    }
+  })();
 
   snack_message.value = normalized;
   snack_show.value = true;
@@ -276,7 +300,7 @@ const resetLoadingDialog = () => {
   loadingDialog.result = '';
 };
 
-const onLoadingDialogResult = (statusCode, result, timeToClose = 2000) => {
+const onLoadingDialogResult = (statusCode: number, result: string, timeToClose = 2000) => {
   loadingDialog.statusCode = statusCode;
   loadingDialog.result = result;
   if (timeToClose === -1) return;
@@ -286,7 +310,7 @@ const onLoadingDialogResult = (statusCode, result, timeToClose = 2000) => {
 const getExtensions = async () => {
   loading_.value = true;
   try {
-    const res = await axios.get('/api/plugin/get');
+    const res = await axios.get<ApiResponse<InstalledPlugin[]>>('/api/plugin/get');
     if (!Array.isArray(res.data.data)) {
       console.error('Invalid data format:', res.data);
       throw new Error('Invalid data format');
@@ -330,7 +354,7 @@ const checkUpdate = () => {
 
 const uninstallExtension = async (
   extension_name: string,
-  optionsOrSkipConfirm: boolean | { deleteConfig?: boolean; deleteData?: boolean } = false
+  optionsOrSkipConfirm: boolean | UninstallOptions = false
 ) => {
   let deleteConfig = false;
   let deleteData = false;
@@ -381,7 +405,7 @@ const handleUninstallConfirm = (options) => {
   }
 };
 
-const updateExtension = async (extension_name) => {
+const updateExtension = async (extension_name: string) => {
   loadingDialog.title = tm('status.loading');
   loadingDialog.show = true;
   try {
@@ -611,7 +635,7 @@ const addCustomSource = () => {
   showSourceDialog.value = true;
 };
 
-const selectPluginSource = (sourceUrl) => {
+const selectPluginSource = (sourceUrl: string | null) => {
   selectedSource.value = sourceUrl;
   if (sourceUrl) {
     localStorage.setItem('selectedPluginSource', sourceUrl);
@@ -621,12 +645,12 @@ const selectPluginSource = (sourceUrl) => {
   refreshPluginMarket();
 };
 
-const selectedSourceObj = computed(() => {
+const selectedSourceObj = computed<PluginSource | null>(() => {
   if (!selectedSource.value) return null;
   return customSources.value.find(s => s.url === selectedSource.value) || null;
 });
 
-const editCustomSource = (source) => {
+const editCustomSource = (source: PluginSource | null) => {
   if (!source) return;
   editingSource.value = true;
   originalSourceUrl.value = source.url;
@@ -635,7 +659,7 @@ const editCustomSource = (source) => {
   showSourceDialog.value = true;
 };
 
-const removeCustomSource = (source) => {
+const removeCustomSource = (source: PluginSource | null) => {
   if (!source) return;
   sourceToRemove.value = source;
   showRemoveSourceDialog.value = true;
@@ -1116,19 +1140,19 @@ watch(isListView, (newVal) => {
           <template v-slot:header.id="{ column }">
             <p style="font-weight: bold;">{{ column.title }}</p>
           </template>
-          <template v-slot:item.event_type="{ item }">
-            {{ (item as any).event_type }}
+          <template v-slot:item.event_type="{ item }: { item: PluginHandlerInfo }">
+            {{ item.event_type }}
           </template>
-          <template v-slot:item.desc="{ item }">
-            {{ (item as any).desc }}
+          <template v-slot:item.desc="{ item }: { item: PluginHandlerInfo }">
+            {{ item.desc }}
           </template>
-          <template v-slot:item.type="{ item }">
+          <template v-slot:item.type="{ item }: { item: PluginHandlerInfo }">
             <v-chip color="success">
-              {{ (item as any).type }}
+              {{ item.type }}
             </v-chip>
           </template>
-          <template v-slot:item.cmd="{ item }">
-            <span style="font-weight: bold;">{{ (item as any).cmd }}</span>
+          <template v-slot:item.cmd="{ item }: { item: PluginHandlerInfo }">
+            <span style="font-weight: bold;">{{ item.cmd }}</span>
           </template>
         </v-data-table>
       </v-card-text>

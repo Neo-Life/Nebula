@@ -217,13 +217,15 @@ import ExtensionCard from '@/components/shared/ExtensionCard.vue'
 import defaultPluginIcon from '@/assets/images/plugin_icon.png'
 import { useModuleI18n } from '@/i18n/composables'
 
+import type { InstalledPlugin, UninstallOptions } from '@/types/extension'
+
 const props = defineProps<{
   isListView: boolean
-  filteredPlugins: Array<any>
+  filteredPlugins: InstalledPlugin[]
   loading: boolean
-  pluginHeaders: Array<any>
+  pluginHeaders: Array<{ title: string; key: string; [k: string]: unknown }>
   showReserved: boolean
-  updatableExtensions: Array<any>
+  updatableExtensions: InstalledPlugin[]
   updatingAll: boolean
   extensionMessage?: string | null
 }>()
@@ -233,14 +235,14 @@ const emit = defineEmits<{
   (e: 'toggle-show-reserved'): void
   (e: 'update-all'): void
   (e: 'open-install-dialog'): void
-  (e: 'plugin-on', extension: any): void
-  (e: 'plugin-off', extension: any): void
+  (e: 'plugin-on', extension: InstalledPlugin): void
+  (e: 'plugin-off', extension: InstalledPlugin): void
   (e: 'reload', name: string): void
   (e: 'open-config', name: string): void
-  (e: 'show-info', extension: any): void
-  (e: 'view-readme', extension: any): void
+  (e: 'show-info', extension: InstalledPlugin): void
+  (e: 'view-readme', extension: InstalledPlugin): void
   (e: 'update-extension', name: string): void
-  (e: 'uninstall', payload: { extension: any; options?: any }): void
+  (e: 'uninstall', payload: { extension: InstalledPlugin; options?: UninstallOptions }): void
 }>()
 
 const { tm } = useModuleI18n('features/extension')
