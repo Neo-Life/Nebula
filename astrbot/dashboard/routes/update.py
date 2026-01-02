@@ -53,6 +53,7 @@ class UpdateRoute(Route):
 
     async def check_update(self):
         type_ = request.args.get("type", None)
+        channel = request.args.get("channel", "official")
 
         try:
             dv = await get_dashboard_version()
@@ -62,6 +63,20 @@ class UpdateRoute(Route):
                     .ok({"has_new_version": dv != f"v{VERSION}", "current_version": dv})
                     .__dict__
                 )
+
+            if channel == "landfill":
+                return Response(
+                    status="success",
+                    message="该更新渠道不提供 releases 版本列表，将直接拉取默认分支最新源码。",
+                    data={
+                        "version": f"v{VERSION}",
+                        "has_new_version": False,
+                        "dashboard_version": dv,
+                        "dashboard_has_new_version": bool(dv and dv != f"v{VERSION}"),
+                        "channel": channel,
+                    },
+                ).__dict__
+
             ret = await self.astrbot_updator.check_update(None, None, False)
             return Response(
                 status="success",
@@ -71,6 +86,7 @@ class UpdateRoute(Route):
                     "has_new_version": ret is not None,
                     "dashboard_version": dv,
                     "dashboard_has_new_version": bool(dv and dv != f"v{VERSION}"),
+                    "channel": channel,
                 },
             ).__dict__
         except Exception as e:
@@ -78,6 +94,10 @@ class UpdateRoute(Route):
             return Response().error(e.__str__()).__dict__
 
     async def get_releases(self):
+        channel = request.args.get("channel", "official")
+        if channel == "landfill":
+            # 该渠道通常没有 releases；面板侧会提供“更新到最新源码”按钮。
+            return Response().ok([]).__dict__
         try:
             ret = await self.astrbot_updator.get_releases()
             return Response().ok(ret).__dict__
@@ -87,6 +107,7 @@ class UpdateRoute(Route):
 
     async def update_project(self):
         data = await request.json
+        channel = data.get("channel", "official")
         version = data.get("version", "")
         reboot = data.get("reboot", True)
         if version == "" or version == "latest":
@@ -98,6 +119,53 @@ class UpdateRoute(Route):
         proxy: str = data.get("proxy", None)
         if proxy:
             proxy = proxy.removesuffix("/")
+
+        if channel == "landfill":
+            # 从指定仓库拉取最新源码（无 releases 也可用：会回退到默认分支 zip）
+            repo_url = "https://github.com/LandfillLand/LandfillBot"
+            try:
+                await self.astrbot_updator.download_from_repo_url(
+                    target_path="temp",
+                    repo_url=repo_url,
+                    proxy=proxy or "",
+                )
+                self.astrbot_updator.unzip_file(
+                    "temp.zip", self.astrbot_updator.MAIN_PATH
+                )
+
+                # pip 更新依赖
+                logger.info("更新依赖中...")
+                try:
+                    await pip_installer.install(requirements_path="requirements.txt")
+                except Exception as e:
+                    logger.error(f"更新依赖失败: {e}")
+
+                if reboot:
+                    await self.core_lifecycle.restart()
+                    ret = (
+                        Response()
+                        .ok(
+                            None,
+                            "更新成功（已从 LandfillBot 源码渠道拉取最新代码）。AstrBot 将在 2 秒内全量重启。",
+                        )
+                        .__dict__
+                    )
+                    return ret, 200, CLEAR_SITE_DATA_HEADERS
+
+                ret = (
+                    Response()
+                    .ok(
+                        None,
+                        "更新成功（已从 LandfillBot 源码渠道拉取最新代码）。AstrBot 将在下次启动时应用新的代码。",
+                    )
+                    .__dict__
+                )
+                return ret, 200, CLEAR_SITE_DATA_HEADERS
+            except Exception as e:
+                logger.error(
+                    f"/api/update_project (landfill): {traceback.format_exc()}"
+                )
+                return Response().error(e.__str__()).__dict__
 
         try:
             await self.astrbot_updator.update(

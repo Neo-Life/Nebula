@@ -54,6 +54,13 @@
       "hasNewVersion": "有新版本！",
       "isLatest": "已经是最新版本了。",
       "downloadAndUpdate": "下载并更新"
+    },
+    "channel": {
+      "label": "更新渠道",
+      "official": "官方渠道（AstrBot）",
+      "landfill": "LandfillBot 渠道（源码）",
+      "landfillTip": "该渠道没有 releases 版本列表，将直接拉取默认分支最新源码进行更新。",
+      "updateLatest": "从该渠道更新到最新源码"
     }
   },
   "accountDialog": {

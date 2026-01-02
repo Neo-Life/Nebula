@@ -46,6 +46,21 @@ let releases = ref([]);
 let updatingDashboardLoading = ref(false);
 let installLoading = ref(false);
 
+type UpdateChannel = 'official' | 'landfill'
+
+const updateChannel = ref<UpdateChannel>(
+  (localStorage.getItem('selectedUpdateChannel') as UpdateChannel) || 'official'
+)
+
+watch(updateChannel, (val) => {
+  localStorage.setItem('selectedUpdateChannel', val)
+})
+
+const updateChannelOptions = computed(() => [
+  { title: t('core.header.updateDialog.channel.official'), value: 'official' },
+  { title: t('core.header.updateDialog.channel.landfill'), value: 'landfill' }
+])
+
 // Release Notes Modal
 let releaseNotesDialog = ref(false);
 let selectedReleaseNotes = ref('');
@@ -160,7 +175,7 @@ function getVersion() {
 
 function checkUpdate() {
   updateStatus.value = t('core.header.updateDialog.status.checking');
-  axios.get('/api/update/check')
+  axios.get('/api/update/check', { params: { channel: updateChannel.value } })
     .then((res) => {
       hasNewVersion.value = res.data.data.has_new_version;
 
@@ -185,7 +200,7 @@ function checkUpdate() {
 }
 
 function getReleases() {
-  axios.get('/api/update/releases')
+  axios.get('/api/update/releases', { params: { channel: updateChannel.value } })
     .then((res) => {
       releases.value = res.data.data.map((item: any) => {
         item.published_at = new Date(item.published_at).toLocaleString();
@@ -197,6 +212,12 @@ function getReleases() {
     });
 }
 
+function openUpdateDialog() {
+  updateStatusDialog.value = true
+  checkUpdate()
+  getReleases()
+}
+
 
 
 function switchVersion(version: string) {
@@ -204,7 +225,8 @@ function switchVersion(version: string) {
   installLoading.value = true;
   axios.post('/api/update/do', {
     version: version,
-    proxy: localStorage.getItem('selectedGitHubProxy') || ''
+    proxy: localStorage.getItem('selectedGitHubProxy') || '',
+    channel: updateChannel.value
   })
     .then((res) => {
       updateStatus.value = res.data.message;
@@ -220,6 +242,32 @@ function switchVersion(version: string) {
     }).finally(() => {
       installLoading.value = false;
     });
+}
+
+function updateToLatestFromChannel() {
+  updateStatus.value = t('core.header.updateDialog.status.switching')
+  installLoading.value = true
+  axios
+    .post('/api/update/do', {
+      version: 'latest',
+      proxy: localStorage.getItem('selectedGitHubProxy') || '',
+      channel: updateChannel.value
+    })
+    .then((res) => {
+      updateStatus.value = res.data.message
+      if (res.data.status == 'ok') {
+        setTimeout(() => {
+          window.location.reload()
+        }, 1000)
+      }
+    })
+    .catch((err) => {
+      console.log(err)
+      updateStatus.value = err
+    })
+    .finally(() => {
+      installLoading.value = false
+    })
 }
 
 function updateDashboard() {
@@ -449,7 +497,7 @@ const changeLanguage = async (langCode: string) => {
       </v-list-item>
 
       <v-list-item
-        @click="checkUpdate(); getReleases(); updateStatusDialog = true"
+        @click="openUpdateDialog"
         class="styled-menu-item"
         rounded="md"
       >
@@ -492,6 +540,20 @@ const changeLanguage = async (langCode: string) => {
               <small style="margin-left: 4px;">{{ updateStatus }}</small>
             </div>
 
+            <div class="mt-4">
+              <v-select
+                v-model="updateChannel"
+                :items="updateChannelOptions"
+                item-title="title"
+                item-value="value"
+                density="comfortable"
+                variant="outlined"
+                style="max-width: 520px;"
+                :label="t('core.header.updateDialog.channel.label')"
+                @update:model-value="() => { checkUpdate(); getReleases(); }"
+              />
+            </div>
+
             <div v-if="releaseMessage"
               style="background-color: #646cff24; padding: 16px; border-radius: 10px; font-size: 14px; max-height: 400px; overflow-y: auto;">
               <MarkdownRender :content="releaseMessage" :typewriter="false" class="markdown-content" />
@@ -502,7 +564,7 @@ const changeLanguage = async (langCode: string) => {
                 {{ t('core.header.updateDialog.tipContinue') }}</small>
             </div>
 
-            <div>
+            <div v-if="updateChannel === 'official'">
                 <div class="mb-4">
                   <small>{{ t('core.header.updateDialog.dockerTip') }} <a
                       href="https://containrrr.dev/watchtower/usage-overview/">{{
@@ -546,6 +608,20 @@ const changeLanguage = async (langCode: string) => {
                     </v-btn>
                   </template>
                 </v-data-table>
+            </div>
+
+            <div v-else class="mt-2">
+              <v-alert type="info" variant="tonal" border="start" class="mb-4">
+                {{ t('core.header.updateDialog.channel.landfillTip') }}
+              </v-alert>
+              <v-btn
+                color="primary"
+                style="border-radius: 10px;"
+                @click="updateToLatestFromChannel"
+                :loading="installLoading"
+              >
+                {{ t('core.header.updateDialog.channel.updateLatest') }}
+              </v-btn>
             </div>
 
             <v-divider class="mt-4 mb-4"></v-divider>
