@@ -81,8 +81,20 @@
 
           <template v-slot:item.name="{ item }">
             <div class="d-flex align-center py-2">
+              <div class="mr-3" style="flex-shrink: 0;">
+                <img
+                  :src="item.logo || defaultPluginIcon"
+                  :alt="item.name"
+                  style="height: 40px; width: 40px; border-radius: 8px; object-fit: cover;"
+                />
+              </div>
               <div>
-                <div class="text-subtitle-1 font-weight-medium">{{ item.name }}</div>
+                <div class="text-subtitle-1 font-weight-medium">
+                  {{ item.display_name && item.display_name.length ? item.display_name : item.name }}
+                </div>
+                <div v-if="item.display_name && item.display_name.length" class="text-caption text-medium-emphasis mt-1">
+                  {{ item.name }}
+                </div>
                 <div v-if="item.reserved" class="d-flex align-center mt-1">
                   <v-chip color="primary" size="x-small" class="font-weight-medium">{{ tm('status.system') }}</v-chip>
                 </div>
@@ -202,6 +214,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import ExtensionCard from '@/components/shared/ExtensionCard.vue'
+import defaultPluginIcon from '@/assets/images/plugin_icon.png'
 import { useModuleI18n } from '@/i18n/composables'
 
 const props = defineProps<{
