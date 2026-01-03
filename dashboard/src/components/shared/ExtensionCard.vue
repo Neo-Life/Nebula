@@ -147,9 +147,14 @@ const attrs = useAttrs();
                   }})</v-list-item-title>
                 </v-list-item>
 
-                <v-list-item @click="updateExtension" :disabled="!extension?.has_update">
+                <v-list-item @click="updateExtension">
                   <v-list-item-title>
-                    {{ tm('card.actions.updateTo') }} {{ extension.online_version || extension.version }}
+                    <template v-if="extension?.has_update">
+                      {{ tm('card.actions.updateTo') }} {{ extension.online_version || extension.version }}
+                    </template>
+                    <template v-else>
+                      {{ tm('card.actions.reinstall') }}
+                    </template>
                   </v-list-item-title>
                 </v-list-item>
               </template>

@@ -158,7 +158,7 @@
                   <v-tooltip activator="parent" location="top">{{ tm('tooltips.viewDocs') }}</v-tooltip>
                 </v-btn>
 
-                <v-btn icon size="small" color="warning" @click="emit('update-extension', resolveRow(item).name)" v-show="resolveRow(item).has_update">
+                <v-btn icon size="small" color="warning" @click="emit('update-extension', resolveRow(item).name)">
                   <v-icon>mdi-update</v-icon>
                   <v-tooltip activator="parent" location="top">{{ tm('tooltips.update') }}</v-tooltip>
                 </v-btn>

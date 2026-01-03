@@ -34,6 +34,7 @@ const {
   currentPage,
   dangerConfirmDialog,
   showUninstallDialog,
+  forceUpdateDialog,
   showSourceDialog,
   sourceName,
   sourceUrl,
@@ -71,6 +72,8 @@ const {
   showPluginInfo,
   viewReadme,
   updateExtension,
+  confirmForceUpdate,
+  cancelForceUpdate,
   handleUninstall,
   refreshPluginMarket,
   handleInstallPlugin,
@@ -280,6 +283,21 @@ const {
       <v-card-actions class="pa-4">
         <v-spacer></v-spacer>
         <v-btn color="blue-darken-1" variant="text" @click="resetLoadingDialog">{{ tm('buttons.close') }}</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- 强制更新确认对话框 -->
+  <v-dialog v-model="forceUpdateDialog.show" max-width="500">
+    <v-card class="rounded-lg">
+      <v-card-title class="headline">{{ tm('dialogs.forceUpdate.title') }}</v-card-title>
+      <v-card-text>
+        <p class="text-body-1">{{ tm('dialogs.forceUpdate.message') }}</p>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn variant="text" @click="cancelForceUpdate">{{ tm('buttons.cancel') }}</v-btn>
+        <v-btn color="warning" variant="tonal" @click="confirmForceUpdate">{{ tm('dialogs.forceUpdate.confirm') }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

@@ -161,6 +161,8 @@ export function useExtensionPage() {
     showUninstallDialog: installed.showUninstallDialog,
     pluginToUninstall: installed.pluginToUninstall,
 
+    forceUpdateDialog: installed.forceUpdateDialog,
+
     showSourceDialog: sources.showSourceDialog,
     sourceName: sources.sourceName,
     sourceUrl: sources.sourceUrl,
@@ -212,6 +214,9 @@ export function useExtensionPage() {
 
     updateExtension: installed.updateExtension,
     updateAllExtensions: installed.updateAllExtensions,
+
+    confirmForceUpdate: installed.confirmForceUpdate,
+    cancelForceUpdate: installed.cancelForceUpdate,
 
     pluginOn: installed.pluginOn,
     pluginOff: installed.pluginOff,

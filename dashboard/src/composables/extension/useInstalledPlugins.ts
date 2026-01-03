@@ -236,7 +236,23 @@ export function useInstalledPlugins({
   // update
   const updatingAll = ref(false)
 
-  const updateExtension = async (extension_name: string) => {
+  // force update (reinstall)
+  const forceUpdateDialog = reactive({
+    show: false,
+    pluginName: ''
+  })
+
+  const updateExtension = async (extension_name: string, forceUpdate = false) => {
+    if (!forceUpdate) {
+      const data = Array.isArray(extension_data?.data) ? extension_data.data : []
+      const target = data.find(ext => ext.name === extension_name)
+      if (target && !target.has_update) {
+        forceUpdateDialog.pluginName = extension_name
+        forceUpdateDialog.show = true
+        return
+      }
+    }
+
     loadingDialog.title = tm('status.loading')
     loadingDialog.show = true
     try {
@@ -265,6 +281,19 @@ export function useInstalledPlugins({
     } catch (err) {
       toast(err, 'error')
     }
+  }
+
+  const confirmForceUpdate = async () => {
+    const name = forceUpdateDialog.pluginName
+    forceUpdateDialog.show = false
+    forceUpdateDialog.pluginName = ''
+    if (!name) return
+    await updateExtension(name, true)
+  }
+
+  const cancelForceUpdate = () => {
+    forceUpdateDialog.show = false
+    forceUpdateDialog.pluginName = ''
   }
 
   const updateAllExtensions = async () => {
@@ -412,6 +441,8 @@ export function useInstalledPlugins({
 
     updatingAll,
 
+    forceUpdateDialog,
+
     filteredExtensions,
     filteredPlugins,
     updatableExtensions,
@@ -434,6 +465,9 @@ export function useInstalledPlugins({
 
     updateExtension,
     updateAllExtensions,
+
+    confirmForceUpdate,
+    cancelForceUpdate,
 
     openExtensionConfig,
     updateConfig,
