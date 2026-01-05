@@ -187,7 +187,7 @@
 
     <v-dialog v-model="cartDialog" max-width="720" scroll-strategy="block" scroll-target="body">
       <v-card>
-        <v-card-title class="d-flex align-center justify-space-between">
+        <v-card-title class="d-flex align-center justify-space-between px-4 py-3">
           <div class="d-flex align-center" style="gap: 8px; min-width: 0;">
             <v-icon>mdi-cart</v-icon>
             <span class="text-subtitle-1 font-weight-medium">{{ tm('market.cart.title') }}</span>
@@ -202,7 +202,7 @@
 
         <v-divider></v-divider>
 
-        <v-card-text style="max-height: 60vh; overflow-y: auto;">
+        <v-card-text class="px-4 py-4" style="max-height: 60vh; overflow-y: auto;">
           <v-alert v-if="cartItems.length === 0" density="compact" variant="tonal" color="secondary">
             {{ tm('market.cart.empty') }}
           </v-alert>
@@ -238,7 +238,7 @@
 
         <v-divider></v-divider>
 
-        <v-card-actions>
+        <v-card-actions class="px-4 pb-4">
           <v-btn
             color="error"
             variant="text"
