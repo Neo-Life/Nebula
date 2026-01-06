@@ -1,3 +1,8 @@
+/*
+ * 该组件已弃用
+ * 无论上游如何修改
+ * 也不会维护这个组件
+/*
 <script setup>
 import { ref, watch, onMounted, computed } from "vue";
 import axios from "axios";
