@@ -377,7 +377,7 @@
 
             <v-btn v-if="plugin?.repo" color="secondary" size="small" variant="tonal" :href="plugin.repo" target="_blank" style="height: 32px;">
               <v-icon icon="mdi-github" start size="small"></v-icon>
-              {{ tm('market.repo') }}
+              {{ tm('buttons.viewRepo') }}
             </v-btn>
 
             <v-btn
