@@ -31,7 +31,11 @@
       <slot name="item-details" :item="item"></slot>
     </v-card-text>
 
-    <v-card-actions v-if="!hideHeader" class="flex-shrink-0 align-center" style="margin: 8px;">
+    <v-card-actions
+      v-if="!hideHeader"
+      :class="['flex-shrink-0 align-center', wrapActions ? 'flex-wrap ga-2' : '']"
+      style="margin: 8px;"
+    >
       
       <slot name="footer-start" :item="item"></slot>
       
@@ -52,6 +56,7 @@
       </v-btn>
 
       <v-btn
+        v-if="showEditButton"
         variant="tonal"
         color="primary"
         size="small"
@@ -63,6 +68,7 @@
       </v-btn>
 
       <v-btn
+        v-if="showDeleteButton"
         variant="outlined"
         color="error"
         size="small"
@@ -104,7 +110,10 @@ export default {
     hideHeader: { type: Boolean, default: false },
     noPadding: { type: Boolean, default: false },
     showSwitch: { type: Boolean, default: true },
-    titleClass: { type: String, default: 'text-h6' } 
+    titleClass: { type: String, default: 'text-h6' },
+    showEditButton: { type: Boolean, default: true },
+    showDeleteButton: { type: Boolean, default: true },
+    wrapActions: { type: Boolean, default: false }
   },
   emits: ['toggle-enabled', 'delete', 'edit', 'copy'],
   methods: {

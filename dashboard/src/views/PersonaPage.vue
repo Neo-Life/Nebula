@@ -103,9 +103,9 @@
                     <div v-if="viewingPersona.begin_dialogs && viewingPersona.begin_dialogs.length > 0" class="mb-4">
                         <h4 class="text-h6 mb-2">{{ tm('form.presetDialogs') }}</h4>
                         <div v-for="(dialog, index) in viewingPersona.begin_dialogs" :key="index" class="mb-2">
-                            <v-chip :color="index % 2 === 0 ? 'primary' : 'secondary'" variant="tonal" size="small"
+                            <v-chip :color="Number(index) % 2 === 0 ? 'primary' : 'secondary'" variant="tonal" size="small"
                                 class="mb-1">
-                                {{ index % 2 === 0 ? tm('form.userMessage') : tm('form.assistantMessage') }}
+                                {{ Number(index) % 2 === 0 ? tm('form.userMessage') : tm('form.assistantMessage') }}
                             </v-chip>
                             <div class="dialog-content ml-2">
                                 {{ dialog }}

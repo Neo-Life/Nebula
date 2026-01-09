@@ -62,10 +62,17 @@ export function useInstalledPlugins({
 
   const filteredExtensions = computed(() => {
     const data = Array.isArray(extension_data?.data) ? extension_data.data : []
+
+    const sorted = [...data].sort((a, b) => {
+      const aKey = (a.display_name?.length ? a.display_name : a.name || '').toLowerCase()
+      const bKey = (b.display_name?.length ? b.display_name : b.name || '').toLowerCase()
+      return aKey.localeCompare(bKey)
+    })
+
     if (!showReserved.value) {
-      return data.filter(ext => !ext.reserved)
+      return sorted.filter(ext => !ext.reserved)
     }
-    return data
+    return sorted
   })
 
   const filteredPlugins = computed(() => {
@@ -74,12 +81,19 @@ export function useInstalledPlugins({
     }
 
     const search = pluginSearch.value.toLowerCase()
-    return filteredExtensions.value.filter(plugin => {
+    const filtered = filteredExtensions.value.filter(plugin => {
       return (
         plugin.name?.toLowerCase().includes(search) ||
         plugin.desc?.toLowerCase().includes(search) ||
         plugin.author?.toLowerCase().includes(search)
       )
+    })
+
+    // 搜索模式下也保持稳定排序（避免启停后列表顺序抖动）
+    return [...filtered].sort((a, b) => {
+      const aKey = (a.display_name?.length ? a.display_name : a.name || '').toLowerCase()
+      const bKey = (b.display_name?.length ? b.display_name : b.name || '').toLowerCase()
+      return aKey.localeCompare(bKey)
     })
   })
 

@@ -130,7 +130,7 @@
     </v-card>
   </v-dialog>
 
-  <div class="mt-4">
+  <div class="mt-4 market-page">
     <div class="d-flex align-center mb-2" style="justify-content: space-between; flex-wrap: wrap; gap: 8px;">
       <div class="d-flex align-center" style="gap: 6px;">
         <h2>{{ tm('market.allPlugins') }}({{ filteredMarketPlugins.length }})</h2>
@@ -274,65 +274,71 @@
       </template>
 
       <v-col v-else v-for="plugin in paginatedPlugins" :key="plugin.name" cols="12" md="6" lg="4">
-        <v-card class="rounded-lg d-flex flex-column plugin-card" elevation="0" style="height: 12rem; position: relative;">
-          <v-chip v-if="plugin?.pinned" color="warning" size="x-small" label style="position: absolute; right: 8px; top: 8px; z-index: 10; height: 20px; font-weight: bold;">
-            🥳 {{ tm('market.recommended') }}
-          </v-chip>
+        <ItemCard
+          :item="toItemCardPlugin(plugin)"
+          title-field="_title"
+          title-class="text-h3"
+          :show-switch="false"
+          :show-edit-button="false"
+          :show-delete-button="false"
+          :no-padding="true"
+          class="plugin-card"
+          style="height: 15rem;"
+        >
+          <template #item-details>
+            <v-chip v-if="plugin?.pinned" color="warning" size="x-small" label style="position: absolute; right: 8px; top: 8px; z-index: 10; height: 20px; font-weight: bold;">
+              🥳 {{ tm('market.recommended') }}
+            </v-chip>
 
-          <v-card-text style="padding: 12px; padding-bottom: 8px; display: flex; gap: 12px; width: 100%; flex: 1; overflow: hidden;">
-            <div style="flex-shrink: 0;">
-              <img :src="plugin?.logo || defaultPluginIcon" :alt="plugin.name" style="height: 75px; width: 75px; border-radius: 8px; object-fit: cover;" />
+            <div style="padding: 12px; padding-bottom: 8px; display: flex; gap: 12px; width: 100%; height: 100%; overflow: hidden;">
+              <div style="flex-shrink: 0;">
+                <img :src="plugin?.logo || defaultPluginIcon" :alt="plugin.name" style="height: 100px; width: 100px; border-radius: 8px; object-fit: cover;" />
+              </div>
+
+              <div style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+                <div class="d-flex align-center" style="gap: 4px; margin-bottom: 6px;">
+                  <v-icon icon="mdi-account" size="x-small" style="color: rgba(var(--v-theme-on-surface), 0.5);"></v-icon>
+                  <a
+                    v-if="plugin?.social_link"
+                    :href="plugin.social_link"
+                    target="_blank"
+                    class="text-subtitle-2 font-weight-medium"
+                    style="text-decoration: none; color: rgb(var(--v-theme-primary)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                  >
+                    {{ plugin.author }}
+                  </a>
+                  <span
+                    v-else
+                    class="text-subtitle-2 font-weight-medium"
+                    style="color: rgb(var(--v-theme-primary)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                  >
+                    {{ plugin.author }}
+                  </span>
+                  <div class="d-flex align-center text-subtitle-2 ml-2" style="color: rgba(var(--v-theme-on-surface), 0.7);">
+                    <v-icon icon="mdi-source-branch" size="x-small" style="margin-right: 2px;"></v-icon>
+                    <span>{{ plugin.version }}</span>
+                  </div>
+                </div>
+
+                <div class="text-caption plugin-description">
+                  {{ formatDescription(plugin.desc) }}
+                </div>
+
+                <div class="d-flex align-center" style="gap: 8px; margin-top: auto;">
+                  <div v-if="plugin.stars !== undefined" class="d-flex align-center text-subtitle-2" style="color: rgba(var(--v-theme-on-surface), 0.7);">
+                    <v-icon icon="mdi-star" size="x-small" style="margin-right: 2px;"></v-icon>
+                    <span>{{ plugin.stars }}</span>
+                  </div>
+                  <div v-if="plugin.updated_at" class="d-flex align-center text-subtitle-2" style="color: rgba(var(--v-theme-on-surface), 0.7);">
+                    <v-icon icon="mdi-clock-outline" size="x-small" style="margin-right: 2px;"></v-icon>
+                    <span>{{ formatUpdatedAt(plugin.updated_at) }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
+          </template>
 
-            <div style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
-              <div class="font-weight-bold" style="margin-bottom: 4px; line-height: 1.3; font-size: 1.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                <span style="overflow: hidden; text-overflow: ellipsis;">
-                  {{ displayPluginName(plugin) }}
-                </span>
-              </div>
-
-              <div class="d-flex align-center" style="gap: 4px; margin-bottom: 6px;">
-                <v-icon icon="mdi-account" size="x-small" style="color: rgba(var(--v-theme-on-surface), 0.5);"></v-icon>
-                <a
-                  v-if="plugin?.social_link"
-                  :href="plugin.social_link"
-                  target="_blank"
-                  class="text-subtitle-2 font-weight-medium"
-                  style="text-decoration: none; color: rgb(var(--v-theme-primary)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
-                >
-                  {{ plugin.author }}
-                </a>
-                <span
-                  v-else
-                  class="text-subtitle-2 font-weight-medium"
-                  style="color: rgb(var(--v-theme-primary)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
-                >
-                  {{ plugin.author }}
-                </span>
-                <div class="d-flex align-center text-subtitle-2 ml-2" style="color: rgba(var(--v-theme-on-surface), 0.7);">
-                  <v-icon icon="mdi-source-branch" size="x-small" style="margin-right: 2px;"></v-icon>
-                  <span>{{ plugin.version }}</span>
-                </div>
-              </div>
-
-              <div class="text-caption plugin-description">
-                {{ formatDescription(plugin.desc) }}
-              </div>
-
-              <div class="d-flex align-center" style="gap: 8px; margin-top: auto;">
-                <div v-if="plugin.stars !== undefined" class="d-flex align-center text-subtitle-2" style="color: rgba(var(--v-theme-on-surface), 0.7);">
-                  <v-icon icon="mdi-star" size="x-small" style="margin-right: 2px;"></v-icon>
-                  <span>{{ plugin.stars }}</span>
-                </div>
-                <div v-if="plugin.updated_at" class="d-flex align-center text-subtitle-2" style="color: rgba(var(--v-theme-on-surface), 0.7);">
-                  <v-icon icon="mdi-clock-outline" size="x-small" style="margin-right: 2px;"></v-icon>
-                  <span>{{ formatUpdatedAt(plugin.updated_at) }}</span>
-                </div>
-              </div>
-            </div>
-          </v-card-text>
-
-          <v-card-actions style="gap: 6px; padding: 8px 12px; padding-top: 0;">
+          <template #footer-start>
             <v-chip
               v-for="tag in plugin.tags?.slice(0, 2)"
               :key="tag"
@@ -357,7 +363,9 @@
                 </v-list-item>
               </v-list>
             </v-menu>
-            <v-spacer></v-spacer>
+          </template>
+
+          <template #actions>
             <v-tooltip :text="isInCart(plugin) ? tm('market.cart.remove') : tm('market.cart.add')" location="top">
               <template #activator="{ props: tipProps }">
                 <v-btn
@@ -393,8 +401,8 @@
             <v-btn v-else color="success" size="small" variant="tonal" disabled style="height: 32px;">
               ✓ {{ tm('status.installed') }}
             </v-btn>
-          </v-card-actions>
-        </v-card>
+          </template>
+        </ItemCard>
       </v-col>
     </v-row>
 
@@ -414,6 +422,7 @@ import { computed, ref } from 'vue'
 import { useDisplay } from 'vuetify'
 import defaultPluginIcon from '@/assets/images/plugin_icon.png'
 import { useModuleI18n } from '@/i18n/composables'
+import ItemCard from '@/components/shared/ItemCard.vue'
 
 import type { PluginMarketItem, PluginSource } from '@/types/extension'
 
@@ -515,6 +524,13 @@ const formatDescription = (value?: string) => {
     ? `${text.slice(0, MAX_DESCRIPTION_LENGTH)}…`
     : text
 }
+
+const toItemCardPlugin = (plugin: PluginMarketItem) => {
+  return {
+    ...plugin,
+    _title: displayPluginName(plugin) as string,
+  }
+}
 </script>
 
 <style scoped>
@@ -533,6 +549,10 @@ const formatDescription = (value?: string) => {
   .market-fab-stack {
     right: 16px;
     bottom: 16px;
+  }
+
+  .market-page {
+    padding-bottom: 120px;
   }
 }
 
