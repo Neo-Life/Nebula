@@ -1,0 +1,58 @@
+name: nightly dashboard dist
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - "dashboard/**"
+      - ".github/workflows/nightly_dashboard_dist.yml"
+
+concurrency:
+  group: nightly-dashboard-dist
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: dashboard/pnpm-lock.yaml
+
+      - name: Install
+        working-directory: dashboard
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        working-directory: dashboard
+        run: pnpm run build
+
+      - name: Package dist.zip
+        shell: bash
+        run: |
+          cd dashboard/dist
+          zip -r ../../dist.zip .
+
+      - name: Publish nightly release asset
+        uses: ncipollo/release-action@v1
+        with:
+          tag: nightly
+          name: Nightly Dashboard Dist
+          prerelease: true
+          allowUpdates: true
+          replacesArtifacts: true
+          artifacts: dist.zip
+          artifactContentType: application/zip
