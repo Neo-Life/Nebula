@@ -82,6 +82,15 @@ jobs:
           zip -r "../${ZIP_NAME}" dist
           cd -
 
+      - name: Move nightly tag to this commit
+        shell: bash
+        run: |
+          set -eux
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f nightly "$GITHUB_SHA"
+          git push origin refs/tags/nightly --force
+
       - name: Publish nightly release asset
         uses: ncipollo/release-action@v1
         with:
@@ -89,6 +98,9 @@ jobs:
           name: Nightly Dashboard Dist
           prerelease: true
           allowUpdates: true
+          omitBodyDuringUpdate: true
+          omitNameDuringUpdate: true
+          omitPrereleaseDuringUpdate: true
           replacesArtifacts: true
           artifacts: dist.zip
           artifactContentType: application/zip
