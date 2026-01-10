@@ -96,7 +96,7 @@ jobs:
         with:
           tag: nightly
           name: Nightly Dashboard Dist
-          prerelease: true
+          prerelease: false
           allowUpdates: true
           omitBodyDuringUpdate: true
           omitNameDuringUpdate: true
