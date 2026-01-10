@@ -4,6 +4,7 @@ import axios from 'axios'
 import MarkdownContent from '@/components/shared/MarkdownContent.vue'
 import { useI18n } from '@/i18n/composables'
 import { useAuthStore } from '@/stores/auth'
+import { useDisplay } from 'vuetify'
 
 type UpdateChannel = 'official' | 'landfill'
 
@@ -27,61 +28,68 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
+const display = useDisplay()
+
+// 高度过低时使用手机布局（即使是宽屏也切到“无侧栏”布局）
+const isPhoneLayout = computed(() => display.xs.value || display.height.value < 720)
+
+// 平板/手机或高度过低时强制全屏（避免内容被挤压/背后可滚动）
+const isDialogFullscreen = computed(() => display.smAndDown.value || display.height.value < 720)
+
+const sidebarWidth = computed(() => (display.sm.value ? 260 : 320))
+
 const updateTab = ref<UpdateTab>('source')
 
-const sourceUpdateChannel = ref<UpdateChannel>(
-  (localStorage.getItem('selectedSourceUpdateChannel') as UpdateChannel) || 'official'
-)
-
-const dashboardUpdateChannel = ref<UpdateChannel>(
-  (localStorage.getItem('selectedDashboardUpdateChannel') as UpdateChannel) || 'official'
-)
-
-watch(sourceUpdateChannel, (val) => {
-  localStorage.setItem('selectedSourceUpdateChannel', val)
-})
-
-watch(dashboardUpdateChannel, (val) => {
-  localStorage.setItem('selectedDashboardUpdateChannel', val)
-})
+const sourceUpdateChannel = ref<UpdateChannel>('official')
+const dashboardUpdateChannel = ref<UpdateChannel>('official')
 
 const updateChannelOptions = computed(() => [
-  { title: t('core.header.updateDialog.channel.official'), value: 'official' },
-  { title: t('core.header.updateDialog.channel.landfill'), value: 'landfill' }
+  { title: t('core.header.updateDialog.channel.official'), value: 'official' as const },
+  { title: t('core.header.updateDialog.channel.landfill'), value: 'landfill' as const }
 ])
 
-const updateStatus = ref('')
-const releaseMessage = ref('')
+const updateStatus = ref<string>('')
+const lastCheckedAt = ref<Date | null>(null)
+
 const hasNewVersion = ref(false)
 const dashboardHasNewVersion = ref(false)
 
-const releases = ref<any[]>([])
 const installLoading = ref(false)
 const updatingDashboardLoading = ref(false)
 
-// Release Notes Modal
-const releaseNotesDialog = ref(false)
-const selectedReleaseNotes = ref('')
-const selectedReleaseTag = ref('')
+const releaseMessage = ref('')
+const releases = ref<any[]>([])
 
 const releasesHeader = computed(() => [
-  { title: t('core.header.updateDialog.table.tag'), key: 'tag_name' },
-  { title: t('core.header.updateDialog.table.publishDate'), key: 'published_at' },
-  { title: t('core.header.updateDialog.table.content'), key: 'body' },
-  { title: t('core.header.updateDialog.table.sourceUrl'), key: 'zipball_url' },
-  { title: t('core.header.updateDialog.table.actions'), key: 'switch' }
+  { title: t('core.header.updateDialog.table.tag'), key: 'tag_name', sortable: false },
+  { title: t('core.header.updateDialog.table.publishDate'), key: 'published_at', sortable: false },
+  { title: t('core.header.updateDialog.table.sourceUrl'), key: 'zipball_url', sortable: false },
+  { title: t('core.header.updateDialog.table.content'), key: 'body', sortable: false },
+  { title: t('core.header.updateDialog.table.actions'), key: 'switch', sortable: false }
 ])
 
-const isPreRelease = (version: string) => {
-  const preReleaseKeywords = ['alpha', 'beta', 'rc', 'pre', 'preview', 'dev']
-  const lowerVersion = version.toLowerCase()
-  return preReleaseKeywords.some((keyword) => lowerVersion.includes(keyword))
+const activeHasNewVersion = computed(() => (updateTab.value === 'dashboard' ? dashboardHasNewVersion.value : hasNewVersion.value))
+const activeVersionText = computed(() => (updateTab.value === 'dashboard' ? props.dashboardCurrentVersion : props.botCurrVersion))
+const displayUpdateStatus = computed(() => updateStatus.value)
+
+const releaseNotesDialog = ref(false)
+const releaseNotesTitle = ref('')
+const releaseNotesContent = ref('')
+
+function openReleaseNotesDialog(body: string, tagName: string) {
+  releaseNotesTitle.value = tagName
+  releaseNotesContent.value = body
+  releaseNotesDialog.value = true
 }
 
-function openReleaseNotesDialog(body: string, tag: string) {
-  selectedReleaseNotes.value = body
-  selectedReleaseTag.value = tag
-  releaseNotesDialog.value = true
+function isPreRelease(tagName: string) {
+  return tagName.includes('-')
+}
+
+function onSourceChannelChanged() {
+  releaseMessage.value = ''
+  checkUpdate()
+  getReleases()
 }
 
 async function checkUpdate() {
@@ -112,6 +120,8 @@ async function checkUpdate() {
       return
     }
     updateStatus.value = err
+  } finally {
+    lastCheckedAt.value = new Date()
   }
 }
 
@@ -213,243 +223,661 @@ const dialogModel = computed({
 </script>
 
 <template>
-  <v-dialog v-model="dialogModel" :width="$vuetify.display.smAndDown ? '100%' : '1200'" :fullscreen="$vuetify.display.xs">
-    <v-card class="update-dialog-card">
-      <v-card-title class="mobile-card-title">
-        <span class="text-h5">{{ t('core.header.updateDialog.title') }}</span>
-        <v-btn v-if="$vuetify.display.xs" icon @click="dialogModel = false">
-          <v-icon>mdi-close</v-icon>
-        </v-btn>
-      </v-card-title>
-      <v-card-text class="update-dialog-content">
-        <v-container>
-          <v-progress-linear v-show="installLoading" class="mb-4" indeterminate color="primary"></v-progress-linear>
-
-          <div>
-            <h1 style="display: inline-block">{{ botCurrVersion }}</h1>
-            <small style="margin-left: 4px">{{ updateStatus }}</small>
+  <v-dialog
+    v-model="dialogModel"
+    :width="isDialogFullscreen ? '100%' : ($vuetify.display.smAndDown ? '100%' : '1100')"
+    :fullscreen="isDialogFullscreen"
+    :scrollable="isPhoneLayout"
+    scroll-strategy="block"
+    scroll-target="body"
+    transition="dialog-bottom-transition"
+  >
+    <v-card
+      class="update-dialog-card d-flex overflow-hidden"
+      :class="[
+        isPhoneLayout ? 'flex-column update-dialog-card--phone-layout' : 'flex-row',
+        isDialogFullscreen ? 'update-dialog-card--fullscreen' : ''
+      ]"
+      :rounded="isDialogFullscreen ? 0 : undefined"
+    >
+      <v-sheet
+        v-if="!isPhoneLayout"
+        :width="sidebarWidth"
+        class="flex-shrink-0 d-flex flex-column border-e"
+        style="background-color: rgba(var(--v-theme-surface-variant), 0.05)"
+      >
+        <div class="pa-6">
+          <div class="d-flex align-center mb-6">
+            <v-avatar color="primary" rounded="md" size="48" class="mr-4">
+              <v-icon size="28" color="white">mdi-autorenew</v-icon>
+            </v-avatar>
+            <div>
+              <div class="text-subtitle-6 font-weight-bold text-uppercase text-medium-emphasis">
+                {{ t('core.header.updateDialog.title') }}
+              </div>
+              <div class="text-h6 font-weight-black">{{ activeVersionText }}</div>
+            </div>
           </div>
 
-          <div class="mt-4">
-            <v-tabs v-model="updateTab" color="primary">
-              <v-tab value="source">{{ t('core.header.updateDialog.tabs.source') }}</v-tab>
-              <v-tab value="dashboard">{{ t('core.header.updateDialog.tabs.dashboard') }}</v-tab>
-            </v-tabs>
+          <v-divider class="mb-6" />
+
+          <div class="d-flex flex-column gap-2">
+            <v-btn
+              :color="updateTab === 'source' ? 'primary' : undefined"
+              :variant="updateTab === 'source' ? 'tonal' : 'text'"
+              class="update-sidebar-btn justify-start px-4 text-none"
+              height="48"
+              prepend-icon="mdi-code-tags"
+              @click="updateTab = 'source'"
+            >
+              {{ t('core.header.updateDialog.tabs.source') }}
+            </v-btn>
+
+            <v-btn
+              :color="updateTab === 'dashboard' ? 'primary' : undefined"
+              :variant="updateTab === 'dashboard' ? 'tonal' : 'text'"
+              class="update-sidebar-btn justify-start px-4 text-none"
+              height="48"
+              prepend-icon="mdi-view-dashboard-outline"
+              @click="updateTab = 'dashboard'"
+            >
+              {{ t('core.header.updateDialog.tabs.dashboard') }}
+            </v-btn>
           </div>
+        </div>
 
-          <v-window v-model="updateTab" class="mt-4">
-            <v-window-item value="source">
-              <div class="mt-2">
-                <v-select
-                  v-model="sourceUpdateChannel"
-                  :items="updateChannelOptions"
-                  item-title="title"
-                  item-value="value"
-                  density="comfortable"
-                  variant="outlined"
-                  style="max-width: 520px"
-                  :label="t('core.header.updateDialog.channel.label')"
-                  @update:model-value="() => { checkUpdate(); getReleases(); }"
-                />
-              </div>
+        <v-spacer />
 
-              <div
-                v-if="releaseMessage"
-                style="background-color: #646cff24; padding: 16px; border-radius: 10px; font-size: 14px; max-height: 400px; overflow-y: auto"
-              >
-                <MarkdownContent :content="releaseMessage" :typewriter="false" />
-              </div>
+        <div class="pa-6">
+          <div class="text-caption font-weight-bold text-medium-emphasis mb-2 text-uppercase">
+            {{ t('core.header.updateDialog.channel.label') }}
+          </div>
+          <v-select
+            v-if="updateTab === 'source'"
+            v-model="sourceUpdateChannel"
+            :items="updateChannelOptions"
+            item-title="title"
+            item-value="value"
+            variant="outlined"
+            @update:model-value="onSourceChannelChanged"
+          />
+          <v-select
+            v-if="updateTab === 'dashboard'"
+            v-model="dashboardUpdateChannel"
+            :items="updateChannelOptions"
+            item-title="title"
+            item-value="value"
+            variant="outlined"
+          />
+        </div>
+      </v-sheet>
 
-              <div class="mb-4 mt-4">
-                <small>{{ t('core.header.updateDialog.tip') }} {{ t('core.header.updateDialog.tipContinue') }}</small>
-              </div>
+      <div class="flex-grow-1 d-flex flex-column right-pane" style="min-width: 0">
+        <div v-if="isPhoneLayout" class="pa-4 border-b d-flex align-center justify-space-between bg-surface">
+          <span class="text-h5 font-weight-bold">{{ t('core.header.updateDialog.title') }}</span>
+          <v-btn icon size="small" variant="text" @click="dialogModel = false"><v-icon>mdi-close</v-icon></v-btn>
+        </div>
 
-              <div v-if="sourceUpdateChannel === 'official'">
-                <div class="mb-4">
-                  <small>
-                    {{ t('core.header.updateDialog.dockerTip') }}
-                    <a href="https://containrrr.dev/watchtower/usage-overview/">{{ t('core.header.updateDialog.dockerTipLink') }}</a>
-                    {{ t('core.header.updateDialog.dockerTipContinue') }}
-                  </small>
-                </div>
+        <v-tabs
+          v-if="isPhoneLayout"
+          v-model="updateTab"
+          color="primary"
+          grow
+          class="update-dialog-tabs"
+          height="48"
+        >
+          <v-tab value="source">{{ t('core.header.updateDialog.tabs.source') }}</v-tab>
+          <v-tab value="dashboard">{{ t('core.header.updateDialog.tabs.dashboard') }}</v-tab>
+        </v-tabs>
 
-                <v-alert v-if="releases.some((item: any) => isPreRelease(item['tag_name']))" type="warning" variant="tonal" border="start">
-                  <template v-slot:prepend>
-                    <v-icon>mdi-alert-circle-outline</v-icon>
-                  </template>
-                  <div class="text-body-2">
-                    <strong>{{ t('core.header.updateDialog.preReleaseWarning.title') }}</strong>
-                    <br />
-                    {{ t('core.header.updateDialog.preReleaseWarning.description') }}
-                    <a href="https://github.com/AstrBotDevs/AstrBot/issues" target="_blank" class="text-decoration-none">
-                      {{ t('core.header.updateDialog.preReleaseWarning.issueLink') }}
-                    </a>
-                  </div>
-                </v-alert>
-
-                <v-data-table :headers="releasesHeader" :items="releases" item-key="name" :items-per-page="8">
-                  <template v-slot:item.tag_name="{ item }: { item: any }">
-                    <div class="d-flex align-center">
-                      <span>{{ item.tag_name }}</span>
-                      <v-chip v-if="isPreRelease(item.tag_name)" size="x-small" color="warning" variant="tonal" class="ml-2">
-                        {{ t('core.header.updateDialog.preRelease') }}
-                      </v-chip>
+        <div class="update-dialog-main">
+          <v-window v-model="updateTab" class="update-dialog-window">
+            <v-window-item value="source" class="update-dialog-window-item">
+              <div class="update-pane">
+                <template v-if="sourceUpdateChannel === 'official'">
+                  <div class="update-pane__head">
+                    <div class="d-flex align-center justify-space-between" style="gap: 12px">
+                      <h3 class="text-h4 font-weight-bold">{{ t('core.header.updateDialog.channel.official') }}</h3>
+                      <v-card v-if="!isPhoneLayout" border flat rounded="lg" class="pa-3 update-status-card">
+                        <div class="d-flex align-center" style="gap: 12px">
+                          <span class="font-weight-bold text-medium-emphasis update-status-text">{{ displayUpdateStatus }}</span>
+                          <v-progress-circular
+                            v-if="installLoading || updatingDashboardLoading"
+                            indeterminate
+                            color="primary"
+                            size="20"
+                            width="2"
+                          />
+                          <v-icon v-else :color="activeHasNewVersion ? 'warning' : 'success'" size="20">
+                            {{ activeHasNewVersion ? 'mdi-alert-circle' : 'mdi-check-circle' }}
+                          </v-icon>
+                        </div>
+                      </v-card>
                     </div>
-                  </template>
-                  <template v-slot:item.body="{ item }: { item: { body: string; tag_name: string } }">
-                    <v-btn @click="openReleaseNotesDialog(item.body, item.tag_name)" rounded="xl" variant="tonal" color="primary" size="x-small">
-                      {{ t('core.header.updateDialog.table.view') }}
-                    </v-btn>
-                  </template>
-                  <template v-slot:item.switch="{ item }: { item: { tag_name: string } }">
-                    <v-btn @click="switchVersion(item.tag_name)" rounded="xl" variant="plain" color="primary">
-                      {{ t('core.header.updateDialog.table.switch') }}
-                    </v-btn>
-                  </template>
-                </v-data-table>
-              </div>
 
-              <div v-else class="mt-2">
-                <v-alert type="info" variant="tonal" border="start" class="mb-4">
-                  {{ t('core.header.updateDialog.channel.landfillTip') }}
-                </v-alert>
-                <v-btn color="primary" style="border-radius: 10px" @click="updateToLatestFromChannel" :loading="installLoading">
-                  {{ t('core.header.updateDialog.channel.updateLatest') }}
-                </v-btn>
+                    <div
+                      v-if="isPhoneLayout"
+                      class="d-flex align-center justify-space-between mt-3 update-mobile-actions"
+                      style="gap: 12px"
+                    >
+                      <v-card border flat rounded="lg" class="pa-3 update-status-card" style="min-width: 0">
+                        <div class="d-flex align-center" style="gap: 12px; min-width: 0">
+                          <span class="font-weight-bold text-medium-emphasis update-status-text">{{ displayUpdateStatus }}</span>
+                          <v-progress-circular
+                            v-if="installLoading || updatingDashboardLoading"
+                            indeterminate
+                            color="primary"
+                            size="20"
+                            width="2"
+                          />
+                          <v-icon v-else :color="activeHasNewVersion ? 'warning' : 'success'" size="20">
+                            {{ activeHasNewVersion ? 'mdi-alert-circle' : 'mdi-check-circle' }}
+                          </v-icon>
+                        </div>
+                      </v-card>
+
+                      <v-select
+                        v-model="sourceUpdateChannel"
+                        :items="updateChannelOptions"
+                        item-title="title"
+                        item-value="value"
+                        density="compact"
+                        variant="outlined"
+                        hide-details
+                        style="max-width: 150px"
+                        @update:model-value="onSourceChannelChanged"
+                      />
+                    </div>
+                  </div>
+
+                  <v-alert
+                    v-if="releaseMessage"
+                    color="info"
+                    variant="tonal"
+                    class="mb-6"
+                    border="start"
+                    closable
+                    rounded="lg"
+                  >
+                    <div style="max-height: 200px; overflow-y: auto" class="text-body-2">
+                      <MarkdownContent :content="releaseMessage" :typewriter="false" />
+                    </div>
+                  </v-alert>
+
+                  <div class="mb-4">
+                    <small>{{ t('core.header.updateDialog.tip') }} {{ t('core.header.updateDialog.tipContinue') }}</small>
+                  </div>
+
+                  <div class="mb-4">
+                    <small>
+                      {{ t('core.header.updateDialog.dockerTip') }}
+                      <a href="https://containrrr.dev/watchtower/usage-overview/">{{ t('core.header.updateDialog.dockerTipLink') }}</a>
+                      {{ t('core.header.updateDialog.dockerTipContinue') }}
+                    </small>
+                  </div>
+
+                  <v-alert
+                    v-if="releases.some((item: any) => isPreRelease(item['tag_name']))"
+                    type="warning"
+                    variant="tonal"
+                    border="start"
+                    class="mb-4 update-pre-release-alert"
+                    rounded="lg"
+                  >
+                    <template v-slot:prepend>
+                      <v-icon>mdi-alert-circle-outline</v-icon>
+                    </template>
+                    <div class="text-body-2 update-pre-release-body">
+                      <strong>{{ t('core.header.updateDialog.preReleaseWarning.title') }}</strong>
+                      <br />
+                      {{ t('core.header.updateDialog.preReleaseWarning.description') }}
+                      <a href="https://github.com/AstrBotDevs/AstrBot/issues" target="_blank" class="text-decoration-none">
+                        {{ t('core.header.updateDialog.preReleaseWarning.issueLink') }}
+                      </a>
+                    </div>
+                  </v-alert>
+
+                  <v-card border flat rounded="lg" class="releases-table-card">
+                    <v-data-table
+                      class="releases-table"
+                      :headers="releasesHeader"
+                      :items="releases"
+                      item-key="name"
+                      :items-per-page="5"
+                      :fixed-header="!isPhoneLayout"
+                      :height="isPhoneLayout ? undefined : '100%'"
+                    >
+                      <template v-slot:item.tag_name="{ item }: { item: any }">
+                        <span class="font-weight-medium">{{ item.tag_name }}</span>
+                        <v-chip
+                          v-if="isPreRelease(item.tag_name)"
+                          size="x-small"
+                          color="warning"
+                          variant="tonal"
+                          class="ml-2"
+                        >
+                          {{ t('core.header.updateDialog.preRelease') }}
+                        </v-chip>
+                      </template>
+                      <template v-slot:item.zipball_url="{ item }: { item: { zipball_url?: string } }">
+                        <v-btn
+                          v-if="item.zipball_url"
+                          :href="item.zipball_url"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          variant="text"
+                          size="small"
+                          color="primary"
+                          class="text-none"
+                        >
+                          {{ t('core.header.updateDialog.table.view') }}
+                        </v-btn>
+                        <span v-else class="text-medium-emphasis">-</span>
+                      </template>
+                      <template v-slot:item.body="{ item }: { item: { body: string; tag_name: string } }">
+                        <v-btn
+                          @click="openReleaseNotesDialog(item.body, item.tag_name)"
+                          variant="text"
+                          size="small"
+                          color="primary"
+                        >
+                          {{ t('core.header.updateDialog.table.view') }}
+                        </v-btn>
+                      </template>
+                      <template v-slot:item.switch="{ item }: { item: { tag_name: string } }">
+                        <v-btn @click="switchVersion(item.tag_name)" variant="flat" size="small" color="primary" class="text-none">
+                          {{ t('core.header.updateDialog.table.switch') }}
+                        </v-btn>
+                      </template>
+                    </v-data-table>
+                  </v-card>
+                </template>
+
+                <template v-else>
+                  <div class="d-flex align-center justify-space-between mb-6" style="gap: 12px">
+                    <div>
+                      <h3 class="text-h5 font-weight-bold mb-1">{{ t('core.header.updateDialog.channel.landfill') }}</h3>
+                      <div class="text-body-2 text-medium-emphasis">{{ t('core.header.updateDialog.channel.landfillTip') }}</div>
+                    </div>
+                    <v-select
+                      v-if="isPhoneLayout"
+                      v-model="sourceUpdateChannel"
+                      :items="updateChannelOptions"
+                      item-title="title"
+                      item-value="value"
+                      density="compact"
+                      variant="outlined"
+                      hide-details
+                      style="max-width: 150px"
+                      @update:model-value="onSourceChannelChanged"
+                    />
+                  </div>
+
+                  <v-card border flat class="d-flex flex-column flex-sm-row align-start align-sm-center pa-6">
+                    <v-avatar color="primary" variant="tonal" size="64" class="mr-6 mb-4 mb-sm-0">
+                      <v-icon size="32">mdi-git</v-icon>
+                    </v-avatar>
+                    <div class="flex-grow-1 mr-4">
+                      <div class="text-h4 font-weight-bold mb-1">{{ t('core.header.updateDialog.channel.updateLatest') }}</div>
+                      <div class="text-body-1 text-medium-emphasis mb-2">
+                        {{ t('core.header.updateDialog.channel.landfillTip') }}
+                      </div>
+                      <div v-if="lastCheckedAt" class="text-caption text-medium-emphasis">
+                        {{ lastCheckedAt.toLocaleString() }}
+                      </div>
+                    </div>
+                    <div class="mt-4 mt-sm-0 flex-shrink-0">
+                      <v-btn
+                        size="large"
+                        color="primary"
+                        prepend-icon="mdi-cloud-download"
+                        @click="updateToLatestFromChannel"
+                        :loading="installLoading"
+                        elevation="1"
+                      >
+                        {{ t('core.header.updateDialog.channel.updateLatest') }}
+                      </v-btn>
+                    </div>
+                  </v-card>
+                </template>
               </div>
             </v-window-item>
 
-            <v-window-item value="dashboard">
-              <div class="mt-2">
-                <v-select
-                  v-model="dashboardUpdateChannel"
-                  :items="updateChannelOptions"
-                  item-title="title"
-                  item-value="value"
-                  density="comfortable"
-                  variant="outlined"
-                  style="max-width: 520px"
-                  :label="t('core.header.updateDialog.channel.label')"
-                />
-              </div>
+            <v-window-item value="dashboard" class="update-dialog-window-item">
+              <div class="update-pane">
+                <div class="update-pane__head">
+                  <div class="d-flex align-center justify-space-between" style="gap: 12px">
+                    <h3 class="text-h5 font-weight-bold">{{ t('core.header.updateDialog.tabs.dashboard') }}</h3>
+                  </div>
 
-              <div style="margin-top: 16px">
-                <h3 class="mb-4">{{ t('core.header.updateDialog.dashboardUpdate.title') }}</h3>
-                <div class="mb-4">
-                  <small>{{ t('core.header.updateDialog.dashboardUpdate.currentVersion') }} {{ dashboardCurrentVersion }}</small>
-                  <br />
+                  <div
+                    v-if="isPhoneLayout"
+                    class="d-flex align-center justify-space-between mt-3 update-mobile-actions"
+                    style="gap: 12px"
+                  >
+                    <v-select
+                      v-model="dashboardUpdateChannel"
+                      :items="updateChannelOptions"
+                      item-title="title"
+                      item-value="value"
+                      density="compact"
+                      variant="outlined"
+                      hide-details
+                      style="max-width: 150px"
+                    />
+                  </div>
                 </div>
 
-                <div class="mb-4">
-                  <p v-if="dashboardHasNewVersion">
-                    {{ t('core.header.updateDialog.dashboardUpdate.hasNewVersion') }}
-                  </p>
-                  <p v-else="dashboardHasNewVersion">
-                    {{ t('core.header.updateDialog.dashboardUpdate.isLatest') }}
-                  </p>
-                </div>
+                <v-card border flat class="pa-6 dashboard-update-card">
+                  <div class="dashboard-update-top">
+                    <div class="dashboard-update-label">
+                      <div class="text-overline text-medium-emphasis mb-0">
+                        {{ t('core.header.updateDialog.dashboardUpdate.currentVersion') }}
+                      </div>
+                      <v-chip
+                        v-if="dashboardHasNewVersion"
+                        color="warning"
+                        rounded="lg"
+                        label
+                        size="x-small"
+                        class="dashboard-update-status-chip"
+                      >
+                        {{ t('core.header.updateDialog.dashboardUpdate.hasNewVersion') }}
+                      </v-chip>
+                      <v-chip
+                        v-else
+                        color="success"
+                        rounded="lg"
+                        label
+                        size="x-small"
+                        class="dashboard-update-status-chip"
+                      >
+                        {{ t('core.header.updateDialog.dashboardUpdate.isLatest') }}
+                      </v-chip>
+                    </div>
 
-                <v-btn
-                  color="primary"
-                  style="border-radius: 10px"
-                  @click="updateDashboard()"
-                  :disabled="dashboardUpdateChannel === 'official' ? !dashboardHasNewVersion : false"
-                  :loading="updatingDashboardLoading"
-                >
-                  {{ t('core.header.updateDialog.dashboardUpdate.downloadAndUpdate') }}
-                </v-btn>
+                    <v-btn
+                      color="primary"
+                      size="large"
+                      prepend-icon="mdi-update"
+                      @click="updateDashboard()"
+                      :loading="updatingDashboardLoading"
+                      :block="$vuetify.display.xs"
+                      class="dashboard-update-btn"
+                    >
+                      {{ t('core.header.updateDialog.dashboardUpdate.downloadAndUpdate') }}
+                    </v-btn>
+                  </div>
+
+                  <div class="text-h4 font-weight-bold mt-3">{{ dashboardCurrentVersion }}</div>
+                </v-card>
               </div>
             </v-window-item>
           </v-window>
-        </v-container>
-      </v-card-text>
-      <v-card-actions class="update-dialog-actions">
-        <v-spacer></v-spacer>
-        <v-btn color="blue-darken-1" variant="text" @click="dialogModel = false">
-          {{ t('core.common.close') }}
-        </v-btn>
-      </v-card-actions>
+        </div>
+
+        <div v-if="!isPhoneLayout" class="pa-4 border-t d-flex justify-end bg-surface">
+          <v-btn color="medium-emphasis" variant="text" size="large" @click="dialogModel = false">
+            {{ t('core.common.close') }}
+          </v-btn>
+        </div>
+      </div>
     </v-card>
   </v-dialog>
 
   <v-dialog v-model="releaseNotesDialog" max-width="800">
     <v-card>
-      <v-card-title class="text-h5">{{ t('core.header.updateDialog.releaseNotes.title') }}: {{ selectedReleaseTag }}</v-card-title>
-      <v-card-text style="font-size: 14px; max-height: 400px; overflow-y: auto">
-        <MarkdownContent :content="selectedReleaseNotes" :typewriter="false" />
+      <v-card-title class="d-flex align-center justify-space-between px-6 py-4">
+        <span class="text-h6 font-weight-medium">
+          {{ t('core.header.updateDialog.releaseNotes.title') }}: {{ releaseNotesTitle }}
+        </span>
+        <v-btn icon="mdi-close" variant="text" @click="releaseNotesDialog = false" />
+      </v-card-title>
+      <v-divider />
+      <v-card-text class="pa-6" style="font-size: 16px; max-height: 500px; overflow-y: auto; line-height: 1.6">
+        <MarkdownContent :content="releaseNotesContent" :typewriter="false" />
       </v-card-text>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn color="blue-darken-1" variant="text" @click="releaseNotesDialog = false">
-          {{ t('core.common.close') }}
-        </v-btn>
-      </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
-<style>
-.update-dialog-card {
-  display: flex;
-  flex-direction: column;
-  max-height: min(90vh, 780px);
-}
-
-.update-dialog-card .mobile-card-title {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: var(--v-theme-surface);
-  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-}
-
-.update-dialog-content {
-  flex: 1;
-  overflow-y: auto;
-  padding-bottom: 24px;
-}
-
-.update-dialog-actions {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-  background: var(--v-theme-surface);
-  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-}
-
-.mobile-card-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-</style>
-
 <style scoped>
 .update-dialog-card {
+  height: 75vh;
+  min-height: 75vh;
+  max-height: 75vh;
+}
+
+.update-dialog-card--fullscreen {
+  height: 100vh;
+  max-height: 100vh;
+  border-radius: 0 !important;
+}
+
+@supports (height: 100dvh) {
+  .update-dialog-card--fullscreen {
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+}
+
+.right-pane {
+  min-height: 0;
+}
+
+.update-dialog-tabs {
+  flex: 0 0 auto;
+  background: rgb(var(--v-theme-surface));
+}
+
+.update-dialog-tabs :deep(.v-slide-group__container),
+.update-dialog-tabs :deep(.v-slide-group__content),
+.update-dialog-tabs :deep(.v-slide-group__content > .v-slide-group-item) {
+  height: 48px;
+  min-height: 48px;
+}
+
+.update-dialog-main {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 24px;
+}
+
+.update-dialog-window,
+.update-dialog-window-item {
+  height: 100%;
+}
+
+.update-pane {
+  height: 100%;
   display: flex;
   flex-direction: column;
-  max-height: min(90vh, 780px);
+  min-height: 0;
 }
 
-.update-dialog-card .mobile-card-title {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: var(--v-theme-surface);
-  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+.update-pane__head {
+  flex: 0 0 auto;
+  margin-bottom: 16px;
 }
 
-.update-dialog-content {
+/* 桌面端：仅表格区域滚动 */
+.releases-table-card {
   flex: 1;
-  overflow-y: auto;
-  padding-bottom: 24px;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.update-dialog-actions {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-  background: var(--v-theme-surface);
-  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+.releases-table {
+  height: 100%;
+}
+
+.update-status-card {
+  width: fit-content;
+  max-width: 100%; 
+  white-space: nowrap; 
+}
+
+.update-status-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:deep(.update-pre-release-alert .v-alert__content) {
+  min-height: auto;
+}
+
+.update-pre-release-alert {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  max-height: 240px;
+  overflow: hidden;
+}
+
+:deep(.update-pre-release-alert .v-alert__content) {
+  overflow: hidden;
+  align-items: flex-start;
+}
+
+:deep(.update-pre-release-alert .v-alert__prepend) {
+  align-self: flex-start;
+}
+
+.update-pre-release-body {
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.dashboard-update-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dashboard-update-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.dashboard-update-status-chip {
+  height: 20px;
+}
+
+@media (max-width: 600px) {
+  /* 移动端：内容区整体滚动，表格自然撑开，并保证底部留白 */
+  .update-dialog-main {
+    overflow-y: auto;
+    padding: 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
+
+  .update-dialog-window,
+  .update-dialog-window-item {
+    height: auto;
+  }
+
+  .update-pane {
+    height: auto;
+    min-height: auto;
+  }
+
+  .releases-table-card {
+    flex: 0 0 auto;
+    overflow: visible;
+  }
+
+  .releases-table {
+    height: auto;
+  }
+
+  .dashboard-update-btn {
+    width: 100%;
+  }
+  .update-mobile-actions {
+    align-items: stretch;
+  }
+
+  .update-mobile-actions .update-status-card {
+    height: 40px;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    display: flex;
+    align-items: center;
+  }
+
+  :deep(.update-mobile-actions .v-field) {
+    height: 40px;
+  }
+
+  :deep(.update-mobile-actions .v-field__input) {
+    min-height: 40px;
+    padding-top: 0;
+    padding-bottom: 0;
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* 低高度触发的“手机布局”（宽屏也生效） */
+.update-dialog-card--phone-layout .update-dialog-main {
+  overflow-y: auto;
+  padding: 16px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
+.update-dialog-card--phone-layout .update-dialog-window,
+.update-dialog-card--phone-layout .update-dialog-window-item {
+  height: auto;
+}
+
+.update-dialog-card--phone-layout .update-pane {
+  height: auto;
+  min-height: auto;
+}
+
+.update-dialog-card--phone-layout .releases-table-card {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.update-dialog-card--phone-layout .releases-table {
+  height: auto;
+}
+
+.update-dialog-card--phone-layout .dashboard-update-btn {
+  width: 100%;
+}
+
+/* Use neutral gray borders (avoid accent/theme-primary borders) */
+:deep(.update-dialog-card .border-e),
+:deep(.update-dialog-card .border-b),
+:deep(.update-dialog-card .border-t),
+:deep(.update-dialog-card .v-card--border) {
+  border-color: rgba(var(--v-theme-on-surface), 0.12) !important;
+}
+
+.gap-2 {
+  gap: 8px;
+}
+
+.no-wrap {
+  white-space: nowrap;
+}
+
+:deep(.update-sidebar-btn) {
+  color: rgba(var(--v-theme-on-surface), 0.7);
+}
+
+:deep(.update-sidebar-btn:hover) {
+  color: rgb(var(--v-theme-primary));
 }
 </style>
