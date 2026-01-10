@@ -20,7 +20,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Fetch upstream latest tag
+        shell: bash
+        run: |
+          set -eux
+          git fetch --force --prune https://github.com/AstrBotDevs/AstrBot.git "refs/tags/*:refs/tags/upstream/*"
+          latest_tag="$(git for-each-ref 'refs/tags/upstream' --sort=-v:refname --format='%(refname:strip=3)' | head -n1)"
+          if [ -z "${latest_tag}" ]; then
+            latest_tag="unknown"
+          fi
+          echo "LATEST_TAG=${latest_tag}" >> "$GITHUB_ENV"
 
       - uses: pnpm/action-setup@v4
         with:
@@ -40,11 +54,33 @@ jobs:
         working-directory: dashboard
         run: pnpm run build
 
-      - name: Package dist.zip
+      - name: Inject version files and zip dist+sha.zip
         shell: bash
         run: |
-          cd dashboard/dist
-          zip -r ../../dist.zip .
+          set -eux
+          TARGET_DIST="dashboard/dist"
+          if [ ! -d "${TARGET_DIST}" ]; then
+            echo "ERROR: build output '${TARGET_DIST}' not found" >&2
+            ls -la dashboard || true
+            exit 1
+          fi
+
+          COMMIT_SHA="$(git rev-parse --verify HEAD)"
+
+          mkdir -p "${TARGET_DIST}/assets"
+          version_value="${LATEST_TAG}"
+          if [ "${version_value}" = "unknown" ]; then
+            version_value="${COMMIT_SHA}"
+          fi
+          echo "${version_value}" > "${TARGET_DIST}/assets/version"
+          echo "${COMMIT_SHA}" > "${TARGET_DIST}/assets/version.sha"
+
+          find "${TARGET_DIST}" -type f -name "*.md" -print -delete || true
+
+          ZIP_NAME="dist+sha.zip"
+          cd dashboard
+          zip -r "../${ZIP_NAME}" dist
+          cd -
 
       - name: Publish nightly release asset
         uses: ncipollo/release-action@v1
@@ -54,5 +90,5 @@ jobs:
           prerelease: true
           allowUpdates: true
           replacesArtifacts: true
-          artifacts: dist.zip
+          artifacts: dist+sha.zip
           artifactContentType: application/zip

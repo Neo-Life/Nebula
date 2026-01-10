@@ -292,9 +292,9 @@ async def download_landfill_dashboard_nightly(
     extract_path: str = "data",
     proxy: str | None = None,
 ) -> None:
-    """下载 LandfillBot nightly WebUI(dist.zip) 并解压到 data/dist。
+    """下载 LandfillBot nightly WebUI(dist+sha.zip) 并解压到 data/dist。
 
-    下载源：LandfillLand/LandfillBot release tag `nightly` 的 dist.zip。
+    下载源：LandfillLand/LandfillBot release tag `nightly` 的 dist+sha.zip。
     """
 
     if path is None:
@@ -302,7 +302,7 @@ async def download_landfill_dashboard_nightly(
     else:
         zip_path = Path(path).absolute()
 
-    url = "https://github.com/LandfillLand/LandfillBot/releases/download/nightly/dist.zip"
+    url = "https://github.com/LandfillLand/LandfillBot/releases/download/nightly/dist+sha.zip"
     if proxy:
         proxy = proxy.removesuffix("/")
         url = f"{proxy}/{url}"
