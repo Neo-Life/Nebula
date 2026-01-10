@@ -388,6 +388,42 @@ const dialogModel = computed({
   </v-dialog>
 </template>
 
+<style>
+.update-dialog-card {
+  display: flex;
+  flex-direction: column;
+  max-height: min(90vh, 780px);
+}
+
+.update-dialog-card .mobile-card-title {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--v-theme-surface);
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+}
+
+.update-dialog-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 24px;
+}
+
+.update-dialog-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: var(--v-theme-surface);
+  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08);
+}
+
+.mobile-card-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+</style>
+
 <style scoped>
 .update-dialog-card {
   display: flex;

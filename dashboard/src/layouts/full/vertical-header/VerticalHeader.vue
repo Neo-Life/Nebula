@@ -2,19 +2,16 @@
 import { ref, computed, watch } from 'vue';
 import { useCustomizerStore } from '@/stores/customizer';
 import axios from 'axios';
-import Logo from '@/components/shared/Logo.vue';
-import { md5 } from 'js-md5';
-import { useAuthStore } from '@/stores/auth';
 import { useCommonStore } from '@/stores/common';
 import { useI18n } from '@/i18n/composables';
 import { router } from '@/router';
 import { useRoute } from 'vue-router';
 import { useTheme } from 'vuetify';
 import StyledMenu from '@/components/shared/StyledMenu.vue';
-import { useLanguageSwitcher } from '@/i18n/composables';
-import type { Locale } from '@/i18n/types';
 import AboutPage from '@/views/AboutPage.vue';
 import UpdateDialog from '@/components/header/UpdateDialog.vue';
+import AccountDialog from '@/components/header/AccountDialog.vue';
+import LanguageMenu from '@/components/header/LanguageMenu.vue';
 
 
 const customizer = useCustomizerStore();
@@ -25,89 +22,10 @@ let dialog = ref(false);
 let accountWarning = ref(false)
 let updateStatusDialog = ref(false);
 let aboutDialog = ref(false);
-const username = localStorage.getItem('user');
-let password = ref('');
-let newPassword = ref('');
-let newUsername = ref('');
-let status = ref('');
 let hasNewVersion = ref(false);
 let botCurrVersion = ref('');
 let dashboardHasNewVersion = ref(false);
 let dashboardCurrentVersion = ref('');
-let version = ref('');
-
-// Form validation
-const formValid = ref(true);
-const passwordRules = computed(() => [
-  (v: string) => !!v || t('core.header.accountDialog.validation.passwordRequired'),
-  (v: string) => v.length >= 8 || t('core.header.accountDialog.validation.passwordMinLength')
-]);
-const usernameRules = computed(() => [
-  (v: string) => !v || v.length >= 3 || t('core.header.accountDialog.validation.usernameMinLength')
-]);
-
-// 显示密码相关
-const showPassword = ref(false);
-const showNewPassword = ref(false);
-
-// 账户修改状态
-const accountEditStatus = ref({
-  loading: false,
-  success: false,
-  error: false,
-  message: ''
-});
-
-const open = (link: string) => {
-  window.open(link, '_blank');
-};
-
-// 账户修改
-function accountEdit() {
-  accountEditStatus.value.loading = true;
-  accountEditStatus.value.error = false;
-  accountEditStatus.value.success = false;
-
-  // md5加密
-  // @ts-ignore
-  if (password.value != '') {
-    password.value = md5(password.value);
-  }
-  if (newPassword.value != '') {
-    newPassword.value = md5(newPassword.value);
-  }
-  axios.post('/api/auth/account/edit', {
-    password: password.value,
-    new_password: newPassword.value,
-    new_username: newUsername.value ? newUsername.value : username
-  })
-    .then((res) => {
-      if (res.data.status == 'error') {
-        accountEditStatus.value.error = true;
-        accountEditStatus.value.message = res.data.message;
-        password.value = '';
-        newPassword.value = '';
-        return;
-      }
-      accountEditStatus.value.success = true;
-      accountEditStatus.value.message = res.data.message;
-      setTimeout(() => {
-        dialog.value = !dialog.value;
-        const authStore = useAuthStore();
-        authStore.logout();
-      }, 2000);
-    })
-    .catch((err) => {
-      console.log(err);
-      accountEditStatus.value.error = true;
-      accountEditStatus.value.message = typeof err === 'string' ? err : t('core.header.accountDialog.messages.updateFailed');
-      password.value = '';
-      newPassword.value = '';
-    })
-    .finally(() => {
-      accountEditStatus.value.loading = false;
-    });
-}
 
 function getVersion() {
   axios.get('/api/stat/version')
@@ -181,13 +99,6 @@ const isChristmas = computed(() => {
   const day = today.getDate();
   return month === 12 && day === 25;
 });
-
-// 语言切换相关
-const { languageOptions, currentLanguage, switchLanguage, locale } = useLanguageSwitcher();
-const currentLocale = computed(() => locale.value);
-const changeLanguage = async (langCode: string) => {
-  await switchLanguage(langCode as Locale);
-};
 
 </script>
 
@@ -267,58 +178,7 @@ const changeLanguage = async (langCode: string) => {
         </v-btn>
       </template>
 
-      <v-menu 
-        :open-on-hover="!$vuetify.display.mobile"
-        :open-on-click="true"
-        :location="$vuetify.display.mobile ? 'bottom center' : 'start top'"
-        :origin="$vuetify.display.mobile ? 'top center' : 'end top'"
-        offset="12" 
-        :close-on-content-click="true"
-        transition="scale-transition"
-      >
-        <template v-slot:activator="{ props: activatorProps }">
-          <v-list-item 
-             v-bind="activatorProps" 
-             class="styled-menu-item" 
-             rounded="md"
-             @click.stop
-          >
-            <template v-slot:prepend>
-              <v-icon>mdi-translate</v-icon>
-            </template>
-            <v-list-item-title>{{ t('core.header.buttons.language') || 'Language' }}</v-list-item-title>
-            <template v-slot:append>
-              <v-icon size="small" color="medium-emphasis">
-                {{ $vuetify.display.mobile ? 'mdi-chevron-down' : 'mdi-chevron-right' }}
-              </v-icon>
-            </template>
-          </v-list-item>
-        </template>
-
-        <v-card class="language-dropdown" elevation="8" rounded="lg">
-          <v-list density="compact" class="pa-1">
-             <v-list-item
-               v-for="lang in languageOptions"
-               :key="lang.value"
-               :value="lang.value"
-               @click="changeLanguage(lang.value)"
-               :class="{ 'language-item-selected': currentLocale === lang.value }"
-               class="language-item"
-               rounded="md"
-             >
-               <template v-slot:prepend>
-                 <span 
-                    :class="['fi', `fi-${lang.flag}`, 'language-flag-styled']"
-                 ></span>
-               </template>
-               <v-list-item-title>{{ lang.label }}</v-list-item-title>
-               <template v-slot:append v-if="currentLocale === lang.value">
-                  <v-icon color="primary" size="small">mdi-check</v-icon>
-               </template>
-             </v-list-item>
-          </v-list>
-        </v-card>
-      </v-menu>
+      <LanguageMenu />
 
       <v-list-item
         @click="toggleDarkMode()"
@@ -361,72 +221,14 @@ const changeLanguage = async (langCode: string) => {
       </v-list-item>
     </StyledMenu>
 
-    <v-dialog v-model="updateStatusDialog" :width="$vuetify.display.smAndDown ? '100%' : '1200'"
-      :fullscreen="$vuetify.display.xs">
-      <UpdateDialog
-        v-model="updateStatusDialog"
-        :bot-curr-version="botCurrVersion"
-        :dashboard-current-version="dashboardCurrentVersion"
-        @update-flags="(v) => { hasNewVersion = v.hasNewVersion; dashboardHasNewVersion = v.dashboardHasNewVersion }"
-      />
-    </v-dialog>
+    <UpdateDialog
+      v-model="updateStatusDialog"
+      :bot-curr-version="botCurrVersion"
+      :dashboard-current-version="dashboardCurrentVersion"
+      @update-flags="(v) => { hasNewVersion = v.hasNewVersion; dashboardHasNewVersion = v.dashboardHasNewVersion }"
+    />
 
-    <v-dialog v-model="dialog" persistent :max-width="$vuetify.display.xs ? '90%' : '500'">
-      <v-card class="account-dialog">
-        <v-card-text class="py-6">
-          <div class="d-flex flex-column align-center mb-6">
-            <logo :title="t('core.header.logoTitle')" :subtitle="t('core.header.accountDialog.title')"></logo>
-          </div>
-          <v-alert v-if="accountWarning" type="warning" variant="tonal" border="start" class="mb-4">
-            <strong>{{ t('core.header.accountDialog.securityWarning') }}</strong>
-          </v-alert>
-
-          <v-alert v-if="accountEditStatus.success" type="success" variant="tonal" border="start" class="mb-4">
-            {{ accountEditStatus.message }}
-          </v-alert>
-
-          <v-alert v-if="accountEditStatus.error" type="error" variant="tonal" border="start" class="mb-4">
-            {{ accountEditStatus.message }}
-          </v-alert>
-
-          <v-form v-model="formValid" @submit.prevent="accountEdit">
-            <v-text-field v-model="password" :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-              :type="showPassword ? 'text' : 'password'" :label="t('core.header.accountDialog.form.currentPassword')"
-              variant="outlined" required clearable @click:append-inner="showPassword = !showPassword"
-              prepend-inner-icon="mdi-lock-outline" hide-details="auto" class="mb-4"></v-text-field>
-
-            <v-text-field v-model="newPassword" :append-inner-icon="showNewPassword ? 'mdi-eye-off' : 'mdi-eye'"
-              :type="showNewPassword ? 'text' : 'password'" :rules="passwordRules"
-              :label="t('core.header.accountDialog.form.newPassword')" variant="outlined" required clearable
-              @click:append-inner="showNewPassword = !showNewPassword" prepend-inner-icon="mdi-lock-plus-outline"
-              :hint="t('core.header.accountDialog.form.passwordHint')" persistent-hint class="mb-4"></v-text-field>
-
-            <v-text-field v-model="newUsername" :rules="usernameRules"
-              :label="t('core.header.accountDialog.form.newUsername')" variant="outlined" clearable
-              prepend-inner-icon="mdi-account-edit-outline" :hint="t('core.header.accountDialog.form.usernameHint')"
-              persistent-hint class="mb-3"></v-text-field>
-          </v-form>
-
-          <div class="text-caption text-medium-emphasis mt-2">
-            {{ t('core.header.accountDialog.form.defaultCredentials') }}
-          </div>
-        </v-card-text>
-
-        <v-divider></v-divider>
-
-        <v-card-actions class="pa-4">
-          <v-spacer></v-spacer>
-          <v-btn v-if="!accountWarning" variant="tonal" color="secondary" @click="dialog = false"
-            :disabled="accountEditStatus.loading">
-            {{ t('core.header.accountDialog.actions.cancel') }}
-          </v-btn>
-          <v-btn color="primary" @click="accountEdit" :loading="accountEditStatus.loading" :disabled="!formValid"
-            prepend-icon="mdi-content-save">
-            {{ t('core.header.accountDialog.actions.save') }}
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <AccountDialog v-model="dialog" :warning="accountWarning" />
 
     <v-dialog v-model="aboutDialog"
       width="600">
@@ -440,57 +242,6 @@ const changeLanguage = async (langCode: string) => {
 </template>
 
 <style>
-.account-dialog .v-card-text {
-  padding-top: 24px;
-  padding-bottom: 24px;
-}
-
-.account-dialog .v-alert {
-  margin-bottom: 20px;
-}
-
-.account-dialog .v-btn {
-  text-transform: none;
-  font-weight: 500;
-  border-radius: 8px;
-}
-
-.update-dialog-card {
-  display: flex;
-  flex-direction: column;
-  max-height: min(90vh, 780px);
-}
-
-.update-dialog-card .mobile-card-title {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: var(--v-theme-surface);
-  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-}
-
-.update-dialog-content {
-  flex: 1;
-  overflow-y: auto;
-  padding-bottom: 24px;
-}
-
-.update-dialog-actions {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-  background: var(--v-theme-surface);
-  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.08);
-}
-
-.account-dialog .v-avatar {
-  transition: transform 0.3s ease;
-}
-
-.account-dialog .v-avatar:hover {
-  transform: scale(1.05);
-}
-
 /* 响应式布局样式 */
 .logo-container {
   margin-left: 10px;
@@ -540,59 +291,6 @@ const changeLanguage = async (langCode: string) => {
 
 .action-btn {
   margin-right: 6px;
-}
-
-/* 移动端对话框标题样式 */
-.mobile-card-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.language-dropdown {
-  min-width: 100px;
-  width: fit-content;
-  border: 1px solid rgba(var(--v-theme-on-surface),0.01) !important;
-  background: rgb(var(--v-theme-surface)) !important;
-  backdrop-filter: blur(10px);
-}
-
-.v-theme--PurpleThemeDark .language-dropdown {
-  background: rgb(var(--v-theme-surface)) !important;
-  border: 1px solid rgba(var(--v-theme-on-surface), 0.15) !important;
-}
-
-.language-item {
-  margin: 2px 0;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.language-item:hover {
-  background: rgba(var(--v-theme-primary), 0.12) !important;
-}
-
-.language-item-selected {
-  background: rgba(var(--v-theme-primary), 0.16) !important;
-  color: rgb(var(--v-theme-primary)) !important;
-  font-weight: 600;
-}
-
-.language-item-selected:hover {
-  background: rgba(var(--v-theme-primary), 0.24) !important;
-}
-
-.v-theme--PurpleThemeDark .language-item:hover {
-  background: rgba(var(--v-theme-primary), 0.18) !important;
-}
-
-.v-theme--PurpleThemeDark .language-item-selected {
-  background: rgba(var(--v-theme-primary), 0.24) !important;
-  color: rgb(var(--v-theme-primary)) !important;
-}
-
-.v-theme--PurpleThemeDark .language-item-selected:hover {
-  background: rgba(var(--v-theme-primary), 0.32) !important;
 }
 
 /* 移动端样式优化 */
