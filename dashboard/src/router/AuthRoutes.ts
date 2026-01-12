@@ -1,4 +1,6 @@
-const AuthRoutes = {
+import type { RouteRecordRaw } from 'vue-router'
+
+const AuthRoutes: RouteRecordRaw = {
   path: '/auth',
   component: () => import('@/layouts/blank/BlankLayout.vue'),
   meta: {

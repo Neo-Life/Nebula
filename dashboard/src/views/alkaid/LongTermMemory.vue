@@ -250,7 +250,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import axios from 'axios';
 // import * as d3 from "d3"; // npm install d3
 import { useModuleI18n } from '@/i18n/composables';
@@ -266,6 +266,9 @@ export default {
       simulation: null,
       svg: null,
       zoom: null,
+      g: null,
+      width: 0,
+      height: 0,
       node_data: [],
       edge_data: [],
       nodes: [],
@@ -348,7 +351,7 @@ export default {
       this.searchResults = [];
 
       // 构建查询参数
-      const params = {
+      const params: any = {
         query: this.searchQuery
       };
 

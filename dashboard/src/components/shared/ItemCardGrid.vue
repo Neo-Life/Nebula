@@ -68,7 +68,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import { useI18n } from '@/i18n/composables';
 
 export default {

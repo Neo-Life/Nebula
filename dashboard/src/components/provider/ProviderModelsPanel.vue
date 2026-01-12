@@ -159,12 +159,13 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
+import type { PropType } from 'vue'
 
 const props = defineProps({
   entries: {
-    type: Array,
+    type: Array as PropType<any[]>,
     default: () => []
   },
   availableCount: {
@@ -200,7 +201,7 @@ const props = defineProps({
     required: true
   },
   testingProviders: {
-    type: Array,
+    type: Array as PropType<any[]>,
     default: () => []
   },
   tm: {

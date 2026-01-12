@@ -1,4 +1,4 @@
-import { createApp } from 'vue';
+import { createApp, type Plugin } from 'vue';
 import { createPinia } from 'pinia';
 import App from './App.vue';
 import { router } from './router';
@@ -14,14 +14,14 @@ import axios from 'axios';
 
 // 初始化新的i18n系统，等待完成后再挂载应用
 setupI18n().then(() => {
-  console.log('🌍 新i18n系统初始化完成');
+  console.log('🌍 i18n系统初始化完成');
   
   const app = createApp(App);
   app.use(router);
   const pinia = createPinia();
   app.use(pinia);
   app.use(print);
-  app.use(VueApexCharts);
+  app.use(VueApexCharts as Plugin);
   app.use(vuetify);
   app.use(confirmPlugin);
   app.mount('#app');
@@ -40,7 +40,7 @@ setupI18n().then(() => {
   const pinia = createPinia();
   app.use(pinia);
   app.use(print);
-  app.use(VueApexCharts);
+  app.use(VueApexCharts as Plugin);
   app.use(vuetify);
   app.use(confirmPlugin);
   app.mount('#app');

@@ -68,7 +68,7 @@
     },
     "import": {
       "title": "Import Backup",
-      "warning": "⚠️ Import will clear and overwrite existing data! Please make sure you have backed up your current data.",
+      "warning": "Import will clear and overwrite existing data! Please make sure you have backed up your current data.",
       "selectFile": "Select backup file (.zip)",
       "uploadAndCheck": "Upload & Check",
       "uploading": "Uploading...",
@@ -97,7 +97,7 @@
         "backupTime": "Backup Time",
         "matchTitle": "✅ Version Match",
         "matchMessage": "Import will clear and overwrite all existing data, including:\n• Main database (conversations, settings, etc.)\n• Knowledge bases\n• Plugins and plugin data\n• Configuration files\n\nThis action cannot be undone! Do you want to continue?",
-        "minorDiffTitle": "⚠️ Version Difference Warning",
+        "minorDiffTitle": "Version Difference Warning",
         "minorDiffMessage": "Minor version differences are usually compatible, but there may be some data structure changes.\nImport will clear and overwrite all existing data!\n\nDo you want to continue?",
         "majorDiffTitle": "⛔ Cannot Import",
         "majorDiffMessage": "Major version numbers are different. Cross-major-version import may cause data corruption.\nPlease use the same major version of AstrBot for import."

@@ -56,7 +56,7 @@
             <v-icon>{{ expandedEntries[entryIndex] ? 'mdi-chevron-down' : 'mdi-chevron-right' }}</v-icon>
           </v-btn>
           <div class="d-flex flex-column">
-            <v-list-item-title class="property-name">{{ templateLabel(entry.__template_key) }}</v-list-item-title>
+            <v-list-item-title class="property-name">{{ templateLabel((entry as any).__template_key) }}</v-list-item-title>
             <v-list-item-subtitle class="property-hint" v-if="getTemplate(entry)?.hint || getTemplate(entry)?.description">
               {{ getTemplate(entry)?.hint || getTemplate(entry)?.description }}
             </v-list-item-subtitle>
@@ -74,7 +74,7 @@
             <v-alert type="error" variant="tonal" density="compact">{{ t('core.common.templateList.missingTemplate') || '找不到对应模板，请删除后重新添加。' }}</v-alert>
           </div>
           <div v-else class="template-entry-body">
-            <template v-for="(itemMeta, itemKey, metaIndex) in getTemplate(entry).items" :key="itemKey">
+            <template v-for="(itemMeta, itemKey, metaIndex) in (getTemplate(entry)?.items as Record<string, any>)" :key="itemKey">
               <!-- Nested Object -->
               <div
                 v-if="itemMeta?.type === 'object' && !itemMeta?.invisible && shouldShowItem(itemMeta, entry)"
@@ -88,7 +88,7 @@
                     {{ itemMeta.hint }}
                   </v-list-item-subtitle>
                 </div>
-                <div v-for="(childMeta, childKey, childIndex) in itemMeta.items" :key="childKey">
+                <div v-for="(childMeta, childKey, childIndex) in ((itemMeta as any).items as Record<string, any>)" :key="childKey">
                   <template v-if="!childMeta?.invisible && shouldShowItem(childMeta, entry)">
                     <v-row class="config-row">
                       <v-col cols="12" sm="6" class="property-info">
@@ -138,7 +138,7 @@
                   </v-col>
                 </v-row>
                 <v-divider
-                  v-if="hasVisibleItemsAfter(Object.entries(getTemplate(entry).items), metaIndex, entry)"
+                  v-if="hasVisibleItemsAfter(Object.entries((getTemplate(entry)?.items as any) || {}), metaIndex, entry)"
                   class="config-divider"
                 ></v-divider>
               </template>
@@ -150,7 +150,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import ConfigItemRenderer from './ConfigItemRenderer.vue'
 import { useI18n } from '@/i18n/composables'
@@ -169,9 +169,9 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 const { t } = useI18n()
 
-const expandedEntries = ref({})
+const expandedEntries = ref<Record<number, boolean>>({})
 
-const safeText = (val, fallback) => (val && typeof val === 'string' ? val : fallback)
+const safeText = (val: unknown, fallback: string) => (val && typeof val === 'string' ? val : fallback)
 const addButtonText = computed(() => safeText(t('core.common.templateList.addEntry'), '添加条目'))
 const emptyHintText = computed(() => safeText(t('core.common.templateList.empty'), '暂无条目，请先选择模板并添加。'))
 const defaultValueMap = {
@@ -186,28 +186,27 @@ const defaultValueMap = {
 }
 
 const templateOptions = computed(() => {
-  return Object.entries(props.templates || {}).map(([value, meta]) => ({
-    label: meta?.name || value,
+  return Object.entries((props.templates || {}) as Record<string, any>).map(([value, meta]) => ({
+    label: (meta as any)?.name || value,
     value,
-    hint: meta?.hint || meta?.description || ''
+    hint: (meta as any)?.hint || (meta as any)?.description || ''
   }))
 })
 
-function templateLabel(key) {
+function templateLabel(key: any) {
   if (!key) return t('core.common.templateList.unknownTemplate') || '未指定模板'
-  return props.templates?.[key]?.name || key
+  return (props.templates as any)?.[key]?.name || key
 }
 
-function buildDefaults(itemsMeta = {}) {
-  const result = {}
+function buildDefaults(itemsMeta: Record<string, any> = {}) {
+  const result: Record<string, any> = {}
   for (const [k, meta] of Object.entries(itemsMeta)) {
-    if (!meta || !meta.type) continue
-    const fallback = Object.prototype.hasOwnProperty.call(meta, 'default')
-      ? meta.default
-      : defaultValueMap[meta.type]
+    const m = meta as any
+    if (!m || !m.type) continue
+    const fallback = Object.prototype.hasOwnProperty.call(m, 'default') ? m.default : (defaultValueMap as any)[m.type]
 
-    if (meta.type === 'object') {
-      result[k] = buildDefaults(meta.items || {})
+    if (m.type === 'object') {
+      result[k] = buildDefaults(m.items || {})
     } else {
       result[k] = fallback
     }
@@ -215,19 +214,20 @@ function buildDefaults(itemsMeta = {}) {
   return result
 }
 
-function applyDefaults(target, itemsMeta = {}) {
+function applyDefaults(target: Record<string, any>, itemsMeta: Record<string, any> = {}) {
   let changed = false
   for (const [k, meta] of Object.entries(itemsMeta)) {
-    if (!meta || !meta.type) continue
-    const hasDefault = Object.prototype.hasOwnProperty.call(meta, 'default')
-    const fallback = hasDefault ? meta.default : defaultValueMap[meta.type]
+    const m = meta as any
+    if (!m || !m.type) continue
+    const hasDefault = Object.prototype.hasOwnProperty.call(m, 'default')
+    const fallback = hasDefault ? m.default : (defaultValueMap as any)[m.type]
 
-    if (meta.type === 'object') {
+    if (m.type === 'object') {
       if (!target[k] || typeof target[k] !== 'object') {
-        target[k] = buildDefaults(meta.items || {})
+        target[k] = buildDefaults(m.items || {})
         changed = true
       } else {
-        if (applyDefaults(target[k], meta.items || {})) {
+        if (applyDefaults(target[k], m.items || {})) {
           changed = true
         }
       }

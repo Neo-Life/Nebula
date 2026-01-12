@@ -25,14 +25,20 @@
         </v-row>
 
         <v-row v-else>
-          <v-col v-for="(platform, index) in config_data.platform || []" :key="index" cols="12" md="6" lg="4" xl="3">
-            <item-card :item="platform" title-field="id" enabled-field="enable"
-              :bglogo="getPlatformIcon(platform.type || platform.id)" @toggle-enabled="platformStatusChange"
-              @delete="deletePlatform" @edit="editPlatform">
+          <v-col v-for="(platform, index) in config_data.platform || []" :key="index" cols="12" sm="6" md="6" lg="4" xl="3">
+            <item-card 
+              :item="platform" 
+              title-field="id" 
+              enabled-field="enable"
+              title-class="text-h3" 
+              :bglogo="getPlatformIcon(platform.type || platform.id)" 
+              @toggle-enabled="platformStatusChange"
+              @delete="deletePlatform" 
+              @edit="editPlatform" 
+              class="platform-card-item"
+            >
               <template #item-details="{ item }">
-                <!-- 平台运行状态 - 只在非运行状态或有错误时显示 -->
                 <div class="platform-status-row mb-2" v-if="getPlatformStat(item.id) && (getPlatformStat(item.id)?.status !== 'running' || getPlatformStat(item.id)?.error_count > 0)">
-                  <!-- 状态 chip - 只在非 running 状态时显示 -->
                   <v-chip
                     v-if="getPlatformStat(item.id)?.status !== 'running'"
                     size="small"
@@ -43,7 +49,6 @@
                     <v-icon size="small" start>{{ getStatusIcon(getPlatformStat(item.id)?.status) }}</v-icon>
                     {{ tm('runtimeStatus.' + (getPlatformStat(item.id)?.status || 'unknown')) }}
                   </v-chip>
-                  <!-- 错误数量提示 -->
                   <v-chip
                     v-if="getPlatformStat(item.id)?.error_count > 0"
                     size="small"
@@ -75,7 +80,6 @@
         </v-row>
       </div>
 
-      <!-- 日志部分 -->
       <v-card elevation="0" class="mt-4 mb-10">
         <v-card-title class="d-flex align-center py-3 px-4">
           <v-icon class="me-2">mdi-console-line</v-icon>
@@ -87,7 +91,6 @@
           </v-btn>
         </v-card-title>
 
-
         <v-expand-transition>
           <v-card-text class="pa-0" v-if="showConsole">
             <ConsoleDisplayer style="background-color: #1e1e1e; height: 300px; border-radius: 0"></ConsoleDisplayer>
@@ -96,12 +99,10 @@
       </v-card>
     </v-container>
 
-    <!-- 添加平台适配器对话框 -->
     <AddNewPlatform v-model:show="showAddPlatformDialog" :metadata="metadata" :config_data="config_data" ref="addPlatformDialog"
-      :updating-mode="updatingMode" :updating-platform-config="updatingPlatformConfig" @update="getConfig"
+      :updating-mode="updatingMode" :updating-platform-config="updatingPlatformConfig"
       @show-toast="showToast" @refresh-config="getConfig"/>
 
-    <!-- Webhook URL 对话框 -->
     <v-dialog v-model="showWebhookDialog" max-width="600">
       <v-card>
         <v-card-title class="d-flex align-center pa-4">
@@ -138,7 +139,6 @@
       </v-card>
     </v-dialog>
 
-    <!-- 错误详情对话框 -->
     <v-dialog v-model="showErrorDialog" max-width="700">
       <v-card>
         <v-card-title class="d-flex align-center pa-4">
@@ -179,7 +179,6 @@
       </v-card>
     </v-dialog>
 
-    <!-- 消息提示 -->
     <v-snackbar :timeout="3000" elevation="24" :color="save_message_success" v-model="save_message_snack"
       location="top">
       {{ save_message }}
@@ -187,7 +186,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import axios from 'axios';
 import AstrBotConfig from '@/components/shared/AstrBotConfig.vue';
 import WaitingForRestart from '@/components/shared/WaitingForRestart.vue';
@@ -196,7 +195,7 @@ import ItemCard from '@/components/shared/ItemCard.vue';
 import AddNewPlatform from '@/components/platform/AddNewPlatform.vue';
 import { useCommonStore } from '@/stores/common';
 import { useI18n, useModuleI18n } from '@/i18n/composables';
-import { getPlatformIcon, getTutorialLink } from '@/utils/platformUtils';
+import { getPlatformIcon } from '@/utils/platformUtils';
 
 export default {
   name: 'PlatformPage',
@@ -218,9 +217,9 @@ export default {
   },
   data() {
     return {
-      config_data: {},
+      config_data: {} as any,
       fetched: false,
-      metadata: {},
+      metadata: {} as any,
       showAddPlatformDialog: false,
 
       updatingPlatformConfig: {},
@@ -235,11 +234,14 @@ export default {
       showWebhookDialog: false,
       currentWebhookUuid: '',
 
-      // 平台统计信息
-      platformStats: {},
-      statsRefreshInterval: null,
+      platformStats: {} as any,
+      statsRefreshInterval: null as any,
 
-      // 错误详情对话框
+      showIdConflictDialog: false,
+      idConflictResolve: null as any,
+      showOneBotEmptyTokenWarnDialog: false,
+      oneBotEmptyTokenWarningResolve: null as any,
+
       showErrorDialog: false,
       currentErrorPlatform: null,
 
@@ -270,7 +272,6 @@ export default {
   mounted() {
     this.getConfig();
     this.getPlatformStats();
-    // 每 10 秒刷新一次平台状态
     this.statsRefreshInterval = setInterval(() => {
       this.getPlatformStats();
     }, 10000);
@@ -283,12 +284,9 @@ export default {
   },
 
   methods: {
-    // 从工具函数导入
     getPlatformIcon(platform_id) {
-      // 首先检查是否有来自插件的 logo_token
       const template = this.metadata['platform_group']?.metadata?.platform?.config_template?.[platform_id];
       if (template && template.logo_token) {
-          // 通过文件服务访问插件提供的 logo
         return `/api/file/${template.logo_token}`;
       }
       return getPlatformIcon(platform_id);
@@ -307,7 +305,6 @@ export default {
     getPlatformStats() {
       axios.get('/api/platform/stats').then((res) => {
         if (res.data.status === 'ok') {
-          // 将数组转换为以 id 为 key 的对象，方便查找
           const stats = {};
           for (const platform of res.data.data.platforms || []) {
             stats[platform.id] = platform;
@@ -356,7 +353,7 @@ export default {
       this.updatingMode = true;
       this.showAddPlatformDialog = true;
       this.$nextTick(() => {
-        this.$refs.addPlatformDialog.toggleShowConfigSection();
+        (this.$refs.addPlatformDialog as any)?.toggleShowConfigSection?.();
       });
     },
 
@@ -372,7 +369,7 @@ export default {
     },
 
     platformStatusChange(platform) {
-      platform.enable = !platform.enable; // 切换状态
+      platform.enable = !platform.enable;
 
       axios.post('/api/config/platform/update', {
         id: platform.id,
@@ -381,7 +378,7 @@ export default {
         this.getConfig();
         this.showSuccess(res.data.message || this.messages.statusUpdateSuccess);
       }).catch((err) => {
-        platform.enable = !platform.enable; // 发生错误时回滚状态
+        platform.enable = !platform.enable;
         this.showError(err.response?.data?.message || err.message);
       });
     },
@@ -433,7 +430,6 @@ export default {
     }
   },
   computed: {
-    // 安全访问翻译的计算属性
     messages() {
       return {
         updateSuccess: this.tm('messages.updateSuccess'),
@@ -501,5 +497,32 @@ export default {
   word-break: break-word;
   max-height: 300px;
   overflow-y: auto;
+}
+
+.platform-card-item {
+  min-height: 200px;
+}
+
+.platform-card-item :deep(.v-card-title) {
+  flex-wrap: nowrap;
+}
+
+.platform-card-item :deep(.v-card-title > span) {
+  min-width: 0;
+  flex: 1;
+}
+
+/* 仅在平台页面：将卡片底部按钮放到左侧 */
+.platform-card-item :deep(.v-card-actions) {
+  justify-content: flex-start;
+}
+
+.platform-card-item :deep(.v-card-actions .v-spacer) {
+  display: none;
+}
+
+.platform-card-item :deep(.v-switch) {
+  flex-shrink: 0;
+  margin-left: 8px;
 }
 </style>

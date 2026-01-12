@@ -109,7 +109,7 @@
     <WaitingForRestart ref="wfr"></WaitingForRestart>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import axios from 'axios'
 import { useI18n } from '@/i18n/composables'
@@ -124,17 +124,31 @@ const error = ref('')
 const migrating = ref(false)
 const migrationCompleted = ref(false)
 const migrationResult = ref(null)
-const platforms = ref([])
-const selectedPlatforms = ref({})
+
+type Platform = {
+    id: string
+    platform_type?: string
+    type?: string
+    [key: string]: any
+}
+
+type PlatformGroup = {
+    type: string
+    platforms: Platform[]
+}
+
+const platforms = ref<Platform[]>([])
+const selectedPlatforms = ref<Record<string, string>>({})
 const wfr = ref(null)
 
 let resolvePromise = null
 
 // 计算属性：将平台按类型分组
-const platformGroups = computed(() => {
-    const groups = {}
+const platformGroups = computed<PlatformGroup[]>(() => {
+    const groups: Record<string, PlatformGroup> = {}
     platforms.value.forEach(platform => {
-        const type = platform.platform_type || platform.type
+        const type = (platform.platform_type || platform.type || '').toString()
+        if (!type) return
         if (!groups[type]) {
             groups[type] = {
                 type,
@@ -143,7 +157,7 @@ const platformGroups = computed(() => {
         }
         groups[type].platforms.push(platform)
     })
-    return Object.values(groups)
+    return Object.values(groups) as PlatformGroup[]
 })
 
 // 计算属性：检查是否可以开始迁移

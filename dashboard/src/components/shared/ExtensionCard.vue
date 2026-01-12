@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, inject } from "vue";
+import { ref, inject, useAttrs } from 'vue';
 import { useCustomizerStore } from "@/stores/customizer";
 import { useModuleI18n } from "@/i18n/composables";
 import UninstallConfirmDialog from "./UninstallConfirmDialog.vue";
@@ -83,35 +83,17 @@ const viewReadme = () => {
 const viewChangelog = () => {
   emit("view-changelog", props.extension);
 };
+
+const attrs = useAttrs();
 </script>
 
 <template>
-  <v-card
-    class="mx-auto d-flex flex-column"
-    elevation="0"
-    :style="{
-      position: 'relative',
-      backgroundColor:
-        useCustomizerStore().uiTheme === 'PurpleTheme'
-          ? marketMode
-            ? '#f8f0dd'
-            : '#ffffff'
-          : '#282833',
-      color:
-        useCustomizerStore().uiTheme === 'PurpleTheme'
-          ? '#000000dd'
-          : '#ffffff',
-    }"
-  >
-    <v-card-text
-      style="
-        padding: 16px;
-        padding-bottom: 0px;
-        display: flex;
-        gap: 16px;
-        width: 100%;
-      "
-    >
+  <v-card v-bind="attrs" class="mx-auto d-flex flex-column" elevation="0" :style="{
+    position: 'relative',
+    backgroundColor: useCustomizerStore().uiTheme === 'PurpleTheme' ? marketMode ? '#f8f0dd' : '#ffffff' : '#282833',
+    color: useCustomizerStore().uiTheme === 'PurpleTheme' ? '#000000dd' : '#ffffff'
+  }">
+    <v-card-text style="padding: 16px; padding-bottom: 0px; display: flex; gap: 16px; width: 100%;">
       <div v-if="extension?.logo">
         <img :src="extension.logo" :alt="extension.name" cover width="100" />
       </div>
@@ -138,9 +120,7 @@ const viewChangelog = () => {
 
             <v-list>
               <v-list-item @click="viewReadme">
-                <v-list-item-title
-                  >📄 {{ tm("buttons.viewDocs") }}</v-list-item-title
-                >
+                <v-list-item-title>📄 {{ tm('buttons.viewDocs') }}</v-list-item-title>
               </v-list-item>
 
               <v-list-item v-if="!marketMode" @click="viewChangelog">
@@ -206,13 +186,12 @@ const viewChangelog = () => {
 
                 <v-list-item @click="updateExtension">
                   <v-list-item-title>
-                    {{
-                      extension.has_update
-                        ? tm("card.actions.updateTo") +
-                          " " +
-                          extension.online_version
-                        : tm("card.actions.reinstall")
-                    }}
+                    <template v-if="extension?.has_update">
+                      {{ tm('card.actions.updateTo') }} {{ extension.online_version || extension.version }}
+                    </template>
+                    <template v-else>
+                      {{ tm('card.actions.reinstall') }}
+                    </template>
                   </v-list-item-title>
                 </v-list-item>
               </template>
@@ -331,7 +310,7 @@ const viewChangelog = () => {
 
     <v-card-actions class="extension-actions">
       <v-btn color="primary" size="small" @click="viewReadme">
-        {{ tm("buttons.viewDocs") }}
+        {{ tm('buttons.viewDocs') }}
       </v-btn>
       <v-btn v-if="!marketMode" color="primary" size="small" @click="configure">
         {{ tm("card.actions.pluginConfig") }}

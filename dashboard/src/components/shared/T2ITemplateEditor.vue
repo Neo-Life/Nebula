@@ -200,7 +200,7 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn text @click="resetDialog = false">{{ t('core.common.cancel') }}</v-btn>
+          <v-btn variant="text" @click="resetDialog = false">{{ t('core.common.cancel') }}</v-btn>
           <v-btn color="warning" @click="confirmReset" :loading="resetLoading">{{ tm('t2iTemplateEditor.confirmResetButton') }}</v-btn>
         </v-card-actions>
       </v-card>
@@ -215,7 +215,7 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn text @click="deleteDialog = false">{{ t('core.common.cancel') }}</v-btn>
+          <v-btn variant="text" @click="deleteDialog = false">{{ t('core.common.cancel') }}</v-btn>
           <v-btn color="error" @click="confirmDelete" :loading="saveLoading">{{ tm('t2iTemplateEditor.confirmDeleteButton') }}</v-btn>
         </v-card-actions>
       </v-card>
@@ -230,7 +230,7 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn text @click="applyAndCloseDialog = false">{{ t('core.common.cancel') }}</v-btn>
+          <v-btn variant="text" @click="applyAndCloseDialog = false">{{ t('core.common.cancel') }}</v-btn>
           <v-btn color="primary" @click="confirmApplyAndClose" :loading="saveLoading">{{ t('core.common.confirm') }}</v-btn>
         </v-card-actions>
       </v-card>
@@ -239,14 +239,60 @@
   </v-dialog>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, nextTick, watch } from 'vue'
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 import { useI18n, useModuleI18n } from '@/i18n/composables'
 import axios from 'axios'
+import hljs from 'highlight.js/lib/core'
+
+import bash from 'highlight.js/lib/languages/bash'
+import css from 'highlight.js/lib/languages/css'
+import javascript from 'highlight.js/lib/languages/javascript'
+import json from 'highlight.js/lib/languages/json'
+import markdown from 'highlight.js/lib/languages/markdown'
+import python from 'highlight.js/lib/languages/python'
+import typescript from 'highlight.js/lib/languages/typescript'
+import xml from 'highlight.js/lib/languages/xml'
+import yaml from 'highlight.js/lib/languages/yaml'
 
 const { t } = useI18n()
 const { tm } = useModuleI18n('core.shared')
+
+const globalWindow = window as unknown as Record<string, unknown>
+hljs.registerLanguage('bash', bash)
+hljs.registerLanguage('sh', bash)
+hljs.registerLanguage('shell', bash)
+hljs.registerLanguage('css', css)
+hljs.registerLanguage('javascript', javascript)
+hljs.registerLanguage('js', javascript)
+hljs.registerLanguage('json', json)
+hljs.registerLanguage('markdown', markdown)
+hljs.registerLanguage('md', markdown)
+hljs.registerLanguage('python', python)
+hljs.registerLanguage('py', python)
+hljs.registerLanguage('typescript', typescript)
+hljs.registerLanguage('ts', typescript)
+hljs.registerLanguage('xml', xml)
+hljs.registerLanguage('html', xml)
+hljs.registerLanguage('yaml', yaml)
+hljs.registerLanguage('yml', yaml)
+
+if (!globalWindow.hljs) {
+  globalWindow.hljs = hljs
+}
+
+function injectHljsShim(html: string) {
+  const hljsShim = '<script>window.hljs=window.hljs||(window.parent&&window.parent.hljs);</scr' + 'ipt>'
+
+  if (/<head[\s>]/i.test(html)) {
+    return html.replace(/<head(\b[^>]*)>/i, `<head$1>${hljsShim}`)
+  }
+  if (/^\s*<!doctype\b/i.test(html)) {
+    return html.replace(/^(\s*<!doctype\b[^>]*>)/i, `$1${hljsShim}`)
+  }
+  return `${hljsShim}${html}`
+}
 
 // --- 响应式数据 ---
 const dialog = ref(false)
@@ -273,7 +319,7 @@ const previewFrame = ref(null)
 
 // --- 编辑器配置 ---
 const editorTheme = computed(() => 'vs-light')
-const editorOptions = {
+const editorOptions: any = {
   automaticLayout: true,
   fontSize: 12,
   lineNumbers: 'on',
@@ -284,17 +330,18 @@ const editorOptions = {
 
 // --- 预览逻辑 ---
 const previewData = {
-  text: '这是一个示例文本，用于预览模板效果。\n\n这里可以包含多行文本，支持换行和各种格式。',
-  version: 'v4.0.0'
+  text: tm('t2iTemplateEditor.previewText') || '这是一个示例文本，用于预览模板效果。\n\n这里可以包含多行文本，支持换行和各种格式。',
+  version: tm('t2iTemplateEditor.previewVersion', { version: 'v4.0.0' }) || 'v4.0.0'
 }
 const previewContent = computed(() => {
   try {
     let content = templateContent.value
     content = content.replace(/\{\{\s*text\s*\|\s*safe\s*\}\}/g, previewData.text)
     content = content.replace(/\{\{\s*version\s*\}\}/g, previewData.version)
-    return content
+    return injectHljsShim(content)
   } catch (error) {
-    return `<div style="color: red; padding: 20px;">模板渲染错误: ${error.message}</div>`
+    const message = error instanceof Error ? error.message : String(error)
+    return `<div style="color: red; padding: 20px;">${tm('t2iTemplateEditor.renderError', { message })}</div>`
   }
 })
 

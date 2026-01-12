@@ -1,4 +1,6 @@
-const ChatBoxRoutes = {
+import type { RouteRecordRaw } from 'vue-router'
+
+const ChatBoxRoutes: RouteRecordRaw = {
     path: '/chatbox',
     component: () => import('@/layouts/blank/BlankLayout.vue'),
     children: [

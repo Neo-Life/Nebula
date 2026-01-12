@@ -1,4 +1,6 @@
-const MainRoutes = {
+import type { RouteRecordRaw } from 'vue-router'
+
+const MainRoutes: RouteRecordRaw = {
   path: '/main',
   meta: {
     requiresAuth: true
@@ -38,7 +40,7 @@ const MainRoutes = {
     },
     {
       name: 'Default',
-      path: '/dashboard/default',
+      path: '/default',
       component: () => import('@/views/dashboards/default/DefaultDashboard.vue')
     },
     {
@@ -136,6 +138,11 @@ const MainRoutes = {
       name: 'About',
       path: '/about',
       component: () => import('@/views/AboutPage.vue')
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'NotFound',
+      component: () => import('@/views/Error404.vue')
     }
   ]
 };

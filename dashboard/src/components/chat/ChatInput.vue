@@ -1,21 +1,12 @@
 <template>
     <div class="input-area fade-in">
-        <div class="input-container"
-            :style="{
-                width: '85%',
-                maxWidth: '900px',
-                margin: '0 auto',
-                border: isDark ? 'none' : '1px solid #e0e0e0',
-                borderRadius: '24px',
-                boxShadow: isDark ? 'none' : '0px 2px 2px rgba(0, 0, 0, 0.1)',
-                backgroundColor: isDark ? '#2d2d2d' : 'transparent'
-            }">
+        <div class="input-container" :class="{ 'is-dark': isDark }">
             <!-- 引用预览区 -->
             <transition name="slideReply" @after-leave="handleReplyAfterLeave">
                 <div class="reply-preview" v-if="props.replyTo && !isReplyClosing">
                     <div class="reply-content">
                         <v-icon size="small" class="reply-icon">mdi-reply</v-icon>
-                        "<span class="reply-text">{{ props.replyTo.selectedText }}</span>"
+                        "<span class="reply-text">{{ props.replyTo.selectedText || props.replyTo.messageContent }}</span>"
                     </div>
                     <v-btn @click="handleClearReply" class="remove-reply-btn" icon="mdi-close" size="x-small" color="grey" variant="text" />
                 </div>
@@ -26,9 +17,11 @@
                 @keydown="handleKeyDown"
                 :disabled="disabled" 
                 placeholder="Ask AstrBot..."
-                style="width: 100%; resize: none; outline: none; border: 1px solid var(--v-theme-border); border-radius: 12px; padding: 12px 16px; min-height: 40px; font-family: inherit; font-size: 16px; background-color: var(--v-theme-surface);"></textarea>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 14px;">
-                <div style="display: flex; justify-content: flex-start; margin-top: 4px; align-items: center; gap: 8px;">
+                class="chat-textarea"
+            ></textarea>
+
+            <div class="input-actions-bar">
+                <div class="left-actions">
                     <ConfigSelector
                         :session-id="sessionId || null"
                         :platform-id="sessionPlatformId"
@@ -37,7 +30,6 @@
                         @config-changed="handleConfigChange"
                     />
                     
-                    <!-- Provider/Model Selector Menu -->
                     <ProviderModelMenu v-if="showProviderSelector" ref="providerModelMenuRef" />
                     
                     <v-tooltip :text="enableStreaming ? tm('streaming.enabled') : tm('streaming.disabled')" location="top">
@@ -49,7 +41,7 @@
                         </template>
                     </v-tooltip>
                 </div>
-                <div style="display: flex; justify-content: flex-end; margin-top: 8px; align-items: center;">
+                <div class="right-actions">
                     <input type="file" ref="imageInputRef" @change="handleFileSelect"
                         style="display: none" multiple />
                     <v-progress-circular v-if="disabled" indeterminate size="16" class="mr-1" width="1.5" />
@@ -64,7 +56,6 @@
             </div>
         </div>
 
-        <!-- 附件预览区 -->
         <div class="attachments-preview" v-if="stagedImagesUrl.length > 0 || stagedAudioUrl || (stagedFiles && stagedFiles.length > 0)">
             <div v-for="(img, index) in stagedImagesUrl" :key="'img-' + index" class="image-preview">
                 <img :src="img" class="preview-image" />
@@ -101,6 +92,7 @@ import ConfigSelector from './ConfigSelector.vue';
 import ProviderModelMenu from './ProviderModelMenu.vue';
 import type { Session } from '@/composables/useSessions';
 
+// ... (Script 逻辑部分完全保持不变) ...
 interface StagedFileInfo {
     attachment_id: string;
     filename: string;
@@ -112,6 +104,7 @@ interface StagedFileInfo {
 interface ReplyInfo {
     messageId: number;
     selectedText?: string;
+    messageContent?: string;
 }
 
 interface Props {
@@ -188,7 +181,6 @@ function handleReplyAfterLeave() {
 }
 
 function handleKeyDown(e: KeyboardEvent) {
-    // Enter 发送消息
     if (e.keyCode === 13 && !e.shiftKey) {
         e.preventDefault();
         if (canSend.value) {
@@ -196,7 +188,6 @@ function handleKeyDown(e: KeyboardEvent) {
         }
     }
 
-    // Ctrl+B 录音
     if (e.ctrlKey && e.keyCode === 66) {
         e.preventDefault();
         if (ctrlKeyDown.value) return;
@@ -285,10 +276,63 @@ defineExpose({
 <style scoped>
 .input-area {
     padding: 16px;
-    background-color: transparent;
+    padding-top: 0; 
+    background-color: rgb(var(--v-theme-surface));
+    border-top: none;
     position: relative;
-    border-top: 1px solid var(--v-theme-border);
     flex-shrink: 0;
+    z-index: 20;
+}
+
+.input-container {
+    width: 85%;
+    max-width: 900px;
+    margin: 0 auto;
+    border-radius: 24px;
+    background-color: rgb(var(--v-theme-surface));
+    border: 1px solid #e0e0e0;
+    box-shadow: 0px 2px 2px rgba(0, 0, 0, 0.1);
+}
+
+.input-container.is-dark {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0px 2px 2px rgba(226, 226, 226, 0.1);
+}
+
+.chat-textarea {
+    width: 100%;
+    resize: none;
+    outline: none;
+    border: none; 
+    border-radius: 24px 24px 0 0; 
+    padding: 12px 16px;
+    min-height: 40px;
+    font-family: inherit;
+    font-size: 16px;
+    background-color: transparent; 
+    color: rgb(var(--v-theme-on-surface));
+}
+
+.input-actions-bar {
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 6px 14px;
+}
+
+.left-actions {
+    display: flex; 
+    justify-content: flex-start; 
+    margin-top: 4px; 
+    align-items: center; 
+    gap: 8px;
+}
+
+.right-actions {
+    display: flex; 
+    justify-content: flex-end; 
+    margin-top: 8px; 
+    align-items: center;
 }
 
 .reply-preview {
@@ -297,7 +341,7 @@ defineExpose({
     justify-content: space-between;
     padding: 8px 16px;
     margin: 8px 8px 0 8px;
-    background-color: rgba(103, 58, 183, 0.06);
+    background-color: rgba(var(--v-theme-primary), 0.08); 
     border-radius: 12px;
     gap: 8px;
     max-height: 500px;
@@ -357,13 +401,13 @@ defineExpose({
 }
 
 .reply-icon {
-    color: var(--v-theme-secondary);
+    color: rgb(var(--v-theme-secondary));
     flex-shrink: 0;
 }
 
 .reply-text {
     font-size: 13px;
-    color: var(--v-theme-secondaryText);
+    color: rgba(var(--v-theme-on-surface), 0.7);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -427,7 +471,6 @@ defineExpose({
 
 .streaming-toggle-chip {
     cursor: pointer;
-    transition: all 0.2s ease;
     user-select: none;
 }
 
@@ -436,7 +479,7 @@ defineExpose({
 }
 
 .fade-in {
-    animation: fadeIn 0.3s ease-in-out;
+    animation: fadeIn 0.2s ease-in-out;
 }
 
 @keyframes fadeIn {

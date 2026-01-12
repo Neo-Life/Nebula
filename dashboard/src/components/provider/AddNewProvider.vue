@@ -1,44 +1,51 @@
 <template>
     <v-dialog v-model="showDialog" max-width="1100px" min-height="95%">
-        <v-card :title="tm('dialogs.addProvider.title')">
-            <v-card-text style="overflow-y: auto;">
-                <v-tabs v-model="activeProviderTab" grow>
-                    <v-tab value="agent_runner" class="font-weight-medium px-3">
+        <v-card class="dialog-card" :class="{ 'is-dark': isDark }" :title="tm('dialogs.addProvider.title')">
+            <template v-slot:append>
+                <v-btn icon="mdi-close" variant="text" @click="closeDialog"></v-btn>
+            </template>
+
+            <v-card-text class="pa-4" style="overflow-y: auto;">
+                <v-tabs v-model="activeProviderTab" grow color="primary" align-tabs="center">
+                    <v-tab value="agent_runner" class="font-weight-medium px-3 rounded-t-lg">
                         <v-icon start>mdi-cogs</v-icon>
                         {{ tm('dialogs.addProvider.tabs.agentRunner') }}
                     </v-tab>
-                    <v-tab value="speech_to_text" class="font-weight-medium px-3">
+                    <v-tab value="speech_to_text" class="font-weight-medium px-3 rounded-t-lg">
                         <v-icon start>mdi-microphone-message</v-icon>
                         {{ tm('dialogs.addProvider.tabs.speechToText') }}
                     </v-tab>
-                    <v-tab value="text_to_speech" class="font-weight-medium px-3">
+                    <v-tab value="text_to_speech" class="font-weight-medium px-3 rounded-t-lg">
                         <v-icon start>mdi-volume-high</v-icon>
                         {{ tm('dialogs.addProvider.tabs.textToSpeech') }}
                     </v-tab>
-                    <v-tab value="embedding" class="font-weight-medium px-3">
+                    <v-tab value="embedding" class="font-weight-medium px-3 rounded-t-lg">
                         <v-icon start>mdi-code-json</v-icon>
                         {{ tm('dialogs.addProvider.tabs.embedding') }}
                     </v-tab>
-                    <v-tab value="rerank" class="font-weight-medium px-3">
+                    <v-tab value="rerank" class="font-weight-medium px-3 rounded-t-lg">
                         <v-icon start>mdi-compare-vertical</v-icon>
                         {{ tm('dialogs.addProvider.tabs.rerank') }}
                     </v-tab>
                 </v-tabs>
 
-                <v-window v-model="activeProviderTab" class="mt-4">
+                <v-divider></v-divider>
+
+                <v-window v-model="activeProviderTab" class="mt-6 provider-window">
                     <v-window-item
                         v-for="tabType in ['chat_completion', 'agent_runner', 'speech_to_text', 'text_to_speech', 'embedding', 'rerank']"
                         :key="tabType" :value="tabType">
-                        <v-row class="mt-1">
+                        <v-row>
                             <v-col v-for="(template, name) in getTemplatesByType(tabType)" :key="name" cols="12" sm="6"
                                 md="4">
-                                <v-card variant="outlined" hover class="provider-card"
+                                <v-card class="provider-card" elevation="0"
                                     @click="selectProviderTemplate(name)">
                                     <div class="provider-card-content">
                                         <div class="provider-card-text">
-                                            <v-card-title class="provider-card-title">{{ name }}</v-card-title>
-                                            <v-card-text
-                                                class="text-caption text-medium-emphasis provider-card-description">
+                                            <v-card-title class="provider-card-title text-primary">
+                                                {{ name }}
+                                            </v-card-title>
+                                            <v-card-text class="provider-card-description text-body-2 text-medium-emphasis">
                                                 {{ getProviderDescription(template, name) }}
                                             </v-card-text>
                                         </div>
@@ -53,7 +60,7 @@
                                 </v-card>
                             </v-col>
                             <v-col v-if="Object.keys(getTemplatesByType(tabType)).length === 0" cols="12">
-                                <v-alert type="info" variant="tonal">
+                                <v-alert type="info" variant="tonal" border="start" class="mt-2">
                                     {{ tm('dialogs.addProvider.noTemplates') }}
                                 </v-alert>
                             </v-col>
@@ -61,15 +68,19 @@
                     </v-window-item>
                 </v-window>
             </v-card-text>
-            <v-card-actions>
+            <v-card-actions class="pa-4 pt-0">
                 <v-spacer></v-spacer>
-                <v-btn text @click="closeDialog">{{ tm('dialogs.config.cancel') }}</v-btn>
+                <v-btn variant="text" color="medium-emphasis" @click="closeDialog">
+                    {{ tm('dialogs.config.cancel') }}
+                </v-btn>
             </v-card-actions>
         </v-card>
     </v-dialog>
 </template>
 
-<script>
+<script lang="ts">
+import { computed } from 'vue';
+import { useTheme } from 'vuetify';
 import { useModuleI18n } from '@/i18n/composables';
 import { getProviderIcon, getProviderDescription } from '@/utils/providerUtils';
 
@@ -88,7 +99,10 @@ export default {
     emits: ['update:show', 'select-template'],
     setup() {
         const { tm } = useModuleI18n('features/provider');
-        return { tm };
+        const theme = useTheme();
+        const isDark = computed(() => theme.global.current.value.dark);
+
+        return { tm, isDark };
     },
     data() {
         return {
@@ -110,29 +124,26 @@ export default {
             this.showDialog = false;
         },
 
-        // 按提供商类型获取模板列表
         getTemplatesByType(type) {
-            const templates = this.metadata.provider.config_template || {};
-            const filtered = {};
+            const templates = (this.metadata as any)?.provider?.config_template || {};
+            const filtered: Record<string, any> = {};
 
-            for (const [name, template] of Object.entries(templates)) {
-                if (template.provider_type === type) {
-                    filtered[name] = template;
+            for (const [name, template] of Object.entries(templates as Record<string, any>)) {
+                const tpl = template as any;
+                if (tpl?.provider_type === type) {
+                    filtered[name] = tpl;
                 }
             }
 
             return filtered;
         },
 
-        // 从工具函数导入
         getProviderIcon,
 
-        // 获取提供商简介
         getProviderDescription(template, name) {
             return getProviderDescription(template, name, this.tm);
         },
 
-        // 选择提供商模板
         selectProviderTemplate(name) {
             this.$emit('select-template', name);
             this.closeDialog();
@@ -142,25 +153,32 @@ export default {
 </script>
 
 <style scoped>
+.provider-window {
+    padding-top: 8px;
+}
+
 .provider-card {
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid rgba(var(--v-border-color), var(--v-border-opacity));
+    border-radius: 12px;
     height: 100%;
     cursor: pointer;
     overflow: hidden;
     position: relative;
+    background-color: rgb(var(--v-theme-surface));
 }
 
 .provider-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 4px 25px 0 rgba(0, 0, 0, 0.05);
-    border-color: var(--v-primary-base);
+    box-shadow: 0 12px 20px -8px rgba(var(--v-theme-primary), 0.15);
+    border-color: rgb(var(--v-theme-primary));
 }
 
 .provider-card-content {
     display: flex;
     align-items: center;
-    height: 100px;
-    padding: 16px;
+    height: 110px;
+    padding: 20px;
     position: relative;
     z-index: 2;
 }
@@ -170,50 +188,78 @@ export default {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    padding-right: 60px;
 }
 
 .provider-card-title {
-    font-size: 15px;
-    font-weight: 600;
-    margin-bottom: 4px;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
     padding: 0;
+    line-height: 1.2;
 }
 
 .provider-card-description {
     padding: 0;
     margin: 0;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .provider-card-logo {
     position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 80px;
+    right: -10px;
+    bottom: -10px;
+    width: 90px;
+    height: 90px;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1;
+    pointer-events: none;
 }
 
 .provider-logo-img {
-    width: 60px;
-    height: 60px;
-    opacity: 0.6;
+    width: 100%;
+    height: 100%;
+    opacity: 0.15;
     object-fit: contain;
+    transform: rotate(-15deg);
+    transition: all 0.3s ease;
+    filter: grayscale(100%);
+}
+
+.dialog-card.is-dark .provider-logo-img {
+    filter: grayscale(100%) invert(1);
+    opacity: 0.2;
+}
+
+.provider-card:hover .provider-logo-img {
+    opacity: 0.3;
+    transform: rotate(0deg) scale(1.1);
+    filter: grayscale(0%);
+}
+
+.dialog-card.is-dark .provider-card:hover .provider-logo-img {
+    filter: grayscale(0%) invert(1);
+    opacity: 0.4;
 }
 
 .provider-logo-fallback {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background-color: var(--v-primary-base);
-    color: white;
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    background-color: rgba(var(--v-theme-primary), 0.1);
+    color: rgb(var(--v-theme-primary));
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
-    font-weight: bold;
-    opacity: 0.3;
+    font-size: 28px;
+    font-weight: 800;
+    transform: rotate(-10deg);
 }
 </style>

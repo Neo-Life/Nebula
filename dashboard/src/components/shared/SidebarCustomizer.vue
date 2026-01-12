@@ -114,7 +114,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useI18n } from '@/i18n/composables';
 import sidebarItems from '@/layouts/full/vertical-sidebar/sidebarItem';

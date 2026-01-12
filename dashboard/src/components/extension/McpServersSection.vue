@@ -4,6 +4,8 @@
       <!-- 页面标题 -->
       <v-row class="d-flex justify-space-between align-center px-4 py-3 pb-8">
         <div>
+        </div>
+        <div>
           <v-btn color="success" prepend-icon="mdi-plus" class="me-2" variant="tonal"
             @click="showMcpServerDialog = true" >
             {{ tm('mcpServers.buttons.add') }}
@@ -213,7 +215,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import axios from 'axios';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import ItemCard from '@/components/shared/ItemCard.vue';
@@ -479,7 +481,7 @@ export default {
       }
       this.loading = true;
       try {
-        const requestData = {
+        const requestData: any = {
           name: this.selectedMcpServerProvider
         };
         if (this.selectedMcpServerProvider === 'modelscope') {

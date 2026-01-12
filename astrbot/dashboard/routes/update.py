@@ -7,7 +7,11 @@ from astrbot.core.config.default import VERSION
 from astrbot.core.core_lifecycle import AstrBotCoreLifecycle
 from astrbot.core.db.migration.helper import check_migration_needed_v4, do_migration_v4
 from astrbot.core.updator import AstrBotUpdator
-from astrbot.core.utils.io import download_dashboard, get_dashboard_version
+from astrbot.core.utils.io import (
+    download_dashboard,
+    download_landfill_dashboard_nightly,
+    get_dashboard_version,
+)
 
 from .route import Response, Route, RouteContext
 
@@ -53,6 +57,7 @@ class UpdateRoute(Route):
 
     async def check_update(self):
         type_ = request.args.get("type", None)
+        channel = request.args.get("channel", "official")
 
         try:
             dv = await get_dashboard_version()
@@ -62,6 +67,20 @@ class UpdateRoute(Route):
                     .ok({"has_new_version": dv != f"v{VERSION}", "current_version": dv})
                     .__dict__
                 )
+
+            if channel == "landfill":
+                return Response(
+                    status="success",
+                    message="该更新渠道不提供 releases 版本列表，将直接拉取默认分支最新源码。",
+                    data={
+                        "version": f"v{VERSION}",
+                        "has_new_version": False,
+                        "dashboard_version": dv,
+                        "dashboard_has_new_version": bool(dv and dv != f"v{VERSION}"),
+                        "channel": channel,
+                    },
+                ).__dict__
+
             ret = await self.astrbot_updator.check_update(None, None, False)
             return Response(
                 status="success",
@@ -71,6 +90,7 @@ class UpdateRoute(Route):
                     "has_new_version": ret is not None,
                     "dashboard_version": dv,
                     "dashboard_has_new_version": bool(dv and dv != f"v{VERSION}"),
+                    "channel": channel,
                 },
             ).__dict__
         except Exception as e:
@@ -78,6 +98,10 @@ class UpdateRoute(Route):
             return Response().error(e.__str__()).__dict__
 
     async def get_releases(self):
+        channel = request.args.get("channel", "official")
+        if channel == "landfill":
+            # 该渠道通常没有 releases；面板侧会提供“更新到最新源码”按钮。
+            return Response().ok([]).__dict__
         try:
             ret = await self.astrbot_updator.get_releases()
             return Response().ok(ret).__dict__
@@ -87,6 +111,7 @@ class UpdateRoute(Route):
 
     async def update_project(self):
         data = await request.json
+        channel = data.get("channel", "official")
         version = data.get("version", "")
         reboot = data.get("reboot", True)
         if version == "" or version == "latest":
@@ -104,10 +129,16 @@ class UpdateRoute(Route):
                 latest=latest,
                 version=version,
                 proxy=proxy,
+                channel=channel,
             )
 
             try:
-                await download_dashboard(latest=latest, version=version, proxy=proxy)
+                if channel == "landfill":
+                    await download_landfill_dashboard_nightly(proxy=proxy)
+                else:
+                    await download_dashboard(
+                        latest=latest, version=version, proxy=proxy
+                    )
             except Exception as e:
                 logger.error(f"下载管理面板文件失败: {e}。")
 
@@ -139,7 +170,18 @@ class UpdateRoute(Route):
     async def update_dashboard(self):
         try:
             try:
-                await download_dashboard(version=f"v{VERSION}", latest=False)
+                data = await request.get_json(silent=True) or {}
+                channel = data.get("channel", "official")
+                proxy: str | None = data.get("proxy", None)
+                if proxy:
+                    proxy = proxy.removesuffix("/")
+
+                if channel == "landfill":
+                    await download_landfill_dashboard_nightly(proxy=proxy)
+                else:
+                    await download_dashboard(
+                        version=f"v{VERSION}", latest=False, proxy=proxy
+                    )
             except Exception as e:
                 logger.error(f"下载管理面板文件失败: {e}。")
                 return Response().error(f"下载管理面板文件失败: {e}").__dict__

@@ -1,4 +1,5 @@
 import base64
+import json
 import logging
 import os
 import shutil
@@ -240,6 +241,39 @@ async def get_dashboard_version():
     return None
 
 
+def get_dashboard_channel() -> str:
+    """获取 WebUI 下载渠道。
+
+    优先级：环境变量 > cmd_config.json > 默认 official。
+
+    - env: `ASTRBOT_DASHBOARD_CHANNEL`（建议）或 `ASTRBOT_UPDATE_CHANNEL`（兼容）
+    - config: `data/cmd_config.json` -> `dashboard.channel`
+    """
+
+    env_channel = os.environ.get("ASTRBOT_DASHBOARD_CHANNEL") or os.environ.get(
+        "ASTRBOT_UPDATE_CHANNEL",
+    )
+    if env_channel:
+        env_channel = env_channel.strip().lower()
+        return "landfill" if env_channel == "landfill" else "official"
+
+    cfg_path = Path(get_astrbot_data_path()).absolute() / "cmd_config.json"
+    if cfg_path.exists():
+        try:
+            cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+            channel = (
+                (cfg.get("dashboard") or {}).get("channel")
+                or (cfg.get("dashboard") or {}).get("update_channel")
+                or "official"
+            )
+            channel = str(channel).strip().lower()
+            return "landfill" if channel == "landfill" else "official"
+        except Exception:
+            return "official"
+
+    return "official"
+
+
 async def download_dashboard(
     path: str | None = None,
     extract_path: str = "data",
@@ -283,5 +317,38 @@ async def download_dashboard(
         if proxy:
             url = f"{proxy}/{url}"
         await download_file(url, str(zip_path), show_progress=True)
+    with zipfile.ZipFile(zip_path, "r") as z:
+        z.extractall(extract_path)
+
+
+async def download_landfill_dashboard_nightly(
+    path: str | None = None,
+    extract_path: str = "data",
+    proxy: str | None = None,
+) -> None:
+    """下载 LandfillBot nightly WebUI(dist.zip) 并解压到 data/dist。
+
+    下载源：LandfillLand/LandfillBot release tag `nightly` 的 dist.zip。
+    """
+
+    if path is None:
+        zip_path = Path(get_astrbot_data_path()).absolute() / "dashboard.zip"
+    else:
+        zip_path = Path(path).absolute()
+
+    url = (
+        "https://github.com/LandfillLand/LandfillBot/releases/download/nightly/dist.zip"
+    )
+    if proxy:
+        proxy = proxy.removesuffix("/")
+        url = f"{proxy}/{url}"
+
+    logger.info(f"准备下载 LandfillBot Nightly WebUI 文件: {url}")
+    await download_file(url, str(zip_path), show_progress=True)
+
+    target_dist = Path(extract_path).absolute() / "dist"
+    if target_dist.exists():
+        remove_dir(str(target_dist))
+
     with zipfile.ZipFile(zip_path, "r") as z:
         z.extractall(extract_path)

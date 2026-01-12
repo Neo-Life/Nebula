@@ -1,5 +1,4 @@
-<script setup>
-import { useCommonStore } from '@/stores/common';
+<script setup lang="ts">
 import axios from 'axios';
 import { EventSourcePolyfill } from 'event-source-polyfill';
 </script>
@@ -15,16 +14,17 @@ import { EventSourcePolyfill } from 'event-source-polyfill';
       </v-chip-group>
     </div>
 
-    <div id="term" style="background-color: #1e1e1e; padding: 16px; border-radius: 8px; overflow-y:auto; height: 100%">
+    <div ref="term" style="background-color: #1e1e1e; padding: 16px; border-radius: 8px; overflow-y:auto; height: 100%">
     </div>
   </div>
 </template>
 
-<script>
+<script lang="ts">
 export default {
   name: 'ConsoleDisplayer',
   data() {
     return {
+      maxLocalLogCacheLen: 1000,
       autoScroll: true,
       logColorAnsiMap: {
         '\u001b[1;34m': 'color: #0000FF; font-weight: bold;',
@@ -54,11 +54,6 @@ export default {
       lastEventId: null,          
     }
   },
-  computed: {
-    commonStore() {
-      return useCommonStore();
-    },
-  },
   props: {
     historyNum: {
       type: String,
@@ -79,7 +74,11 @@ export default {
   },
   async mounted() {
     await this.fetchLogHistory();
-    this.connectSSE();
+
+    const token = localStorage.getItem('token');
+    if (token) {
+      this.connectSSE();
+    }
   },
   beforeUnmount() {
     if (this.eventSource) {
@@ -93,6 +92,20 @@ export default {
     this.retryAttempts = 0;
   },
   methods: {
+    normalizeLog(log) {
+      const rawTime = (log && Object.prototype.hasOwnProperty.call(log, 'time')) ? log.time : 0;
+      const timeNum = typeof rawTime === 'string' ? Number.parseFloat(rawTime) : Number(rawTime ?? 0);
+      const timeMs = Number.isFinite(timeNum) ? Math.round(timeNum * 1000) : 0;
+
+      return {
+        ...log,
+        time: Number.isFinite(timeNum) ? timeNum : 0,
+        __timeMs: timeMs,
+        level: (log?.level ?? '').toString(),
+        data: (log?.data ?? '').toString(),
+      };
+    },
+
     connectSSE() {
       if (this.eventSource) {
         this.eventSource.close();
@@ -102,6 +115,10 @@ export default {
       console.log(`正在连接日志流... (尝试次数: ${this.retryAttempts})`);
       
       const token = localStorage.getItem('token');
+      if (!token) {
+        // 未登录时不要连接（否则后端会刷大量 401）
+        return;
+      }
 
       this.eventSource = new EventSourcePolyfill('/api/live-log', {
         headers: {
@@ -115,8 +132,8 @@ export default {
         console.log('日志流连接成功！');
         this.retryAttempts = 0;
 
-        if (!this.lastEventId) {
-            this.fetchLogHistory();
+        if (this.localLogCache.length === 0) {
+          this.fetchLogHistory();
         }
       };
 
@@ -135,12 +152,22 @@ export default {
 
       this.eventSource.onerror = (err) => {
 
-        if (err.status === 401) {
-            console.error('鉴权失败 (401)，可能是 Token 过期了。');
-
-        } else {
-            console.warn('日志流连接错误:', err);
+        const status = (err as any)?.status;
+        if (status === 401 || status === 403) {
+          console.error(`鉴权失败 (${status})，停止重连。请重新登录/刷新页面。`);
+          if (this.eventSource) {
+            this.eventSource.close();
+            this.eventSource = null;
+          }
+          if (this.retryTimer) {
+            clearTimeout(this.retryTimer);
+            this.retryTimer = null;
+          }
+          this.retryAttempts = this.maxRetryAttempts;
+          return;
         }
+
+        console.warn('日志流连接错误:', err);
         
         if (this.eventSource) {
             this.eventSource.close();
@@ -183,26 +210,28 @@ export default {
 
       newLogs.forEach(log => {
 
-        const exists = this.localLogCache.some(existing => 
-          existing.time === log.time && 
-          existing.data === log.data &&
-          existing.level === log.level
+        const normalized = this.normalizeLog(log);
+
+        const exists = this.localLogCache.some(existing =>
+          existing.__timeMs === normalized.__timeMs &&
+          existing.data === normalized.data &&
+          existing.level === normalized.level
         );
         
         if (!exists) {
-            this.localLogCache.push(log);
+            this.localLogCache.push(normalized);
             hasUpdate = true;
             
-            if (this.isLevelSelected(log.level)) {
-              this.printLog(log.data);
+            if (this.isLevelSelected(normalized.level)) {
+              this.printLog(normalized.data);
             }
         }
       });
 
       if (hasUpdate) {
-        this.localLogCache.sort((a, b) => a.time - b.time);
+        this.localLogCache.sort((a, b) => a.__timeMs - b.__timeMs);
         
-        const maxSize = this.commonStore.log_cache_max_len || 200;
+        const maxSize = this.maxLocalLogCacheLen || 200;
         if (this.localLogCache.length > maxSize) {
            this.localLogCache.splice(0, this.localLogCache.length - maxSize);
         }
@@ -235,7 +264,7 @@ export default {
     },
 
     refreshDisplay() {
-      const termElement = document.getElementById('term');
+      const termElement = this.$refs.term as HTMLElement | undefined;
       if (termElement) {
         termElement.innerHTML = '';
         
@@ -254,7 +283,7 @@ export default {
     },
 
     printLog(log) {
-      let ele = document.getElementById('term')
+      const ele = this.$refs.term as HTMLElement | undefined;
       if (!ele) {
         return;
       }
@@ -269,7 +298,9 @@ export default {
         }
       }
 
-      span.style = style + 'display: block; font-size: 12px; font-family: Consolas, monospace; white-space: pre-wrap; margin-bottom: 2px;'
+      span.style.cssText =
+        style +
+        'display: block; font-size: 12px; font-family: Consolas, monospace; white-space: pre-wrap; margin-bottom: 2px;'
       span.classList.add('fade-in')
       span.innerText = `${log}`;
       ele.appendChild(span)
