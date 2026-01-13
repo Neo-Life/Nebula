@@ -65,7 +65,7 @@ const sidebarItem: menu[] = [
       {
         title: 'core.navigation.dashboard',
         icon: 'mdi-view-dashboard',
-        to: '/dashboard/default'
+        to: '/default'
       },
       {
         title: 'core.navigation.console',

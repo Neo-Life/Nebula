@@ -4,7 +4,7 @@
       <v-card flat>
         <v-card-title class="d-flex align-center py-3 px-4">
           <span class="text-h4">{{ tm('customRules.title') }}</span>
-          <v-btn icon="mdi-information-outline" size="small" variant="text" href="https://astrbot.app/use/custom-rules.html" target="_blank"></v-btn>
+          <v-btn icon="mdi-information-outline" size="small" variant="text" href="https://docs.astrbot.app/use/custom-rules.html" target="_blank"></v-btn>
           <v-chip size="small" class="ml-1">{{ totalItems }} {{ tm('customRules.rulesCount') }}</v-chip>
           <v-row class="me-4 ms-4" dense>
             <v-text-field v-model="searchQuery" prepend-inner-icon="mdi-magnify" :label="tm('search.placeholder')"
@@ -365,7 +365,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import axios from 'axios'
 import { useI18n, useModuleI18n } from '@/i18n/composables'
 
@@ -411,7 +411,7 @@ export default {
       // 规则编辑
       ruleDialog: false,
       selectedUmo: null,
-      editingRules: {},
+      editingRules: {} as any,
 
       // 服务配置
       serviceConfig: {
@@ -636,7 +636,7 @@ export default {
       if (!this.selectedNewUmo) return
 
       // 创建一个新的规则项并打开编辑器
-      const newItem = {
+      const newItem: any = {
         umo: this.selectedNewUmo,
         rules: {},
       }

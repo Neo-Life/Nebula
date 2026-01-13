@@ -485,10 +485,27 @@
       }
     }
   },
+  "help": {
+    "helpPrefix": "如需更多信息，请查看",
+    "documentation": "官方文档",
+    "helpMiddle": "，或加入",
+    "support": "社区支持群",
+    "helpSuffix": " 获取进一步支持。"
+  },
   "system_group": {
     "name": "系统配置",
     "system": {
       "description": "系统配置",
+      "dashboard": {
+        "channel": {
+          "description": "WebUI 下载渠道",
+          "hint": "用于启动时自动下载/更新 WebUI。official 为官方发布版；landfill 为 LandfillBot 版本。",
+          "labels": [
+            "AstrBot 官方渠道",
+            "LandfillBot 渠道"
+          ]
+        }
+      },
       "t2i_strategy": {
         "description": "文本转图像策略",
         "hint": "文本转图像策略。`remote` 为使用远程基于 HTML 的渲染服务,`local` 为使用 PIL 本地渲染。当使用 local 时,将 ttf 字体命名为 'font.ttf' 放在 data/ 目录下可自定义字体。"

@@ -81,9 +81,10 @@ class LogRoute(Route):
                 stream(),
                 {
                     "Content-Type": "text/event-stream",
-                    "Cache-Control": "no-cache",
-                    "Connection": "keep-alive",
-                    "Transfer-Encoding": "chunked",
+                    # Avoid hop-by-hop headers that break under HTTP/2.
+                    "Cache-Control": "no-cache, no-transform",
+                    # Disable proxy buffering (nginx etc.) for SSE.
+                    "X-Accel-Buffering": "no",
                 },
             ),
         )

@@ -20,7 +20,7 @@
 
 </template>
 
-<script>
+<script lang="ts">
 import { useCustomizerStore } from "@/stores/customizer";
 import { useModuleI18n } from '@/i18n/composables';
 

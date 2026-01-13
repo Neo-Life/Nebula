@@ -104,5 +104,9 @@
     "edit": "编辑",
     "copy": "复制",
     "noData": "暂无数据"
+  },
+  "error404": {
+    "returnHome": "返回首页",
+    "goBack": "后退一步"
   }
 }

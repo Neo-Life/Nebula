@@ -71,7 +71,7 @@
   </v-card>
 </template>
 
-<script>
+<script lang="ts">
 import { useModuleI18n } from '@/i18n/composables';
 
 export default {

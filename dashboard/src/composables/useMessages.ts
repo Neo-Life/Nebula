@@ -1,4 +1,4 @@
-import { ref, reactive, type Ref } from 'vue';
+import { ref, reactive, watch, onBeforeUnmount, type Ref } from 'vue';
 import axios from 'axios';
 import { useToast } from '@/utils/toast';
 
@@ -82,6 +82,51 @@ export function useMessages(
     const activeSSECount = ref(0);
     const enableStreaming = ref(true);
     const attachmentCache = new Map<string, string>();  // attachment_id -> blob URL
+
+    let disposed = false;
+
+    let pollTimer: number | null = null;
+    let sessionFetchController: AbortController | null = null;
+    let sessionFetchSeq = 0;
+
+    let sendController: AbortController | null = null;
+    let sendSeq = 0;
+
+    function clearPollTimer() {
+        if (pollTimer !== null) {
+            window.clearTimeout(pollTimer);
+            pollTimer = null;
+        }
+    }
+
+    function abortSessionFetch() {
+        if (sessionFetchController) {
+            sessionFetchController.abort();
+            sessionFetchController = null;
+        }
+    }
+
+    function abortSend() {
+        if (sendController) {
+            sendController.abort();
+            sendController = null;
+        }
+    }
+
+    function dispose() {
+        disposed = true;
+        clearPollTimer();
+        abortSessionFetch();
+        abortSend();
+        for (const url of attachmentCache.values()) {
+            try {
+                URL.revokeObjectURL(url);
+            } catch {
+                // ignore
+            }
+        }
+        attachmentCache.clear();
+    }
 
     // 从 localStorage 读取流式响应开关状态
     const savedStreamingState = localStorage.getItem('enableStreaming');
@@ -175,8 +220,19 @@ export function useMessages(
     async function getSessionMessages(sessionId: string) {
         if (!sessionId) return;
 
+        clearPollTimer();
+        abortSessionFetch();
+        const mySeq = ++sessionFetchSeq;
+        const controller = new AbortController();
+        sessionFetchController = controller;
+
         try {
-            const response = await axios.get('/api/chat/get_session?session_id=' + sessionId);
+            const response = await axios.get('/api/chat/get_session?session_id=' + sessionId, {
+                signal: controller.signal
+            });
+
+            if (disposed || mySeq !== sessionFetchSeq || sessionId !== currSessionId.value) return;
+
             isConvRunning.value = response.data.data.is_running || false;
             let history = response.data.data.history;
 
@@ -187,19 +243,26 @@ export function useMessages(
                 }
 
                 // 如果会话还在运行，3秒后重新获取消息
-                setTimeout(() => {
+                pollTimer = window.setTimeout(() => {
+                    if (disposed) return;
+                    if (mySeq !== sessionFetchSeq) return;
+                    if (!currSessionId.value) return;
                     getSessionMessages(currSessionId.value);
                 }, 3000);
             }
 
             // 处理历史消息
             for (let i = 0; i < history.length; i++) {
+                if (disposed || mySeq !== sessionFetchSeq || sessionId !== currSessionId.value) return;
                 let content = history[i].content;
                 await parseMessageContent(content);
             }
 
+            if (disposed || mySeq !== sessionFetchSeq || sessionId !== currSessionId.value) return;
+
             messages.value = history;
         } catch (err) {
+            if (controller.signal.aborted) return;
             console.error(err);
         }
     }
@@ -212,6 +275,14 @@ export function useMessages(
         selectedModelName: string,
         replyTo: ReplyInfo | null = null
     ) {
+        if (disposed) return;
+
+        abortSend();
+        const mySendSeq = ++sendSeq;
+        const controller = new AbortController();
+        sendController = controller;
+        const sendSessionId = currSessionId.value;
+
         // 构建用户消息的 message 部分
         const userMessageParts: MessagePart[] = [];
 
@@ -330,6 +401,7 @@ export function useMessages(
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer ' + localStorage.getItem('token')
                 },
+                signal: controller.signal,
                 body: JSON.stringify({
                     message: messageToSend,
                     session_id: currSessionId.value,
@@ -347,31 +419,51 @@ export function useMessages(
             const decoder = new TextDecoder();
             let in_streaming = false;
             let message_obj: MessageContent | null = null;
+            
+            let buffer = '';
 
             isStreaming.value = true;
 
             while (true) {
                 try {
+                    if (disposed || mySendSeq !== sendSeq || sendSessionId !== currSessionId.value) {
+                        try {
+                            await reader.cancel();
+                        } catch {
+                            // ignore
+                        }
+                        break;
+                    }
+
                     const { done, value } = await reader.read();
                     if (done) {
                         console.log('SSE stream completed');
                         // 流式传输结束后，获取最终消息并重新渲染
-                        if (currSessionId.value) {
+                        if (!disposed && mySendSeq === sendSeq && currSessionId.value) {
                             await getSessionMessages(currSessionId.value);
                         }
                         break;
                     }
 
-                    const chunk = decoder.decode(value, { stream: true });
-                    const lines = chunk.split('\n\n');
+                    buffer += decoder.decode(value, { stream: true });
+                    
+                    const lines = buffer.split('\n\n');
+
+                    buffer = lines.pop() || '';
 
                     for (let i = 0; i < lines.length; i++) {
                         let line = lines[i].trim();
                         if (!line) continue;
 
+                        if (line.startsWith('data: ')) {
+                            line = line.substring(6);
+                        } else if (line.startsWith('data:')) {
+                            line = line.substring(5);
+                        }
+
                         let chunk_json;
                         try {
-                            chunk_json = JSON.parse(line.replace('data: ', ''));
+                            chunk_json = JSON.parse(line);
                         } catch (parseError) {
                             console.warn('JSON解析失败:', line, parseError);
                             continue;
@@ -550,6 +642,7 @@ export function useMessages(
                         }
                     }
                 } catch (readError) {
+                    if (controller.signal.aborted) break;
                     console.error('SSE读取错误:', readError);
                     break;
                 }
@@ -559,6 +652,7 @@ export function useMessages(
             onSessionsUpdate();
 
         } catch (err) {
+            if (controller.signal.aborted) return;
             console.error('发送消息失败:', err);
             // 移除加载占位符
             const lastMsg = messages.value[messages.value.length - 1];
@@ -574,6 +668,22 @@ export function useMessages(
         }
     }
 
+    watch(
+        currSessionId,
+        () => {
+            // 会话切换时：停止旧轮询/旧流式，避免旧响应覆盖新消息
+            clearPollTimer();
+            abortSessionFetch();
+            abortSend();
+            isToastedRunningInfo.value = false;
+        },
+        { flush: 'sync' }
+    );
+
+    onBeforeUnmount(() => {
+        dispose();
+    });
+
     return {
         messages,
         isStreaming,
@@ -582,6 +692,7 @@ export function useMessages(
         getSessionMessages,
         sendMessage,
         toggleStreaming,
-        getAttachment
+        getAttachment,
+        dispose
     };
 }

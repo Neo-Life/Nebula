@@ -11,7 +11,7 @@
                 style="flex-grow: 1; width: 100%; height: 100%;">
                 <h2>{{ tm('notInstalled.title') }}
                     <v-icon class="ml-2" size="small" color="grey"
-                        @click="openUrl('https://astrbot.app/use/knowledge-base.html')">mdi-information-outline</v-icon>
+                        @click="openUrl('https://docs.astrbot.app/use/knowledge-base.html')">mdi-information-outline</v-icon>
                 </h2>
                 <v-btn style="margin-top: 16px;" variant="tonal" color="primary" @click="installPlugin"
                     :loading="installing">
@@ -31,7 +31,7 @@
             <div v-else>
                 <h2 class="mb-4">{{ tm('list.title') }}
                     <v-icon class="ml-2" size="x-small" color="grey"
-                        @click="openUrl('https://astrbot.app/use/knowledge-base.html')">mdi-information-outline</v-icon>
+                        @click="openUrl('https://docs.astrbot.app/use/knowledge-base.html')">mdi-information-outline</v-icon>
                 </h2>
                 <v-btn class="mb-4" prepend-icon="mdi-plus" variant="tonal" color="primary"
                     @click="showCreateDialog = true">
@@ -430,7 +430,7 @@
     </div>
 </template>
 
-<script>
+<script lang="ts">
 import axios from 'axios';
 import ConsoleDisplayer from '@/components/shared/ConsoleDisplayer.vue';
 import { useModuleI18n } from '@/i18n/composables';
@@ -492,8 +492,10 @@ export default {
             showContentDialog: false,
             currentKB: {
                 collection_name: '',
-                emoji: ''
-            },
+                emoji: '',
+                _embedding_provider_config: null,
+                rerank_provider_id: null
+            } as any,
             activeTab: 'import',
             dataSource: 'file',
             dataSourceOptions: [
@@ -770,8 +772,7 @@ export default {
             this.createCollection(
                 this.newKB.name,
                 this.newKB.emoji || '🙂',
-                this.newKB.description,
-                this.newKB.embedding_provider_id || ''
+                this.newKB.description
             );
         },
 
@@ -780,7 +781,8 @@ export default {
                 name: '',
                 emoji: '🙂',
                 description: '',
-                embedding_provider: ''
+                embedding_provider_id: null,
+                rerank_provider_id: null
             };
         },
 
@@ -811,7 +813,7 @@ export default {
         },
 
         triggerFileInput() {
-            this.$refs.fileInput.click();
+            (this.$refs.fileInput as HTMLInputElement | undefined)?.click();
         },
 
         onFileSelected(event) {
@@ -1136,10 +1138,10 @@ export default {
             formData.append('collection_name', this.currentKB.collection_name);
 
             if (this.importOptions.chunk_size && this.importOptions.chunk_size > 0) {
-                formData.append('chunk_size', this.importOptions.chunk_size);
+                formData.append('chunk_size', String(this.importOptions.chunk_size));
             }
             if (this.importOptions.chunk_overlap && this.importOptions.chunk_overlap >= 0) {
-                formData.append('chunk_overlap', this.importOptions.chunk_overlap);
+                formData.append('chunk_overlap', String(this.importOptions.chunk_overlap));
             }
 
             const response = await axios.post('/api/plug/alkaid/kb/collection/add_file', formData, {

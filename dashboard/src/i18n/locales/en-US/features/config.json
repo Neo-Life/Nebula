@@ -5,7 +5,10 @@
     "visual": "Visual Editor",
     "code": "Code Editor",
     "revertCode": "Revert to Previous Code",
+    "revertShort": "Revert",
     "applyConfig": "Apply This Configuration",
+    "applyShort": "Apply",
+    "tipShort": "Hint",
     "applyTip": "`Apply This Configuration` will stage and apply the configuration to the visual editor. To save, you need to click the save button in the bottom right corner."
   },
   "actions": {

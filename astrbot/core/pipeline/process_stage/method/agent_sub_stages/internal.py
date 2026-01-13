@@ -43,6 +43,37 @@ from ...utils import (
 
 
 class InternalAgentSubStage(Stage):
+    def _spawn_task(self, coro, *, name: str) -> asyncio.Task:
+        """统一创建后台任务并收敛异常。
+
+        说明：直接 `asyncio.create_task()` 的异常如果无人 await/读取，会走 asyncio 默认异常处理，
+        只打印到 stderr，WebUI 的 live-log 订阅不到。这里通过 done_callback 主动读取异常并用
+        AstrBot logger 输出完整堆栈，确保可观测性一致。
+        """
+
+        task = asyncio.create_task(coro)
+
+        def _on_done(t: asyncio.Task):
+            try:
+                exc = t.exception()
+            except asyncio.CancelledError:
+                return
+            except Exception:
+                logger.exception("后台任务异常（读取 exception 失败）：%s", name)
+                return
+
+            if exc is None:
+                return
+
+            logger.error(
+                "后台任务异常：%s",
+                name,
+                exc_info=(type(exc), exc, exc.__traceback__),
+            )
+
+        task.add_done_callback(_on_done)
+        return task
+
     async def initialize(self, ctx: PipelineContext) -> None:
         self.ctx = ctx
         conf = ctx.astrbot_config
@@ -344,6 +375,7 @@ class InternalAgentSubStage(Stage):
         """处理 WebChat 平台的特殊情况，包括第一次 LLM 对话时总结对话内容生成 title"""
         if not req.conversation:
             return
+
         conversation = await self.conv_manager.get_conversation(
             event.unified_msg_origin,
             req.conversation.cid,
@@ -690,14 +722,18 @@ class InternalAgentSubStage(Stage):
 
             # 异步处理 WebChat 特殊情况
             if event.get_platform_name() == "webchat":
-                asyncio.create_task(self._handle_webchat(event, req, provider))
+                self._spawn_task(
+                    self._handle_webchat(event, req, provider),
+                    name=f"InternalAgentSubStage._handle_webchat umo={event.unified_msg_origin} cid={getattr(getattr(req, 'conversation', None), 'cid', None)}",
+                )
 
-            asyncio.create_task(
+            self._spawn_task(
                 Metric.upload(
                     llm_tick=1,
                     model_name=agent_runner.provider.get_model(),
                     provider_type=agent_runner.provider.meta().type,
                 ),
+                name="Metric.upload",
             )
 
         except Exception as e:

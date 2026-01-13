@@ -83,6 +83,9 @@
     "confirmDeleteMessage": "Are you sure you want to delete template '{name}'? This action cannot be undone.",
     "confirmDeleteButton": "Confirm Delete",
     "confirmAction": "Confirm Action",
-    "confirmApplyMessage": "Are you sure you want to save changes to '{name}' and set it as the active template?"
+    "confirmApplyMessage": "Are you sure you want to save changes to '{name}' and set it as the active template?",
+    "renderError": "Template render error: {message}",
+    "previewText": "This is a sample text used for template preview.\n\nIt can contain multiple lines and various formatting.",
+    "previewVersion": "{version}"
   }
 }

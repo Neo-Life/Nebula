@@ -153,6 +153,7 @@ DEFAULT_CONFIG = {
     "no_proxy": ["localhost", "127.0.0.1", "::1"],
     "dashboard": {
         "enable": True,
+        "channel": "landfill",
         "username": "astrbot",
         "password": "77b90590a8945a7d36c963981a307dc9",
         "jwt_secret": "",
@@ -3074,6 +3075,13 @@ CONFIG_METADATA_3_SYSTEM = {
                 "description": "系统配置",
                 "type": "object",
                 "items": {
+                    "dashboard.channel": {
+                        "description": "WebUI 下载渠道",
+                        "type": "string",
+                        "hint": "用于启动时自动下载/更新 WebUI。official 为官方发布版；landfill 为 LandfillBot nightly。",
+                        "options": ["official", "landfill"],
+                        "labels": ["官方", "Landfill Nightly"],
+                    },
                     "t2i_strategy": {
                         "description": "文本转图像策略",
                         "type": "string",

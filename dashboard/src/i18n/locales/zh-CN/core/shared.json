@@ -83,6 +83,9 @@
     "confirmDeleteMessage": "确定要删除模板 '{name}' 吗？此操作无法撤销。",
     "confirmDeleteButton": "确认删除",
     "confirmAction": "确认操作",
-    "confirmApplyMessage": "确定要保存对 '{name}' 的修改，并将其设为新的活动模板吗？"
+    "confirmApplyMessage": "确定要保存对 '{name}' 的修改，并将其设为新的活动模板吗？",
+    "renderError": "模板渲染错误: {message}",
+    "previewText": "这是一个示例文本，用于预览模板效果。\n\n这里可以包含多行文本，支持换行和各种格式。",
+    "previewVersion": "{version}"
   }
 }

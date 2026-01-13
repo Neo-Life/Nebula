@@ -9,18 +9,26 @@ from astrbot.core import LogBroker, LogManager, db_helper, logger
 from astrbot.core.config.default import VERSION
 from astrbot.core.initial_loader import InitialLoader
 from astrbot.core.utils.astrbot_path import get_astrbot_data_path
-from astrbot.core.utils.io import download_dashboard, get_dashboard_version
+from astrbot.core.utils.io import (
+    download_dashboard,
+    download_landfill_dashboard_nightly,
+    get_dashboard_channel,
+    get_dashboard_version,
+)
 
 # 将父目录添加到 sys.path
 sys.path.append(Path(__file__).parent.as_posix())
 
 logo_tmpl = r"""
-     ___           _______.___________..______      .______     ______   .___________.
-    /   \         /       |           ||   _  \     |   _  \   /  __  \  |           |
-   /  ^  \       |   (----`---|  |----`|  |_)  |    |  |_)  | |  |  |  | `---|  |----`
-  /  /_\  \       \   \       |  |     |      /     |   _  <  |  |  |  |     |  |
- /  _____  \  .----)   |      |  |     |  |\  \----.|  |_)  | |  `--'  |     |  |
-/__/     \__\ |_______/       |__|     | _| `._____||______/   \______/      |__|
+
+$$\                                $$\  $$$$$$\  $$\ $$\ $$\ $$$$$$$\             $$\
+$$ |                               $$ |$$  __$$\ \__|$$ |$$ |$$  __$$\            $$ |
+$$ |      $$$$$$\  $$$$$$$\   $$$$$$$ |$$ /  \__|$$\ $$ |$$ |$$ |  $$ | $$$$$$\ $$$$$$\
+$$ |      \____$$\ $$  __$$\ $$  __$$ |$$$$\     $$ |$$ |$$ |$$$$$$$\ |$$  __$$\\_$$  _|
+$$ |      $$$$$$$ |$$ |  $$ |$$ /  $$ |$$  _|    $$ |$$ |$$ |$$  __$$\ $$ /  $$ | $$ |
+$$ |     $$  __$$ |$$ |  $$ |$$ |  $$ |$$ |      $$ |$$ |$$ |$$ |  $$ |$$ |  $$ | $$ |$$\
+$$$$$$$$\\$$$$$$$ |$$ |  $$ |\$$$$$$$ |$$ |      $$ |$$ |$$ |$$$$$$$  |\$$$$$$  | \$$$$  |
+\________|\_______|\__|  \__| \_______|\__|      \__|\__|\__|\_______/  \______/   \____/
 
 """
 
@@ -62,18 +70,51 @@ async def check_dashboard_files(webui_dir: str | None = None):
                 )
         return data_dist_path
 
-    logger.info(
-        "开始下载管理面板文件...高峰期（晚上）可能导致较慢的速度。如多次下载失败，请前往 https://github.com/AstrBotDevs/AstrBot/releases/latest 下载 dist.zip，并将其中的 dist 文件夹解压至 data 目录下。",
-    )
+    channel = get_dashboard_channel()
+    if channel == "landfill":
+        logger.info(
+            "开始下载管理面板文件（Landfill Nightly）...如多次下载失败，请前往 https://github.com/LandfillLand/LandfillBot/releases/tag/nightly 下载 dist.zip，并将其中的 dist 文件夹解压至 data 目录下。",
+        )
+    else:
+        logger.info(
+            "开始下载管理面板文件...高峰期（晚上）可能导致较慢的速度。如多次下载失败，请前往 https://github.com/AstrBotDevs/AstrBot/releases/latest 下载 dist.zip，并将其中的 dist 文件夹解压至 data 目录下。",
+        )
 
     try:
-        await download_dashboard(version=f"v{VERSION}", latest=False)
+        if channel == "landfill":
+            await download_landfill_dashboard_nightly()
+        else:
+            await download_dashboard(version=f"v{VERSION}", latest=False)
     except Exception as e:
         logger.critical(f"下载管理面板文件失败: {e}。")
         return None
 
     logger.info("管理面板下载完成。")
     return data_dist_path
+
+
+async def run_astrbot(webui_dir: str | None = None):
+    # 检查仪表板文件
+    resolved_webui_dir = await check_dashboard_files(webui_dir)
+
+    db = db_helper
+
+    # 打印 logo
+    logger.info(logo_tmpl)
+
+    core_lifecycle = InitialLoader(db, log_broker)
+    core_lifecycle.webui_dir = resolved_webui_dir
+
+    try:
+        await core_lifecycle.start()
+    except asyncio.CancelledError:
+        # asyncio.run 在 Ctrl+C 时会取消主协程；这里做优雅清理。
+        logger.info("收到退出信号，正在优雅关闭...")
+        try:
+            await core_lifecycle.stop()
+        except Exception as e:
+            logger.error(f"优雅关闭失败: {e}")
+        raise
 
 
 if __name__ == "__main__":
@@ -92,14 +133,8 @@ if __name__ == "__main__":
     log_broker = LogBroker()
     LogManager.set_queue_handler(logger, log_broker)
 
-    # 检查仪表板文件
-    webui_dir = asyncio.run(check_dashboard_files(args.webui_dir))
-
-    db = db_helper
-
-    # 打印 logo
-    logger.info(logo_tmpl)
-
-    core_lifecycle = InitialLoader(db, log_broker)
-    core_lifecycle.webui_dir = webui_dir
-    asyncio.run(core_lifecycle.start())
+    try:
+        asyncio.run(run_astrbot(args.webui_dir))
+    except KeyboardInterrupt:
+        # 避免打印 traceback；退出码保持为 0
+        logger.info("已退出。")

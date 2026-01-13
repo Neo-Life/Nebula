@@ -925,7 +925,7 @@ class ConfigRoute(Route):
 
         try:
             save_config(self.config, self.config, is_core=True)
-            await self.core_lifecycle.platform_manager.reload(new_config)
+            await self.core_lifecycle.platform_manager.reload_debounced(new_config)
         except Exception as e:
             return Response().error(str(e)).__dict__
         return Response().ok(None, "更新平台配置成功~").__dict__
@@ -991,14 +991,18 @@ class ConfigRoute(Route):
             cache_key = f"{platform.name}:{platform.logo_path}"
             if cache_key in self._logo_token_cache:
                 cached_token = self._logo_token_cache[cache_key]
-                # 确保platform_default_tmpl[platform.name]存在且为字典
-                if platform.name not in platform_default_tmpl or not isinstance(
-                    platform_default_tmpl[platform.name], dict
-                ):
-                    platform_default_tmpl[platform.name] = {}
-                platform_default_tmpl[platform.name]["logo_token"] = cached_token
-                logger.debug(f"Using cached logo token for platform {platform.name}")
-                return
+                if not await file_token_service.check_token_expired(cached_token):
+                    # 确保platform_default_tmpl[platform.name]存在且为字典
+                    if platform.name not in platform_default_tmpl or not isinstance(
+                        platform_default_tmpl[platform.name], dict
+                    ):
+                        platform_default_tmpl[platform.name] = {}
+                    platform_default_tmpl[platform.name]["logo_token"] = cached_token
+                    logger.debug(
+                        f"Using cached logo token for platform {platform.name}",
+                    )
+                    return
+                self._logo_token_cache.pop(cache_key, None)
 
             # 获取平台适配器类
             platform_cls = platform_cls_map.get(platform.name)
@@ -1018,6 +1022,7 @@ class ConfigRoute(Route):
                 logo_token = await file_token_service.register_file(
                     logo_file_path,
                     timeout=3600,
+                    consume_on_read=False,
                 )
 
                 # 确保platform_default_tmpl[platform.name]存在且为字典

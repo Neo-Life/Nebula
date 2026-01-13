@@ -487,10 +487,27 @@
       }
     }
   },
+  "help": {
+    "helpPrefix": "For more information, see the ",
+    "documentation": "official documentation",
+    "helpMiddle": ", or join the ",
+    "support": "community support group",
+    "helpSuffix": " for further assistance."
+  },
   "system_group": {
     "name": "System",
     "system": {
       "description": "System Settings",
+      "dashboard": {
+        "channel": {
+          "description": "WebUI Download Channel",
+          "hint": "Used for automatically downloading/updating WebUI on startup. official is the official release; landfill is the LandfillBot version.",
+          "labels": [
+            "AstrBot Official Channel",
+            "LandfillBot Channel"
+          ]
+        }
+      },
       "t2i_strategy": {
         "description": "Text-to-Image Strategy",
         "hint": "Text-to-image strategy. `remote` uses a remote HTML-based rendering service, `local` uses PIL for local rendering. When using local, place a TTF font named 'font.ttf' in the data/ directory to customize the font."

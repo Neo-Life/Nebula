@@ -2,7 +2,7 @@
   <div class="provider-page">
     <v-container fluid class="pa-0">
       <!-- 页面标题 -->
-      <v-row class="d-flex justify-space-between align-center px-4 py-3 pb-4">
+      <v-row class="provider-no-transition d-flex justify-space-between align-center px-4 py-3 pb-4">
         <div>
           <h1 class="text-h1 font-weight-bold mb-2">
             <v-icon color="black" class="me-2">mdi-creation</v-icon>{{ tm('title') }}
@@ -21,8 +21,20 @@
 
       <div>
         <!-- Provider Type 标签页 -->
-        <v-tabs v-model="selectedProviderType" bg-color="transparent" class="mb-4">
-          <v-tab v-for="type in providerTypes" :key="type.value" :value="type.value" class="font-weight-medium px-3">
+        <v-tabs
+          v-model="selectedProviderType"
+          grow
+          color="primary"
+          align-tabs="center"
+          bg-color="transparent"
+          class="provider-tabs mb-4"
+        >
+          <v-tab
+            v-for="type in providerTypes"
+            :key="type.value"
+            :value="type.value"
+            class="font-weight-medium px-3 rounded-t-lg"
+          >
             <v-icon start>{{ type.icon }}</v-icon>
             {{ type.label }}
           </v-tab>
@@ -45,7 +57,7 @@
               />
             </v-col>
 
-            <v-col cols="12" md="8" lg="9">
+            <v-col cols="12" md="8" lg="9" class="provider-no-transition">
               <v-card class="provider-config-card h-100" elevation="0" style="overflow-y: auto;">
                 <v-card-title class="d-flex align-center justify-space-between flex-wrap ga-3 pt-4 pl-5">
                   <div class="d-flex align-center ga-3" v-if="selectedProviderSource">
@@ -256,7 +268,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
@@ -665,6 +677,37 @@ function goToConfigPage() {
   padding: 20px;
   padding-top: 8px;
   padding-bottom: 40px;
+}
+
+.provider-tabs {
+  position: relative;
+  padding-bottom: 2px;
+}
+
+.provider-tabs::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: rgba(var(--v-border-color), var(--v-border-opacity));
+  pointer-events: none;
+}
+
+.provider-tabs :deep(.v-tab__slider) {
+  bottom: 2px !important;
+  z-index: 1;
+}
+
+.provider-tabs :deep(.v-tab--selected .v-tab__slider) {
+  opacity: 1 !important;
+}
+
+.provider-no-transition,
+.provider-no-transition :deep(*) {
+  transition: none !important;
+  animation: none !important;
 }
 
 .provider-config-card {

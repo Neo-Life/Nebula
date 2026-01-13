@@ -4,6 +4,9 @@
 @import './layout/container';
 @import './layout/sidebar';
 
+@import 'github-markdown-css/github-markdown.css';
+@import './markdown';
+
 @import './components/VButtons';
 @import './components/VCard';
 @import './components/VField';
@@ -13,5 +16,6 @@
 @import './components/VTextField';
 @import './components/VTabs';
 @import './components/VScrollbar';
+@import './components/VLanguage';
 
 @import './pages/dashboards';

@@ -24,6 +24,10 @@ const toolHeaders = computed(() => [
   { title: tmTool('functionTools.table.actions'), key: 'actions', sortable: false, width: '120px' }
 ]);
 
+const toolRowKey = (tool: ToolItem): string => {
+  return `${tool.origin ?? ''}::${tool.origin_name ?? ''}::${tool.name ?? ''}`;
+};
+
 const parameterEntries = (tool: ToolItem) => Object.entries(tool.parameters?.properties || {});
 </script>
 
@@ -32,7 +36,7 @@ const parameterEntries = (tool: ToolItem) => Object.entries(tool.parameters?.pro
     <v-data-table
       :headers="toolHeaders"
       :items="items"
-      item-value="name"
+      :item-value="toolRowKey"
       hover
       show-expand
       class="tool-table"

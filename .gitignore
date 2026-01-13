@@ -50,3 +50,4 @@ venv/*
 pytest.ini
 AGENTS.md
 IFLOW.md
+/packages/landfillbot_sdk
