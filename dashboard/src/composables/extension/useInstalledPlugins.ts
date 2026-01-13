@@ -38,7 +38,16 @@ export function useInstalledPlugins({
 
   const loading_ = ref(false)
 
-  const showReserved = ref(false)
+  const getInitialShowReserved = () => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = localStorage.getItem('showReservedPlugins')
+      return saved === 'true'
+    }
+    return false
+  }
+
+  const showReserved = ref(getInitialShowReserved())
+
   const pluginSearch = ref('')
 
   const getInitialListViewMode = () => {
@@ -58,6 +67,9 @@ export function useInstalledPlugins({
 
   const toggleShowReserved = () => {
     showReserved.value = !showReserved.value
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem('showReservedPlugins', String(showReserved.value))
+    }
   }
 
   const filteredExtensions = computed(() => {
