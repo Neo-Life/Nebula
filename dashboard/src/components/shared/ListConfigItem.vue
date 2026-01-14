@@ -16,9 +16,6 @@
         </span>
         <div v-else class="d-flex flex-wrap ga-2">
           <v-chip v-for="(item, index) in displayItems" :key="item" size="x-small" label color="primary" variant="tonal">
-            <v-avatar start color="primary" size="20" style="color: rgb(var(--v-theme-on-surface-variant));">
-              <span style="color: rgb(var(--v-theme-on-surface-variant));">{{ index + 1 }}</span>
-            </v-avatar>
             <span>{{ item.length > 20 ? item.slice(0, 20) + '...' : item }}</span>
           </v-chip>
           <v-chip v-if="modelValue.length > maxDisplayItems" size="x-small" label color="grey-lighten-1">
