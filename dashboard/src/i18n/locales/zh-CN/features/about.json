@@ -1,8 +1,8 @@
 {
   "hero": {
-    "title": "Nebula - Based on AstrBot",
+    "title": "Nebula - 基于 AstrBot",
     "subtitle": "A project out of interests and loves ❤️",
-    "starButton": "在 GitHub 上为 AstrBot 点星星",
+    "starButton": "为 AstrBot 点星星",
     "issueButton": "提交 Issue"
   },
   "contributors": {
