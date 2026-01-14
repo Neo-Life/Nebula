@@ -1,6 +1,7 @@
 import type { RouteRecordRaw } from 'vue-router'
 
 const MainRoutes: RouteRecordRaw = {
+  name: 'main',
   path: '/main',
   meta: {
     requiresAuth: true
@@ -16,11 +17,6 @@ const MainRoutes: RouteRecordRaw = {
     {
       name: 'Extensions',
       path: '/extension',
-      component: () => import('@/views/ExtensionPage.vue')
-    },
-    {
-      name: 'ExtensionMarketplace',
-      path: '/extension-marketplace',
       component: () => import('@/views/ExtensionPage.vue')
     },
     {
