@@ -28,7 +28,7 @@ const goBack = () => {
         </h1>
       </div>
 
-      <div class="d-flex justify-center gap-4 align-center action-buttons">
+      <div class="d-flex justify-center align-center action-buttons">
         <v-btn
           color="primary"
           size="x-large"
@@ -61,6 +61,10 @@ const goBack = () => {
 <style scoped>
 .error-container {
   min-height: 80vh;
+}
+
+.action-buttons {
+  gap: 16px;
 }
 
 .gradient-text {
@@ -100,7 +104,6 @@ const goBack = () => {
     margin-bottom: 16px;
   }
   
-
   .action-buttons .v-btn {
     font-size: 0.9rem; 
     min-width: auto; 
