@@ -1,7 +1,7 @@
 {
-  "logoTitle": "AstrBot 仪表盘",
+  "logoTitle": "Nebula 仪表盘",
   "version": {
-    "hasNewVersion": "AstrBot 有新版本！",
+    "hasNewVersion": "Nebula 有新版本！",
     "dashboardHasNewVersion": "WebUI 有新版本！"
   },
   "buttons": {
@@ -14,7 +14,7 @@
     }
   },
   "updateDialog": {
-    "title": "更新 AstrBot",
+    "title": "更新 Nebula",
     "currentVersion": "当前版本",
     "status": {
       "checking": "正在检查更新...",

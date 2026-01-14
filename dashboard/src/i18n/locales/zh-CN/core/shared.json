@@ -74,7 +74,7 @@
     "save": "保存",
     "livePreview": "实时预览(可能有差异)",
     "refreshPreview": "刷新预览",
-    "syntaxHint": "支持 jinja2 语法。可用变量：text | safe（要渲染的文本）, version（AstrBot 版本）",
+    "syntaxHint": "支持 jinja2 语法。可用变量：text | safe（要渲染的文本）, version（Nebula 版本）",
     "saveAndApply": "保存应用当前编辑模板",
     "confirmReset": "确认重置",
     "confirmResetMessage": "确定要将 'base' 模板恢复为默认内容吗？当前编辑器中的任何未保存更改将丢失。此操作无法撤销。",

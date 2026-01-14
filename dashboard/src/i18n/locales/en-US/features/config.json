@@ -73,7 +73,7 @@
   },
   "configManagement": {
     "title": "Configuration Management",
-    "description": "AstrBot supports separate configuration files for different bots. The `default` configuration is used by default.",
+    "description": "Nebula supports separate configuration files for different bots. The `default` configuration is used by default.",
     "newConfig": "New Configuration",
     "editConfig": "Edit Configuration",
     "manageConfigs": "Manage Configurations...",

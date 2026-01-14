@@ -4,7 +4,7 @@
   "tooltip": {
     "info": "函数调用和 MCP 是什么？",
     "marketplace": "浏览和安装来自社区的 MCP 服务器",
-    "serverConfig": "MCP 服务器(stdio)配置支持以下字段:\ncommand: 命令名称 (例如 python 或 uv)\nargs: 命令参数数组 (例如 [\"run\", \"server.py\"])\nenv: 环境变量对象 (例如 {\"api_key\": \"abc\"})\ncwd: 工作目录路径 (例如 /path/to/server)\nencoding: 输出编码 (默认 utf-8)\nencoding_error_handler: The text encoding error handler. Defaults to strict.\n其他字段请参考 MCP 文档\n⚠️ 如果您使用 Docker 部署 AstrBot, 请务必将 MCP 服务器装在 AstrBot 挂载好的 data 目录下"
+    "serverConfig": "MCP 服务器(stdio)配置支持以下字段:\ncommand: 命令名称 (例如 python 或 uv)\nargs: 命令参数数组 (例如 [\"run\", \"server.py\"])\nenv: 环境变量对象 (例如 {\"api_key\": \"abc\"})\ncwd: 工作目录路径 (例如 /path/to/server)\nencoding: 输出编码 (默认 utf-8)\nencoding_error_handler: The text encoding error handler. Defaults to strict.\n其他字段请参考 MCP 文档\n⚠️ 如果您使用 Docker 部署 Nebula, 请务必将 MCP 服务器装在 Nebula 挂载好的 data 目录下"
   },
   "tabs": {
     "local": "本地服务器",

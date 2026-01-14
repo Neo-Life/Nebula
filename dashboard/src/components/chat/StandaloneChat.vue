@@ -10,7 +10,7 @@
                     <div class="welcome-container fade-in" v-else>
                         <div class="welcome-title">
                             <span>Hello, I'm</span>
-                            <span class="bot-name">AstrBot ⭐</span>
+                            <span class="bot-name">Nebula ⭐</span>
                         </div>
                         <p class="text-caption text-medium-emphasis mt-2">
                             测试配置: {{ configId || 'default' }}

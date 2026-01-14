@@ -2,7 +2,7 @@
   <div class="logo-container">
     <div class="logo-content">
       <div class="logo-image">
-        <img width="110" src="@/assets/images/astrbot_logo_mini.webp" alt="AstrBot Logo">
+        <img width="110" src="@/assets/images/nebula_logo_mini.webp" alt="Nebula Logo">
       </div>
       <div class="logo-text">
         <h2 
@@ -30,10 +30,10 @@ const props = withDefaults(defineProps<{
 
 // 智能格式化标题，在小屏幕上允许在合适位置换行
 const formatTitle = (title: string) => {
-  // 如果标题包含 "AstrBot" 和其他文字，在它们之间添加换行机会
-  if (title.includes('AstrBot ') || title.includes('AstrBot')) {
-    // 处理 "AstrBot 仪表盘" 或 "AstrBot Dashboard" 等格式
-    return title.replace(/(AstrBot)\s+(.+)/, '$1<wbr> $2');
+  // 如果标题包含 "Nebula" 和其他文字，在它们之间添加换行机会
+  if (title.includes('Nebula ') || title.includes('Nebula')) {
+    // 处理 "Nebula 仪表盘" 或 "Nebula Dashboard" 等格式
+    return title.replace(/(Nebula)\s+(.+)/, '$1<wbr> $2');
   }
   return title;
 }

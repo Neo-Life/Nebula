@@ -16,7 +16,7 @@
                 v-model="localPrompt" 
                 @keydown="handleKeyDown"
                 :disabled="disabled" 
-                placeholder="Ask AstrBot..."
+                placeholder="Ask Nebula..."
                 class="chat-textarea"
             ></textarea>
 

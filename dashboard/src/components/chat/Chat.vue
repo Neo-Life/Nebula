@@ -54,7 +54,7 @@
                         <div v-else class="welcome-title">
                             <span>Hello, I'm</span>
                             <span class="bot-name">
-                                AstrBot
+                                Nebula
                                 <v-icon size="small" class="ml-2 gradient-star">mdi-star-four-points</v-icon>
                             </span>
                         </div>
