@@ -144,9 +144,10 @@ const isChristmas = computed(() => {
     </v-btn>
 
     <div class="logo-container" :class="{ 'mobile-logo': $vuetify.display.xs, 'chat-mode-logo': customizer.viewMode === 'chat' }" @click="handleLogoClick">
-      <span class="logo-text Outfit">Astr<span class="logo-text bot-text-wrapper">Bot
-        <img v-if="isChristmas" src="@/assets/images/xmas-hat.png" alt="Christmas hat" class="xmas-hat" />
-      </span></span>
+      <span class="logo-text Outfit" style="position: relative;">
+          Nebula
+          <img v-if="isChristmas" src="@/assets/images/xmas-hat.png" alt="Christmas hat" class="xmas-hat" />
+      </span>
       <span class="logo-text logo-text-light Outfit" style="color: grey;" v-if="customizer.viewMode === 'chat'">ChatUI</span>
       <span class="version-text hidden-xs">{{ botCurrVersion }}</span>
     </div>
