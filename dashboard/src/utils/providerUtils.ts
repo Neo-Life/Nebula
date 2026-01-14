@@ -2,7 +2,7 @@
  * 提供商相关的工具函数
  */
 
-import modelstackLogo from '@/assets/images/provider_logos/modelstack.svg'
+import modelstackLogo from '@/assets/images/icon-no-shadow.svg'
 
 export type ProviderTemplate = {
   type: string
@@ -50,7 +50,7 @@ export function getProviderIcon(type: string): string {
     vllm: 'https://registry.npmmirror.com/@lobehub/icons-static-svg/latest/files/icons/vllm.svg',
     groq: 'https://registry.npmmirror.com/@lobehub/icons-static-svg/latest/files/icons/groq.svg',
     
-    modelstack: modelstackLogo,
+    modelstack: modelstackLogo, // 这玩意没有图片，就用框架logo替代
     tokenpony: 'https://tokenpony.cn/tokenpony-web/logo.png',
     compshare: 'https://compshare.cn/favicon.ico'
   }
