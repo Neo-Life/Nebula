@@ -1,16 +1,19 @@
-<script setup>
+<script setup lang="ts">
 import { ref, watch, computed } from 'vue';
 import { useI18n } from '@/i18n/composables';
-import axios from 'axios';
 import { MarkdownRender, enableKatex, enableMermaid } from 'markstream-vue';
 import 'markstream-vue/index.css';
 import 'katex/dist/katex.min.css';
-import 'highlight.js/styles/github.css';
+import axios from 'axios';
+import { useTheme } from 'vuetify';
 
 enableKatex();
 enableMermaid();
 
 const { t } = useI18n();
+
+const theme = useTheme();
+const isDark = computed(() => theme.global.current.value.dark);
 
 const props = defineProps({
   modelValue: {
@@ -49,7 +52,7 @@ async function getCurrentVersion() {
 }
 
 // 加载更新日志
-async function loadChangelog(version) {
+async function loadChangelog(version?: string) {
   const targetVersion = version || selectedVersion.value || changelogVersion.value;
   if (!targetVersion) {
     changelogError.value = t('core.navigation.changelogDialog.selectVersion');
@@ -71,7 +74,7 @@ async function loadChangelog(version) {
     } else {
       changelogError.value = res.data.message || t('core.navigation.changelogDialog.error');
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to load changelog:', err);
     if (err.response?.status === 404 || err.response?.data?.message?.includes('not found')) {
       changelogError.value = t('core.navigation.changelogDialog.notFound');
@@ -188,7 +191,7 @@ getCurrentVersion();
             {{ changelogError }}
           </v-alert>
           <div v-else-if="changelogContent" class="changelog-content">
-            <MarkdownRender :content="changelogContent" :typewriter="false" class="markdown-content" />
+            <MarkdownRender :content="changelogContent" :typewriter="false" class="markdown-content" :class="{ dark: isDark }" />
           </div>
         </div>
       </v-card-text>

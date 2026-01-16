@@ -8,7 +8,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useModuleI18n } from '@/i18n/composables';
 
 const { tm } = useModuleI18n('features/alkaid/index');

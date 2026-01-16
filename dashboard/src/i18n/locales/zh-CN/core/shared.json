@@ -74,7 +74,7 @@
     "save": "保存",
     "livePreview": "实时预览(可能有差异)",
     "refreshPreview": "刷新预览",
-    "syntaxHint": "支持 jinja2 语法。可用变量：text | safe（要渲染的文本）, version（AstrBot 版本）",
+    "syntaxHint": "支持 jinja2 语法。可用变量：text | safe（要渲染的文本）, version（Nebula 版本）",
     "saveAndApply": "保存应用当前编辑模板",
     "confirmReset": "确认重置",
     "confirmResetMessage": "确定要将 'base' 模板恢复为默认内容吗？当前编辑器中的任何未保存更改将丢失。此操作无法撤销。",
@@ -83,6 +83,9 @@
     "confirmDeleteMessage": "确定要删除模板 '{name}' 吗？此操作无法撤销。",
     "confirmDeleteButton": "确认删除",
     "confirmAction": "确认操作",
-    "confirmApplyMessage": "确定要保存对 '{name}' 的修改，并将其设为新的活动模板吗？"
+    "confirmApplyMessage": "确定要保存对 '{name}' 的修改，并将其设为新的活动模板吗？",
+    "renderError": "模板渲染错误: {message}",
+    "previewText": "这是一个示例文本，用于预览模板效果。\n\n这里可以包含多行文本，支持换行和各种格式。",
+    "previewVersion": "{version}"
   }
 }

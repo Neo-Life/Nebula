@@ -24,7 +24,7 @@
         <v-btn variant="text" @click="closeDialog" :disabled="saving">
           取消
         </v-btn>
-        <v-btn color="primary" variant="elevated" @click="saveKey" :loading="saving">
+        <v-btn color="primary" variant="flat" @click="saveKey" :loading="saving">
           保存
         </v-btn>
       </v-card-actions>

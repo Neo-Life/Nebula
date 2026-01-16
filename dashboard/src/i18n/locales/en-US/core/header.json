@@ -1,19 +1,20 @@
 {
-  "logoTitle": "AstrBot Dashboard",
+  "logoTitle": "Nebula Dashboard",
   "version": {
-    "hasNewVersion": "AstrBot has a new version!",
+    "hasNewVersion": "Nebula has a new version!",
     "dashboardHasNewVersion": "WebUI has a new version!"
   },
   "buttons": {
     "update": "Update",
     "account": "Account",
+    "language": "Language",
     "theme": {
       "light": "Light Mode",
       "dark": "Dark Mode"
     }
   },
   "updateDialog": {
-    "title": "Update AstrBot",
+    "title": "Update Nebula",
     "currentVersion": "Current Version",
     "status": {
       "checking": "Checking for updates...",
@@ -21,7 +22,9 @@
       "updating": "Updating..."
     },
     "tabs": {
-      "release": "😊 Release"
+      "release": "😊 Release",
+      "source": "Source Update",
+      "dashboard": "Dashboard Update"
     },
     "updateToLatest": "Update to Latest Version",
     "preRelease": "Pre-release",
@@ -49,10 +52,17 @@
     },
     "dashboardUpdate": {
       "title": "Update Dashboard to Latest Version Only",
-      "currentVersion": "Current Version",
+      "currentVersion": "Current Version：",
       "hasNewVersion": "New version available!",
       "isLatest": "Already the latest version.",
       "downloadAndUpdate": "Download and Update"
+    },
+    "channel": {
+      "label": "Update channel",
+      "official": "Official channel (AstrBot)",
+      "nebula": "Nebula channel",
+      "nebulaTip": "This channel does not provide a releases list. It will update by downloading the latest source from the default branch.",
+      "updateLatest": "Update"
     }
   },
   "accountDialog": {

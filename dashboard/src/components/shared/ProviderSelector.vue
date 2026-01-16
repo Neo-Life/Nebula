@@ -113,7 +113,7 @@
   </v-overlay>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import axios from 'axios'
 import { useModuleI18n } from '@/i18n/composables'

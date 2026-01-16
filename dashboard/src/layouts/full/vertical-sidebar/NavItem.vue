@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { useI18n } from '@/i18n/composables';
 import { useCustomizerStore } from '@/stores/customizer';
 import { computed } from 'vue';
@@ -32,7 +32,8 @@ const itemStyle = computed(() => {
   </v-list-group>
 
   <v-list-item v-else :to="item.type === 'external' ? '' : item.to" :href="item.type === 'external' ? item.to : ''" rounded
-    class="mb-1" color="secondary" :disabled="item.disabled" :target="item.type === 'external' ? '_blank' : ''" :style="itemStyle">
+    class="mb-1" color="secondary" :disabled="item.disabled" :target="item.type === 'external' ? '_blank' : ''" :style="itemStyle"
+    :exact="item.type !== 'external' && item.to === '/'">
     <template v-slot:prepend>
       <v-icon v-if="item.icon" :size="item.iconSize" class="hide-menu" :icon="item.icon"></v-icon>
     </template>

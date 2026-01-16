@@ -140,7 +140,7 @@ function handleDeleteSession(session: Session) {
 }
 
 .project-session-item:hover {
-    background-color: rgba(103, 58, 183, 0.05);
+    background-color: rgba(58, 108, 183, 0.05);
 }
 
 .project-session-item:hover .session-actions {

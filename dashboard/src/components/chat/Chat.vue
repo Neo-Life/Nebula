@@ -48,7 +48,7 @@
                         </div>
                     </div>
 
-                    <div class="message-list-wrapper" v-if="currSessionId && !selectedProjectId">
+                    <div class="message-list-wrapper" v-if="!selectedProjectId && messages && messages.length > 0">
                         <MessageList :messages="messages" :isDark="isDark"
                             :isStreaming="isStreaming || isConvRunning" 
                             :isLoadingMessages="isLoadingMessages"
@@ -59,75 +59,27 @@
                             ref="messageList" />
                         <div class="message-list-fade" :class="{ 'fade-dark': isDark }"></div>
                     </div>
-                    <ProjectView 
+                    <ProjectView
                         v-else-if="selectedProjectId"
                         :project="currentProject"
                         :sessions="projectSessions"
                         @selectSession="(sessionId) => handleSelectConversation([sessionId])"
                         @editSessionTitle="showEditTitleDialog"
                         @deleteSession="handleDeleteConversation"
-                    >
-                        <ChatInput
-                            v-model:prompt="prompt"
-                            :stagedImagesUrl="stagedImagesUrl"
-                            :stagedAudioUrl="stagedAudioUrl"
-                            :stagedFiles="stagedNonImageFiles"
-                            :disabled="isStreaming"
-                            :enableStreaming="enableStreaming"
-                            :isRecording="isRecording"
-                            :session-id="currSessionId || null"
-                            :current-session="getCurrentSession"
-                            :replyTo="replyTo"
-                            @send="handleSendMessage"
-                            @toggleStreaming="toggleStreaming"
-                            @removeImage="removeImage"
-                            @removeAudio="removeAudio"
-                            @removeFile="removeFile"
-                            @startRecording="handleStartRecording"
-                            @stopRecording="handleStopRecording"
-                            @pasteImage="handlePaste"
-                            @fileSelect="handleFileSelect"
-                            @clearReply="clearReply"
-                            ref="chatInputRef"
-                        />
-                    </ProjectView>
-                    <WelcomeView 
+                    />
+                    <WelcomeView
                         v-else
                         :isLoading="isLoadingMessages"
-                    >
-                        <ChatInput
-                            v-model:prompt="prompt"
-                            :stagedImagesUrl="stagedImagesUrl"
-                            :stagedAudioUrl="stagedAudioUrl"
-                            :stagedFiles="stagedNonImageFiles"
-                            :disabled="isStreaming"
-                            :enableStreaming="enableStreaming"
-                            :isRecording="isRecording"
-                            :session-id="currSessionId || null"
-                            :current-session="getCurrentSession"
-                            :replyTo="replyTo"
-                            @send="handleSendMessage"
-                            @toggleStreaming="toggleStreaming"
-                            @removeImage="removeImage"
-                            @removeAudio="removeAudio"
-                            @removeFile="removeFile"
-                            @startRecording="handleStartRecording"
-                            @stopRecording="handleStopRecording"
-                            @pasteImage="handlePaste"
-                            @fileSelect="handleFileSelect"
-                            @clearReply="clearReply"
-                            ref="chatInputRef"
-                        />
-                    </WelcomeView>
+                        bot-name="Nebula"
+                    />
 
                     <!-- 输入区域 -->
                     <ChatInput
-                        v-if="currSessionId && !selectedProjectId"
                         v-model:prompt="prompt"
                         :stagedImagesUrl="stagedImagesUrl"
                         :stagedAudioUrl="stagedAudioUrl"
                         :stagedFiles="stagedNonImageFiles"
-                        :disabled="isStreaming"
+                        :disabled="isStreaming || isConvRunning || isLoadingMessages"
                         :enableStreaming="enableStreaming"
                         :isRecording="isRecording"
                         :session-id="currSessionId || null"
@@ -194,6 +146,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router';
 import { useCustomizerStore } from '@/stores/customizer';
 import { useI18n, useModuleI18n } from '@/i18n/composables';
+import { useToast } from '@/utils/toast';
 import { useTheme } from 'vuetify';
 import MessageList from '@/components/chat/MessageList.vue';
 import ConversationSidebar from '@/components/chat/ConversationSidebar.vue';
@@ -203,12 +156,12 @@ import ProjectView from '@/components/chat/ProjectView.vue';
 import WelcomeView from '@/components/chat/WelcomeView.vue';
 import RefsSidebar from '@/components/chat/message_list_comps/RefsSidebar.vue';
 import type { ProjectFormData } from '@/components/chat/ProjectDialog.vue';
+import type { Project } from '@/components/chat/ProjectList.vue';
 import { useSessions } from '@/composables/useSessions';
 import { useMessages } from '@/composables/useMessages';
 import { useMediaHandling } from '@/composables/useMediaHandling';
 import { useRecording } from '@/composables/useRecording';
 import { useProjects } from '@/composables/useProjects';
-import type { Project } from '@/components/chat/ProjectList.vue';
 
 interface Props {
     chatboxMode?: boolean;
@@ -231,6 +184,40 @@ const imagePreviewDialog = ref(false);
 const previewImageUrl = ref('');
 const isLoadingMessages = ref(false);
 
+let resyncTimer: number | null = null;
+
+function scheduleResyncCurrentSession() {
+    if (resyncTimer !== null) {
+        window.clearTimeout(resyncTimer);
+        resyncTimer = null;
+    }
+
+    // 轻微 debounce，避免 focus/visibility 事件连发
+    resyncTimer = window.setTimeout(async () => {
+        resyncTimer = null;
+
+        if (!currSessionId.value) return;
+        if (isLoadingMessages.value) return;
+        if (isStreaming.value || isConvRunning.value) return;
+
+        try {
+            await getSessionMsg(currSessionId.value);
+        } catch {
+            // ignore
+        }
+    }, 200);
+}
+
+function handleWindowFocus() {
+    scheduleResyncCurrentSession();
+}
+
+function handleVisibilityChange() {
+    if (!document.hidden) {
+        scheduleResyncCurrentSession();
+    }
+}
+
 // 使用 composables
 const {
     sessions,
@@ -239,7 +226,6 @@ const {
     pendingSessionId,
     editTitleDialog,
     editingTitle,
-    editingSessionId,
     getCurrentSession,
     getSessions,
     newSession,
@@ -301,7 +287,7 @@ const prompt = ref('');
 const projectDialog = ref(false);
 const editingProject = ref<Project | null>(null);
 const projectSessions = ref<any[]>([]);
-const currentProject = computed(() => 
+const currentProject = computed(() =>
     projects.value.find(p => p.project_id === selectedProjectId.value)
 );
 
@@ -352,7 +338,7 @@ function openImagePreview(imageUrl: string) {
 
 async function handleSaveTitle() {
     await saveTitle();
-    
+
     // 如果在项目视图中，刷新项目会话列表
     if (selectedProjectId.value) {
         const sessions = await getProjectSessions(selectedProjectId.value);
@@ -476,7 +462,7 @@ function handleNewChat() {
 async function handleDeleteConversation(sessionId: string) {
     await deleteSessionFn(sessionId);
     messages.value = [];
-    
+
     // 如果在项目视图中，刷新项目会话列表
     if (selectedProjectId.value) {
         const sessions = await getProjectSessions(selectedProjectId.value);
@@ -489,11 +475,11 @@ async function handleSelectProject(projectId: string) {
     const sessions = await getProjectSessions(projectId);
     projectSessions.value = sessions;
     messages.value = [];
-    
+
     // 清空当前会话ID，准备在项目中创建新对话
     currSessionId.value = '';
     selectedSessions.value = [];
-    
+
     // 手机端关闭侧边栏
     if (isMobile.value) {
         closeMobileSidebar();
@@ -552,17 +538,25 @@ async function handleFileSelect(files: FileList) {
 }
 
 async function handleSendMessage() {
+    if (isLoadingMessages.value) {
+        return;
+    }
+    if (isStreaming.value || isConvRunning.value) {
+        useToast().info(tm('errors.sessionRunning'), { timeout: 3000 });
+        return;
+    }
+
     // 只有引用不能发送，必须有输入内容
     if (!prompt.value.trim() && stagedFiles.value.length === 0 && !stagedAudioUrl.value) {
         return;
     }
 
     const isCreatingNewSession = !currSessionId.value;
-    const currentProjectId = selectedProjectId.value; // 保存当前项目ID
-    
+    const currentProjectId = selectedProjectId.value;
+
     if (isCreatingNewSession) {
         await newSession();
-        
+
         // 如果在项目视图中创建新会话，立即退出项目视图
         if (currentProjectId) {
             selectedProjectId.value = null;
@@ -655,12 +649,20 @@ watch(sessions, (newSessions) => {
 onMounted(() => {
     checkMobile();
     window.addEventListener('resize', checkMobile);
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     getSessions();
     getProjects();
 });
 
 onBeforeUnmount(() => {
     window.removeEventListener('resize', checkMobile);
+    window.removeEventListener('focus', handleWindowFocus);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    if (resyncTimer !== null) {
+        window.clearTimeout(resyncTimer);
+        resyncTimer = null;
+    }
     cleanupMediaCache();
 });
 </script>
@@ -709,7 +711,7 @@ onBeforeUnmount(() => {
     bottom: 0;
     background-color: rgba(0, 0, 0, 0.5);
     z-index: 999;
-    animation: fadeIn 0.3s ease;
+    animation: fadeIn 0.2s ease;
 }
 
 .chat-content-panel {
@@ -727,6 +729,7 @@ onBeforeUnmount(() => {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    background-color: rgb(var(--v-theme-surface));
 }
 
 .message-list-fade {
@@ -734,14 +737,16 @@ onBeforeUnmount(() => {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 40px;
-    background: linear-gradient(to top, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%);
+    height: 60px; 
+    background: linear-gradient(
+        to top, 
+        rgb(var(--v-theme-surface)) 0%, 
+        rgba(var(--v-theme-surface), 0) 100%
+    );
+    
     pointer-events: none;
-    z-index: 1;
-}
-
-.message-list-fade.fade-dark {
-    background: linear-gradient(to top, rgba(30, 30, 30, 1) 0%, rgba(30, 30, 30, 0) 100%);
+    z-index: 10; 
+    
 }
 
 .conversation-header {
@@ -798,12 +803,8 @@ onBeforeUnmount(() => {
     opacity: 0.7;
 }
 
-.breadcrumb-separator {
-    opacity: 0.5;
-}
-
 .breadcrumb-session {
-    opacity: 0.7;
+    color: var(--v-theme-secondaryText);
 }
 
 .fade-in {
@@ -830,4 +831,5 @@ onBeforeUnmount(() => {
         padding: 2px;
     }
 }
+
 </style>

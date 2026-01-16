@@ -36,7 +36,7 @@
                                 </template>
                                 {{ t('features.settings.backup.export.includes') }}
                             </v-alert>
-                            <v-btn color="primary" size="large" @click="startExport" :loading="exportStatus === 'processing'">
+                            <v-btn color="primary" size="large" @click="startExport" :loading="false">
                                 <v-icon class="mr-2">mdi-export</v-icon>
                                 {{ t('features.settings.backup.export.button') }}
                             </v-btn>
@@ -100,7 +100,7 @@
                                     size="large"
                                     @click="uploadAndCheck"
                                     :disabled="!importFile"
-                                    :loading="importStatus === 'uploading'"
+                                    :loading="false"
                                 >
                                     <v-icon class="mr-2">mdi-upload</v-icon>
                                     {{ t('features.settings.backup.import.uploadAndCheck') }}
@@ -366,7 +366,7 @@
     <WaitingForRestart ref="wfr"></WaitingForRestart>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import axios from 'axios'
 import { useI18n } from '@/i18n/composables'
@@ -379,14 +379,14 @@ const activeTab = ref('export')
 const wfr = ref(null)
 
 // 导出状态
-const exportStatus = ref('idle') // idle, processing, completed, failed
+const exportStatus = ref<'idle' | 'processing' | 'completed' | 'failed'>('idle')
 const exportTaskId = ref(null)
 const exportProgress = ref({ current: 0, total: 100, message: '' })
 const exportResult = ref(null)
 const exportError = ref('')
 
 // 导入状态
-const importStatus = ref('idle') // idle, uploading, confirm, processing, completed, failed
+const importStatus = ref<'idle' | 'uploading' | 'confirm' | 'processing' | 'completed' | 'failed'>('idle')
 const importFile = ref(null)
 const importTaskId = ref(null)
 const importProgress = ref({ current: 0, total: 100, message: '' })

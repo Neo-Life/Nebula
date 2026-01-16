@@ -41,7 +41,7 @@ Always reference these instructions first and fallback to search or bash command
 ### Common Issues and Workarounds
 - **Dashboard download fails**: Known issue with "division by zero" error - application still works
 - **Import errors in tests**: Ensure `uv run` is used to run tests in proper environment
-=- **Build timeouts**: Always set appropriate timeouts (10+ minutes for uv sync, 5+ minutes for npm install)
+- **Build timeouts**: Always set appropriate timeouts (10+ minutes for uv sync, 5+ minutes for npm install)
 
 ## CI/CD Integration
 - GitHub Actions workflows in `.github/workflows/`
@@ -60,3 +60,55 @@ Always reference these instructions first and fallback to search or bash command
 - Default language is Chinese
 
 Remember: This is a production chatbot framework with real users. Always test thoroughly and ensure changes don't break existing functionality.
+
+## Upstream Sync / PR Merge Prompt Template
+
+Use the following prompt when you need Copilot/LLM help to merge an upstream-sync PR into this repo while preserving local custom changes.
+
+```text
+You are working in a forked repository that is no longer connected to GitHub fork network.
+We rely on GitHub Actions (or a sync branch) to bring upstream changes, and we must preserve our own custom modifications.
+Please follow a strict “rebase/merge PR branch onto latest base, then verify, then merge into master” workflow.
+
+GOAL
+- Merge the PR/sync branch while keeping our custom changes.
+
+CONSTRAINTS
+1) Do NOT merge an old-base PR branch directly into master.
+	First update the PR branch to the latest `origin/master` (prefer merging `origin/master` into the PR branch to preserve commits).
+2) Resolve conflicts with minimal changes; no refactors or style-only rewrites.
+3) Before merging back to master, run and pass:
+	- `pnpm -s -C dashboard run typecheck`
+	If it fails, fix until it passes.
+4) README conflicts: default to keeping THIS repo’s disclaimer/README variant unless explicitly requested otherwise.
+5) First classify the change:
+	- If it’s a full upstream sync: accept large diffs, but produce a directory-level diff summary and a list of overlaps with our customized files.
+	- If it’s a single feature PR: avoid pulling large history; prefer cherry-pick / extracting only the relevant commits/files.
+
+REQUIRED PROCEDURE (provide short git output summary after each step)
+1) `git fetch origin`
+2) Show:
+	- `git status -sb`
+	- `git log --oneline --decorate -n 10`
+	- `git diff --stat origin/master..PR_HEAD`
+3) Switch to PR branch:
+	- `git switch -c pr/<name> origin/<pr-branch>`
+4) Update PR branch base:
+	- `git merge origin/master`
+	- Resolve conflicts; do NOT merge into master yet.
+5) Verify:
+	- `pnpm -s -C dashboard run typecheck`
+6) Commit the “PR branch base sync” merge commit with message:
+	- `merge: sync origin/master into pr/<name>`
+7) Merge into master:
+	- `git switch master`
+	- `git merge --no-ff pr/<name>`
+	- Re-run `pnpm -s -C dashboard run typecheck`
+8) Push:
+	- `git push origin master`
+
+OUTPUT REQUIREMENTS
+- List concrete user-visible feature changes (by module/behavior, not only filenames).
+- State whether upstream changes overlap with our customized files and what the impact is.
+- Give a clear “safe to push?” recommendation.
+```

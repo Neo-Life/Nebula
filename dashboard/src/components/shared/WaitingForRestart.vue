@@ -9,7 +9,7 @@
     </v-dialog>
 </template>
 
-<script>
+<script lang="ts">
 import axios from 'axios'
 import { useCommonStore } from '@/stores/common';
 import { useI18n } from '@/i18n/composables';

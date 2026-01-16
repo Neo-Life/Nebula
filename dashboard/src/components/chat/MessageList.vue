@@ -28,7 +28,7 @@
                             <div v-else-if="part.type === 'image' && part.embedded_url" class="image-attachments">
                                 <div class="image-attachment">
                                     <img :src="part.embedded_url" class="attached-image"
-                                        @click="openImagePreview(part.embedded_url)" />
+                                        @click="$emit('openImagePreview', part.embedded_url)" />
                                 </div>
                             </div>
 
@@ -90,42 +90,108 @@
 
                             <template v-else>
                                 <!-- Reasoning Block (Collapsible) - 放在最前面 -->
-                                <ReasoningBlock v-if="msg.content.reasoning && msg.content.reasoning.trim()"
-                                    :reasoning="msg.content.reasoning" :is-dark="isDark"
-                                    :initial-expanded="isReasoningExpanded(index)" />
+                                <div v-if="msg.content.reasoning && msg.content.reasoning.trim()"
+                                    class="reasoning-container" :class="{ 'is-dark': isDark }"
+                                    :style="isDark ? { backgroundColor: 'rgba(var(--v-theme-secondary), 0.08)' } : {}">
+                                    <div class="reasoning-header" :class="{ 'is-dark': isDark }"
+                                        @click="toggleReasoning(index)">
+                                        <v-icon size="small" class="reasoning-icon">
+                                            {{ isReasoningExpanded(index) ? 'mdi-chevron-down' : 'mdi-chevron-right' }}
+                                        </v-icon>
+                                        <span class="reasoning-label">{{ tm('reasoning.thinking') }}</span>
+                                    </div>
+                                    <div v-if="isReasoningExpanded(index)" class="reasoning-content">
+                                        <MarkdownRender :content="msg.content.reasoning"
+                                            class="reasoning-text markdown-content" :typewriter="false"
+                                            :class="{ dark: isDark }"
+                                            :style="isDark ? { opacity: '0.85' } : {}" />
+                                    </div>
+                                </div>
 
                                 <!-- 遍历 message parts (保持顺序) -->
                                 <template v-for="(part, partIndex) in msg.content.message" :key="partIndex">
-                                    <!-- iPython Tool Special Block -->
+                                    <!-- Tool Calls Block -->
                                     <template v-if="part.type === 'tool_call' && part.tool_calls && part.tool_calls.length > 0">
                                         <template v-for="(toolCall, tcIndex) in part.tool_calls" :key="toolCall.id">
-                                            <IPythonToolBlock v-if="isIPythonTool(toolCall)" :tool-call="toolCall" style="margin: 8px 0;"
+                                            <IPythonToolBlock
+                                                v-if="isIPythonTool(toolCall)"
+                                                :tool-call="toolCall"
                                                 :is-dark="isDark"
-                                                :initial-expanded="isIPythonToolExpanded(index, partIndex, tcIndex)" />
+                                                :initial-expanded="false"
+                                            />
                                         </template>
+                                        <div v-if="part.tool_calls.some(tc => !isIPythonTool(tc))"
+                                            class="tool-calls-container">
+                                            <div class="tool-calls-label">{{ tm('actions.toolsUsed') }}</div>
+                                            <div v-for="(toolCall, tcIndex) in part.tool_calls.filter(tc => !isIPythonTool(tc))" :key="toolCall.id"
+                                                class="tool-call-card" :class="{ 'is-dark': isDark, 'expanded': isToolCallExpanded(index, partIndex, tcIndex) }" :style="isDark ? {
+                                                    backgroundColor: 'rgba(40, 60, 100, 0.4)',
+                                                    borderColor: 'rgba(100, 140, 200, 0.4)'
+                                                } : {}">
+                                                <div class="tool-call-header" :class="{ 'is-dark': isDark }"
+                                                    @click="toggleToolCall(index, partIndex, tcIndex)">
+                                                    <v-icon size="small" class="tool-call-expand-icon">
+                                                        {{ isToolCallExpanded(index, partIndex, tcIndex) ?
+                                                            'mdi-chevron-down' : 'mdi-chevron-right' }}
+                                                    </v-icon>
+                                                    <v-icon size="small" class="tool-call-icon">mdi-wrench-outline</v-icon>
+                                                    <div class="tool-call-info">
+                                                        <span class="tool-call-name">{{ toolCall.name }}</span>
+                                                    </div>
+                                                    <span class="tool-call-status"
+                                                        :class="{ 'status-running': !toolCall.finished_ts, 'status-finished': toolCall.finished_ts }">
+                                                        <template v-if="toolCall.finished_ts">
+                                                            <v-icon size="x-small"
+                                                                class="status-icon">mdi-check-circle</v-icon>
+                                                            {{ formatDuration(toolCall.finished_ts - toolCall.ts) }}
+                                                        </template>
+                                                        <template v-else>
+                                                            <v-icon size="x-small"
+                                                                class="status-icon spinning">mdi-loading</v-icon>
+                                                            {{ getElapsedTime(toolCall.ts) }}
+                                                        </template>
+                                                    </span>
+                                                </div>
+                                                <div v-if="isToolCallExpanded(index, partIndex, tcIndex)"
+                                                    class="tool-call-details" :style="isDark ? {
+                                                        borderTopColor: 'rgba(100, 140, 200, 0.3)',
+                                                        backgroundColor: 'rgba(30, 45, 70, 0.5)'
+                                                    } : {}">
+                                                    <div class="tool-call-detail-row">
+                                                        <span class="detail-label">ID:</span>
+                                                        <code class="detail-value"
+                                                            :style="isDark ? { backgroundColor: 'transparent' } : {}">{{ toolCall.id
+                                                            }}</code>
+                                                    </div>
+                                                    <div class="tool-call-detail-row">
+                                                        <span class="detail-label">Args:</span>
+                                                        <pre class="detail-value detail-json"
+                                                            :style="isDark ? { backgroundColor: 'transparent' } : {}">{{
+                                                                JSON.stringify(toolCall.args, null, 2) }}</pre>
+                                                    </div>
+                                                    <div v-if="toolCall.result" class="tool-call-detail-row">
+                                                        <span class="detail-label">Result:</span>
+                                                        <pre class="detail-value detail-json detail-result"
+                                                            :style="isDark ? { backgroundColor: 'transparent' } : {}">{{ formatToolResult(toolCall.result) }}
+                                                        </pre>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </template>
-
-                                    <!-- Regular Tool Calls Block (for non-iPython tools) -->
-                                    <div v-if="part.type === 'tool_call' && part.tool_calls && part.tool_calls.some(tc => !isIPythonTool(tc))"
-                                        class="flex flex-col gap-2">
-                                        <div class="font-medium opacity-70" style="font-size: 13px; margin-bottom: 16px;">{{ tm('actions.toolsUsed') }}</div>
-                                        <ToolCallCard v-for="(toolCall, tcIndex) in part.tool_calls.filter(tc => !isIPythonTool(tc))"
-                                            :key="toolCall.id" :tool-call="toolCall" :is-dark="isDark"
-                                            :initial-expanded="isToolCallExpanded(index, partIndex, tcIndex)" />
-                                    </div>
-
-                                    <!-- Text (Markdown) -->
-                                    <MarkdownRender v-else-if="part.type === 'plain' && part.text && part.text.trim()"
-                                        custom-id="message-list"
-                                        :custom-html-tags="['ref']"
-                                        :content="part.text" :typewriter="false" class="markdown-content"
-                                        :is-dark="isDark" :monacoOptions="{ theme: isDark ? 'vs-dark' : 'vs-light' }" />
+                                    <!-- Text (Markdown / Plain multi-line logs) -->
+                                    <template v-else-if="part.type === 'plain' && part.text && part.text.trim()">
+                                        <pre v-if="shouldRenderAsPlainPre(part.text)" class="bot-plain-pre">{{ formatPlainPreText(part.text) }}</pre>
+                                        <MarkdownRender v-else
+                                            :content="part.text" :typewriter="false"
+                                            class="markdown-content" :class="{ dark: isDark }" />
+                                    </template>
 
                                     <!-- Image -->
                                     <div v-else-if="part.type === 'image' && part.embedded_url" class="embedded-images">
                                         <div class="embedded-image">
                                             <img :src="part.embedded_url" class="bot-embedded-image"
-                                                @click="openImagePreview(part.embedded_url)" />
+                                                @click="$emit('openImagePreview', part.embedded_url)" />
                                         </div>
                                     </div>
 
@@ -239,30 +305,18 @@
             </v-btn>
         </div>
     </div>
-
-    <!-- 图片预览 Overlay -->
-    <v-overlay v-model="imagePreview.show" class="image-preview-overlay" @click="closeImagePreview">
-        <div class="image-preview-container" @click.stop>
-            <img :src="imagePreview.url" class="preview-image" @click="closeImagePreview" />
-        </div>
-    </v-overlay>
 </template>
 
-<script>
+<script lang="ts">
+import type { PropType } from 'vue'
 import { useI18n, useModuleI18n } from '@/i18n/composables';
-import { MarkdownRender, enableKatex, enableMermaid, setCustomComponents } from 'markstream-vue'
-import 'markstream-vue/index.css'
-import 'katex/dist/katex.min.css'
-import 'highlight.js/styles/github.css';
+import { MarkdownRender, enableKatex, enableMermaid, setCustomComponents } from 'markstream-vue';
+import 'markstream-vue/index.css';
+import 'katex/dist/katex.min.css';
 import axios from 'axios';
-import ReasoningBlock from './message_list_comps/ReasoningBlock.vue';
-import IPythonToolBlock from './message_list_comps/IPythonToolBlock.vue';
-import ToolCallCard from './message_list_comps/ToolCallCard.vue';
-import RefNode from './message_list_comps/RefNode.vue';
-import ActionRef from './message_list_comps/ActionRef.vue';
-
-enableKatex();
-enableMermaid();
+import IPythonToolBlock from '@/components/chat/message_list_comps/IPythonToolBlock.vue';
+import RefNode from '@/components/chat/message_list_comps/RefNode.vue';
+import ActionRef from '@/components/chat/message_list_comps/ActionRef.vue';
 
 // 注册自定义 ref 组件
 setCustomComponents('message-list', { ref: RefNode });
@@ -271,15 +325,12 @@ export default {
     name: 'MessageList',
     components: {
         MarkdownRender,
-        ReasoningBlock,
-        IPythonToolBlock,
-        ToolCallCard,
-        RefNode,
-        ActionRef
+    IPythonToolBlock,
+    ActionRef
     },
     props: {
         messages: {
-            type: Array,
+            type: Array as PropType<any[]>,
             required: true
         },
         isDark: {
@@ -297,12 +348,14 @@ export default {
     },
     emits: ['openImagePreview', 'replyMessage', 'replyWithText', 'openRefs'],
     setup() {
+        enableKatex();
+        enableMermaid();
         const { t } = useI18n();
         const { tm } = useModuleI18n('features/chat');
 
         return {
             t,
-            tm
+            tm,
         };
     },
     provide() {
@@ -316,12 +369,11 @@ export default {
             copiedMessages: new Set(),
             isUserNearBottom: true,
             scrollThreshold: 1,
-            scrollTimer: null,
+            scrollTimer: null as any,
             expandedReasoning: new Set(), // Track which reasoning blocks are expanded
             downloadingFiles: new Set(), // Track which files are being downloaded
             expandedToolCalls: new Set(), // Track which tool call cards are expanded
-            expandedIPythonTools: new Set(), // Track which iPython tools are expanded
-            elapsedTimeTimer: null, // Timer for updating elapsed time
+            elapsedTimeTimer: null as any, // Timer for updating elapsed time
             currentTime: Date.now() / 1000, // Current time for elapsed time calculation
             // 选中文本相关状态
             selectedText: {
@@ -329,16 +381,11 @@ export default {
                 messageIndex: null,
                 position: { top: 0, left: 0 }
             },
-            // 图片预览
-            imagePreview: {
-                show: false,
-                url: ''
-            },
             // Web search results mapping: { 'uuid.idx': { url, title, snippet } }
             webSearchResults: {}
         };
     },
-    async mounted() {
+    mounted() {
         this.initCodeCopyButtons();
         this.initImageClickEvents();
         this.addScrollListener();
@@ -401,40 +448,65 @@ export default {
             
             this.webSearchResults = results;
         },
-        
+        // 复制文本到剪贴板（不使用已弃用的 document.execCommand）
+        // 成功返回 true，失败返回 false。
+        async copyTextToClipboard(text: string): Promise<boolean> {
+            const value = (text ?? '').toString();
+            if (!value) return false;
+
+            try {
+                // 现代浏览器：优先使用 Clipboard API
+                if (navigator?.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(value);
+                    return true;
+                }
+            } catch (err) {
+                console.warn('Clipboard API failed, fallback to prompt:', err);
+            }
+
+            // 降级方案：弹出 prompt 让用户手动复制（避免使用已弃用 API）
+            try {
+                window.prompt('复制以下内容（Ctrl+C / Cmd+C）：', value);
+                return false;
+            } catch {
+                return false;
+            }
+        },
         // 处理文本选择
         handleTextSelection() {
             const selection = window.getSelection();
-            const selectedText = selection.toString();
+            const selectedText = selection?.toString() ?? '';
 
             if (!selectedText.trim()) {
-                // 清除选中状态
                 this.selectedText.content = '';
                 this.selectedText.messageIndex = null;
                 return;
             }
 
-            // 获取被选中的元素，找到对应的message-item
+            if (!selection || selection.rangeCount === 0) {
+                this.selectedText.content = '';
+                this.selectedText.messageIndex = null;
+                return;
+            }
+
             const range = selection.getRangeAt(0);
             const startContainer = range.startContainer;
-            let messageItem = null;
-            let node = startContainer.parentElement;
+            let node = (startContainer as any)?.parentElement as HTMLElement | null;
 
-            // 遍历DOM树向上查找message-item
             while (node && !node.classList.contains('message-item')) {
                 node = node.parentElement;
             }
 
-            messageItem = node;
-
+            const messageItem = node;
             if (!messageItem) {
                 this.selectedText.content = '';
                 this.selectedText.messageIndex = null;
                 return;
             }
 
-            // 获取message-item在messages数组中的索引
-            const messageItems = this.$refs.messageContainer?.querySelectorAll('.message-item');
+            const container = this.getMessageContainerEl();
+            const messageItems = container?.querySelectorAll<HTMLElement>('.message-item');
+
             let messageIndex = -1;
             if (messageItems) {
                 for (let i = 0; i < messageItems.length; i++) {
@@ -451,8 +523,7 @@ export default {
                 return;
             }
 
-            // 获取选中文本的位置（相对于viewport）
-            const rect = selection.getRangeAt(0).getBoundingClientRect();
+            const rect = range.getBoundingClientRect();
 
             this.selectedText.content = selectedText;
             this.selectedText.messageIndex = messageIndex;
@@ -469,17 +540,75 @@ export default {
             const msg = this.messages[this.selectedText.messageIndex];
             if (!msg || !msg.id) return;
 
-            // 触发replyWithText事件，传递选中的文本内容
             this.$emit('replyWithText', {
                 messageId: msg.id,
                 selectedText: this.selectedText.content,
                 messageIndex: this.selectedText.messageIndex
             });
 
-            // 清除选中状态
             this.selectedText.content = '';
             this.selectedText.messageIndex = null;
-            window.getSelection().removeAllRanges();
+            window.getSelection()?.removeAllRanges();
+        },
+
+        formatPlainPreText(text: string): string {
+            const raw = (text ?? '').toString();
+            if (!raw) return raw;
+
+            // 1) If it's a single-line command tree (contains ├──/└──), insert newlines.
+            if (!raw.includes('\n') && (raw.includes('├──') || raw.includes('└──'))) {
+                let s = raw;
+
+                // Normalize spaces so the rules below work reliably.
+                s = s.replace(/\s+/g, ' ').trim();
+
+                // Put the root token (e.g. "gh") on its own line when followed by a tree branch.
+                // Example: "gh ├── help" => "gh\n├── help"
+                s = s.replace(/\b([\w-]+)\s+(?=(?:├──|└──))/g, '$1\n');
+
+                // Newline before each branch marker.
+                s = s.replace(/\s*(├──|└──)\s*/g, '\n$1 ');
+
+                // Also split some common Chinese hints into their own lines.
+                s = s.replace(/(参数不足。)\s*/g, '$1\n');
+                s = s.replace(/(指令组下有如下指令[，,:：]?\s*)/g, '$1\n');
+
+                return s.replace(/^\n+/, '').replace(/\n{3,}/g, '\n\n');
+            }
+
+            return raw;
+        },
+
+        shouldRenderAsPlainPre(text: string): boolean {
+            const trimmed = (text ?? '').trim();
+
+            // Command tree sometimes comes as a single line.
+            if (trimmed.includes('├──') || trimmed.includes('└──')) return true;
+
+            if (!trimmed.includes('\n')) return false;
+
+            const lines = trimmed
+                .split(/\r?\n/)
+                .map(l => l.trim())
+                .filter(Boolean);
+
+            if (lines.length < 3) return false;
+
+            const cmdLines = lines.filter(l => l.startsWith('/')).length;
+            const logLines = lines.filter(l => /^\[\d{2}:\d{2}:\d{2}\]/.test(l) || /^\[\d{4}-\d{2}-\d{2}/.test(l)).length;
+            const hasBuiltinHeader = lines.some(l => /内置指令|Built-?in\s+commands/i.test(l));
+            const hasCommandTreeHeader = lines.some(l => /指令组下有如下指令/i.test(l));
+
+            if (hasBuiltinHeader && cmdLines >= 2) return true;
+            if (hasCommandTreeHeader) return true;
+            if (cmdLines >= Math.max(5, Math.floor(lines.length * 0.5))) return true;
+            if (logLines >= 1 && lines.length >= 3) return true;
+            return false;
+        },
+
+        getMessageContainerEl(): HTMLElement | null {
+            const containerRef: any = this.$refs.messageContainer;
+            return (containerRef?.$el ?? containerRef) as HTMLElement | null;
         },
 
         // 检查 message 中是否有音频
@@ -513,8 +642,8 @@ export default {
             const msgIndex = this.messages.findIndex(m => m.id === messageId);
             if (msgIndex === -1) return;
 
-            const container = this.$refs.messageContainer;
-            const messageItems = container?.querySelectorAll('.message-item');
+            const container = this.getMessageContainerEl();
+            const messageItems = container?.querySelectorAll<HTMLElement>('.message-item');
             if (messageItems && messageItems[msgIndex]) {
                 messageItems[msgIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
                 // 高亮一下
@@ -539,23 +668,6 @@ export default {
         // Check if reasoning is expanded
         isReasoningExpanded(messageIndex) {
             return this.expandedReasoning.has(messageIndex);
-        },
-
-        // Toggle iPython tool expansion state
-        toggleIPythonTool(messageIndex, partIndex, toolCallIndex) {
-            const key = `${messageIndex}-${partIndex}-${toolCallIndex}`;
-            if (this.expandedIPythonTools.has(key)) {
-                this.expandedIPythonTools.delete(key);
-            } else {
-                this.expandedIPythonTools.add(key);
-            }
-            // Force reactivity
-            this.expandedIPythonTools = new Set(this.expandedIPythonTools);
-        },
-
-        // Check if iPython tool is expanded
-        isIPythonToolExpanded(messageIndex, partIndex, toolCallIndex) {
-            return this.expandedIPythonTools.has(`${messageIndex}-${partIndex}-${toolCallIndex}`);
         },
 
         // 下载文件
@@ -588,28 +700,17 @@ export default {
         },
 
         // 复制代码到剪贴板
-        copyCodeToClipboard(code) {
-            navigator.clipboard.writeText(code).then(() => {
+        async copyCodeToClipboard(code) {
+            const ok = await this.copyTextToClipboard(code ?? '');
+            if (ok) {
                 console.log('代码已复制到剪贴板');
-            }).catch(err => {
-                console.error('复制失败:', err);
-                // 如果现代API失败，使用传统方法
-                const textArea = document.createElement('textarea');
-                textArea.value = code;
-                document.body.appendChild(textArea);
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    console.log('代码已复制到剪贴板 (fallback)');
-                } catch (fallbackErr) {
-                    console.error('复制失败 (fallback):', fallbackErr);
-                }
-                document.body.removeChild(textArea);
-            });
+            } else {
+                console.warn('无法自动复制，已使用降级方案');
+            }
         },
 
         // 复制bot消息到剪贴板
-        copyBotMessage(messageParts, messageIndex) {
+        async copyBotMessage(messageParts, messageIndex) {
             let textToCopy = '';
 
             if (Array.isArray(messageParts)) {
@@ -639,25 +740,13 @@ export default {
                 textToCopy = '[媒体内容]';
             }
 
-            navigator.clipboard.writeText(textToCopy).then(() => {
+            const ok = await this.copyTextToClipboard(textToCopy);
+            if (ok) {
                 console.log('消息已复制到剪贴板');
                 this.showCopySuccess(messageIndex);
-            }).catch(err => {
-                console.error('复制失败:', err);
-                // 如果现代API失败，使用传统方法
-                const textArea = document.createElement('textarea');
-                textArea.value = textToCopy;
-                document.body.appendChild(textArea);
-                textArea.select();
-                try {
-                    document.execCommand('copy');
-                    console.log('消息已复制到剪贴板 (fallback)');
-                    this.showCopySuccess(messageIndex);
-                } catch (fallbackErr) {
-                    console.error('复制失败 (fallback):', fallbackErr);
-                }
-                document.body.removeChild(textArea);
-            });
+            } else {
+                console.warn('无法自动复制，已使用降级方案');
+            }
         },
 
         // 显示复制成功提示
@@ -693,23 +782,26 @@ export default {
         // 初始化代码块复制按钮
         initCodeCopyButtons() {
             this.$nextTick(() => {
-                const codeBlocks = this.$refs.messageContainer?.querySelectorAll('pre code') || [];
+                const container = this.getMessageContainerEl();
+                const codeBlocks = container?.querySelectorAll<HTMLElement>('pre code') || [];
                 codeBlocks.forEach((codeBlock, index) => {
-                    const pre = codeBlock.parentElement;
+                    const pre = codeBlock.parentElement as HTMLElement | null;
                     if (pre && !pre.querySelector('.copy-code-btn')) {
                         const button = document.createElement('button');
                         button.className = 'copy-code-btn';
                         button.innerHTML = this.getCopyIconSvg();
                         button.title = '复制代码';
-                        button.addEventListener('click', () => {
-                            this.copyCodeToClipboard(codeBlock.textContent);
-                            // 显示复制成功提示
-                            button.innerHTML = this.getSuccessIconSvg();
-                            button.style.color = '#4caf50';
-                            setTimeout(() => {
-                                button.innerHTML = this.getCopyIconSvg();
-                                button.style.color = '';
-                            }, 2000);
+                        button.addEventListener('click', async () => {
+                            const ok = await this.copyTextToClipboard(codeBlock.textContent || '');
+                            if (ok) {
+                                // 显示复制成功提示
+                                button.innerHTML = this.getSuccessIconSvg();
+                                button.style.color = '#4caf50';
+                                setTimeout(() => {
+                                    button.innerHTML = this.getCopyIconSvg();
+                                    button.style.color = '';
+                                }, 2000);
+                            }
                         });
                         pre.style.position = 'relative';
                         pre.appendChild(button);
@@ -721,12 +813,12 @@ export default {
         initImageClickEvents() {
             this.$nextTick(() => {
                 // 查找所有动态生成的图片（在markdown-content中）
-                const images = document.querySelectorAll('.markdown-content img');
+                const images = document.querySelectorAll<HTMLImageElement>('.markdown-content img');
                 images.forEach((img) => {
                     if (!img.hasAttribute('data-click-enabled')) {
                         img.style.cursor = 'pointer';
                         img.setAttribute('data-click-enabled', 'true');
-                        img.onclick = () => this.openImagePreview(img.src);
+                        img.onclick = () => this.$emit('openImagePreview', img.src);
                     }
                 });
             });
@@ -734,7 +826,7 @@ export default {
 
         scrollToBottom() {
             this.$nextTick(() => {
-                const container = this.$refs.messageContainer;
+                const container = this.getMessageContainerEl();
                 if (container) {
                     container.scrollTop = container.scrollHeight;
                     this.isUserNearBottom = true; // 程序滚动到底部后标记用户在底部
@@ -744,9 +836,9 @@ export default {
 
         // 添加滚动事件监听器
         addScrollListener() {
-            const container = this.$refs.messageContainer;
+            const container = this.getMessageContainerEl();
             if (container) {
-                container.addEventListener('scroll', this.throttledHandleScroll);
+                container.addEventListener('scroll', this.throttledHandleScroll as any);
             }
         },
 
@@ -762,9 +854,10 @@ export default {
 
         // 处理滚动事件
         handleScroll() {
-            const container = this.$refs.messageContainer;
+            const containerRef: any = this.$refs.messageContainer;
+            const container: any = containerRef?.$el || containerRef;
             if (container) {
-                const { scrollTop, scrollHeight, clientHeight } = container;
+                const { scrollTop, scrollHeight, clientHeight } = container as any;
                 const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
 
                 // 判断用户是否在底部附近
@@ -774,8 +867,9 @@ export default {
 
         // 组件销毁时移除监听器
         beforeUnmount() {
-            const container = this.$refs.messageContainer;
-            if (container) {
+            const containerRef: any = this.$refs.messageContainer;
+            const container: any = containerRef?.$el || containerRef;
+            if (container && typeof container.removeEventListener === 'function') {
                 container.removeEventListener('scroll', this.throttledHandleScroll);
             }
             // 清理定时器
@@ -837,6 +931,10 @@ export default {
             return this.expandedToolCalls.has(`${messageIndex}-${partIndex}-${toolCallIndex}`);
         },
 
+        isIPythonTool(toolCall) {
+            return toolCall?.name === 'astrbot_execute_ipython';
+        },
+
         // Start timer for updating elapsed time
         startElapsedTimeTimer() {
             // Update every 12ms for sub-second precision, then every second after 1s
@@ -848,17 +946,17 @@ export default {
                 this.currentTime = Date.now() / 1000;
 
                 // Check if there are any running tool calls
-                const hasRunningToolCalls = this.messages.some(msg =>
-                    Array.isArray(msg.content.message) && msg.content.message.some(part =>
-                        part.type === 'tool_call' && part.tool_calls?.some(tc => !tc.finished_ts)
+                const hasRunningToolCalls = (this.messages as any[]).some((msg: any) =>
+                    Array.isArray(msg?.content?.message) && msg.content.message.some((part: any) =>
+                        part?.type === 'tool_call' && part.tool_calls?.some((tc: any) => !tc.finished_ts)
                     )
                 );
 
                 if (hasRunningToolCalls) {
                     // Check if any running tool call is under 1 second
-                    const hasSubSecondToolCall = this.messages.some(msg =>
-                        Array.isArray(msg.content.message) && msg.content.message.some(part =>
-                            part.type === 'tool_call' && part.tool_calls?.some(tc =>
+                    const hasSubSecondToolCall = (this.messages as any[]).some((msg: any) =>
+                        Array.isArray(msg?.content?.message) && msg.content.message.some((part: any) =>
+                            part?.type === 'tool_call' && part.tool_calls?.some((tc: any) =>
                                 !tc.finished_ts && (this.currentTime - tc.ts) < 1
                             )
                         )
@@ -927,25 +1025,6 @@ export default {
         formatTTFT(ttft) {
             if (!ttft || ttft <= 0) return '';
             return this.formatDuration(ttft);
-        },
-
-        // 打开图片预览
-        openImagePreview(url) {
-            this.imagePreview.url = url;
-            this.imagePreview.show = true;
-        },
-
-        // 关闭图片预览
-        closeImagePreview() {
-            this.imagePreview.show = false;
-            setTimeout(() => {
-                this.imagePreview.url = '';
-            }, 300);
-        },
-
-        // Check if tool is iPython executor
-        isIPythonTool(toolCall) {
-            return toolCall.name === 'astrbot_execute_ipython';
         },
 
         // Open refs sidebar
@@ -1198,7 +1277,7 @@ export default {
 
 .copy-message-btn:hover {
     opacity: 1;
-    background-color: rgba(103, 58, 183, 0.1);
+    background-color: rgba(var(--v-theme-secondary), 0.1);
 }
 
 .copy-message-btn.copy-success {
@@ -1219,7 +1298,7 @@ export default {
 
 .reply-message-btn:hover {
     opacity: 1;
-    background-color: rgba(103, 58, 183, 0.1);
+    background-color: rgba(var(--v-theme-secondary), 0.1);
 }
 
 /* 引用消息显示样式 */
@@ -1229,7 +1308,7 @@ export default {
     gap: 6px;
     padding: 6px 10px;
     margin-bottom: 8px;
-    background-color: rgba(103, 58, 183, 0.08);
+    background-color: rgba(var(--v-theme-secondary), 0.08);
     border-left: 3px solid var(--v-theme-secondary);
     border-radius: 4px;
     cursor: pointer;
@@ -1237,7 +1316,7 @@ export default {
 }
 
 .reply-quote:hover {
-    background-color: rgba(103, 58, 183, 0.15);
+    background-color: rgba(var(--v-theme-secondary), 0.15);
 }
 
 .reply-quote-icon {
@@ -1260,7 +1339,7 @@ export default {
 
 @keyframes highlightPulse {
     0% {
-        background-color: rgba(103, 58, 183, 0.3);
+        background-color: rgba(var(--v-theme-secondary), 0.3);
     }
 
     100% {
@@ -1342,10 +1421,10 @@ export default {
 }
 
 .bot-embedded-image {
-    max-width: 55%;
+    max-width: 40%;
     width: auto;
     height: auto;
-    border-radius: 4px;
+    border-radius: 8px;
     cursor: pointer;
     transition: transform 0.2s ease;
 }
@@ -1420,6 +1499,165 @@ export default {
     animation: fadeIn 0.3s ease-in-out;
 }
 
+/* Reasoning 区块样式 */
+.reasoning-container {
+    margin-bottom: 12px;
+    margin-top: 6px;
+    border: 1px solid var(--v-theme-border);
+    border-radius: 20px;
+    overflow: hidden;
+    width: fit-content;
+}
+
+.reasoning-header {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 8px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+    border-radius: 20px;
+}
+
+.reasoning-header:hover {
+    background-color: rgba(58, 106, 183, 0.08);
+}
+
+.reasoning-header.is-dark:hover {
+    background-color: rgba(58, 108, 183, 0.15);
+}
+
+.reasoning-icon {
+    margin-right: 6px;
+    color: var(--v-theme-secondary);
+    transition: transform 0.2s ease;
+}
+
+.reasoning-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--v-theme-secondary);
+    letter-spacing: 0.3px;
+}
+
+.reasoning-content {
+    padding: 0px 12px;
+    border-top: 1px solid var(--v-theme-border);
+    color: gray;
+    animation: fadeIn 0.2s ease-in-out;
+    font-style: italic;
+}
+
+.reasoning-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--v-theme-secondaryText);
+}
+
+/* Tool Call Card Styles */
+.tool-calls-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+    margin-top: 6px;
+}
+
+.tool-calls-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--v-theme-secondaryText);
+    opacity: 0.7;
+    margin-bottom: 4px;
+}
+
+.tool-call-card {
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #eff3f6;
+    margin: 8px 0px;
+    max-width: 300px;
+    transition: max-width 0.1s ease;
+}
+
+.tool-call-card.expanded {
+    max-width: 100%;
+}
+
+.tool-call-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease;
+    gap: 8px;
+}
+
+.tool-call-header:hover {
+    background-color: rgba(169, 194, 219, 0.15);
+}
+
+.tool-call-header.is-dark:hover {
+    background-color: rgba(100, 150, 200, 0.2);
+}
+
+.tool-call-expand-icon {
+    color: var(--v-theme-secondary);
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.tool-call-icon {
+    color: var(--v-theme-secondary);
+    flex-shrink: 0;
+}
+
+.tool-call-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.tool-call-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--v-theme-secondary);
+}
+
+.tool-call-id {
+    font-size: 11px;
+    color: var(--v-theme-secondaryText);
+    opacity: 0.7;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tool-call-status {
+    margin-left: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.tool-call-status.status-running {
+    color: #ff9800;
+}
+
+.tool-call-status.status-finished {
+    color: #4caf50;
+}
+
+.tool-call-status .status-icon {
+    font-size: 14px;
+}
+
 /* 浮动引用按钮样式 */
 .selection-quote-button {
     position: fixed;
@@ -1429,6 +1667,7 @@ export default {
     gap: 8px;
     pointer-events: all;
 }
+
 
 .quote-btn {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -1449,8 +1688,73 @@ export default {
     color: #ffffff !important;
 }
 
+.tool-call-status .status-icon.spinning {
+    animation: spin 1s linear infinite;
+}
 
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
 
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.tool-call-details {
+    padding: 12px;
+    background-color: rgba(255, 255, 255, 0.5);
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+.tool-call-detail-row {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 8px;
+}
+
+.tool-call-detail-row:last-child {
+    margin-bottom: 0;
+}
+
+.detail-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--v-theme-secondaryText);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.detail-value {
+    font-size: 12px;
+    color: var(--v-theme-primaryText);
+    background-color: transparent;
+    padding: 4px 8px;
+    border-radius: 4px;
+    word-break: break-all;
+}
+
+.detail-json {
+    font-family: 'Fira Code', 'Consolas', monospace;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 0;
+}
+
+.bot-plain-pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: inherit;
+}
+
+.detail-result {
+    max-height: 300px;
+    background-color: transparent;
+}
 </style>
 
 <style>
@@ -1490,37 +1794,5 @@ export default {
     font-weight: 600;
     font-family: 'Fira Code', 'Consolas', monospace;
     color: var(--v-theme-primaryText);
-}
-
-/* 图片预览样式 */
-.image-preview-overlay {
-    z-index: 9999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.image-preview-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-}
-
-.preview-image {
-    max-width: 90vw;
-    max-height: 90vh;
-    object-fit: contain;
-    border-radius: 8px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    cursor: pointer;
-}
-
-.close-preview-btn {
-    position: fixed;
-    top: 20px;
-    right: 20px;
 }
 </style>

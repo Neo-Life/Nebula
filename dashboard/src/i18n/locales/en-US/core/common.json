@@ -44,7 +44,7 @@
     "cancelButton": "Cancel"
   },
   "restart": {
-    "waiting": "Waiting for AstrBot to restart...",
+    "waiting": "Waiting for Nebula to restart...",
     "maxRetriesReached": "Maximum retry attempts reached, please check manually."
   },
   "readme": {
@@ -102,7 +102,10 @@
     "disabled": "Disabled",
     "delete": "Delete",
     "edit": "Edit",
-    "copy": "Copy",
     "noData": "No data available"
+  },
+  "error404": {
+    "returnHome": "Return Home",
+    "goBack": "Go Back"
   }
 }

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 import { ref, computed } from 'vue'
 import ConfigItemRenderer from './ConfigItemRenderer.vue'
@@ -175,8 +175,7 @@ function getSpecialSubtype(value) {
 </script>
 
 <template>
-
-
+  <div class="astrbot-config-v4">
   <v-card v-if="shouldShowSection()" style="margin-bottom: 16px; padding-bottom: 8px; background-color: rgb(var(--v-theme-background));"
     rounded="md" variant="outlined">
     <v-card-text class="config-section" v-if="metadata[metadataKey]?.type === 'object'" style="padding-bottom: 8px;">
@@ -191,7 +190,7 @@ function getSpecialSubtype(value) {
 
     <!-- Object Type Configuration with JSON Selector Support -->
     <div v-if="metadata[metadataKey]?.type === 'object'" class="object-config">
-      <div v-for="(itemMeta, itemKey, index) in metadata[metadataKey].items" :key="itemKey" class="config-item">
+      <div v-for="(itemMeta, itemKey, index) in (metadata[metadataKey].items as Record<string, any>)" :key="itemKey" class="config-item">
         <!-- Check if itemKey is a JSON selector -->
         <template v-if="shouldShowItem(itemMeta, itemKey)">
           <!-- JSON Selector Property -->
@@ -272,11 +271,16 @@ function getSpecialSubtype(value) {
       </v-card-text>
     </v-card>
   </v-dialog>
+  </div>
 </template>
 
 
 
 <style scoped>
+.astrbot-config-v4 {
+  display: contents;
+}
+
 .config-section {
   margin-bottom: 4px;
 }

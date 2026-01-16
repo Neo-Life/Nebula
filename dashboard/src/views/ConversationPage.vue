@@ -23,7 +23,7 @@
                             <v-select v-model="messageTypeFilter" :label="tm('filters.type')" :items="messageTypeItems"
                                 chips multiple clearable variant="solo-filled" density="compact" hide-details flat>
                                 <template v-slot:selection="{ item }">
-                                    <v-chip size="small" variant="solo-filled" label>
+                                    <v-chip size="small" variant="tonal" label>
                                         {{ item.title }}
                                     </v-chip>
                                 </template>
@@ -325,7 +325,7 @@
     </div>
 </template>
 
-<script>
+<script lang="ts">
 import axios from 'axios';
 import { debounce } from 'lodash';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
@@ -408,7 +408,9 @@ export default {
             savingHistory: false,
             monacoEditor: null,
 
-            commonStore: useCommonStore()
+            commonStore: useCommonStore(),
+
+            debouncedApplyFilters: null as any
         }
     },
 
@@ -451,14 +453,14 @@ export default {
                 { title: this.tm('table.headers.createdAt'), key: 'created_at', sortable: true, width: '180px' },
                 { title: this.tm('table.headers.updatedAt'), key: 'updated_at', sortable: true, width: '180px' },
                 { title: this.tm('table.headers.actions'), key: 'actions', sortable: false, align: 'center' }
-            ];
+            ] as any;
         },
 
         // 可用平台列表
         availablePlatforms() {
             const platforms = []
             // 解析 tutorial_map
-            const tutorialMap = this.commonStore.tutorial_map;
+            const tutorialMap = (this.commonStore as any).tutorial_map || {};
             for (const platform in tutorialMap) {
                 if (tutorialMap.hasOwnProperty(platform)) {
                     platforms.push({
@@ -586,7 +588,7 @@ export default {
         fetchConversations: (() => {
             let controller = new AbortController();
 
-            return async function () {
+            return async function (this: any) {
                 // 新请求前停止之前的请求
                 controller?.abort()
                 controller = new AbortController();
@@ -594,7 +596,7 @@ export default {
                 this.loading = true;
                 try {
                     // 准备请求参数，包含分页和筛选条件
-                    const params = {
+                    const params: any = {
                         page: this.pagination.page,
                         page_size: this.pagination.page_size
                     };
@@ -763,7 +765,7 @@ export default {
 
         // 保存编辑后的对话
         async saveConversation() {
-            if (!this.$refs.form.validate()) return;
+            if (!(this.$refs.form as any)?.validate?.()) return;
 
             this.loading = true;
             try {

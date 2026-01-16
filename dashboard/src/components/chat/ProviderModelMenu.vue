@@ -188,11 +188,11 @@ defineExpose({
 }
 
 .provider-menu-item:hover {
-    background-color: rgba(103, 58, 183, 0.05);
+    background-color: rgba(58, 110, 183, 0.05);
 }
 
 .provider-menu-item.v-list-item--active {
-    background-color: rgba(103, 58, 183, 0.1);
+    background-color: rgba(58, 102, 183, 0.1);
 }
 
 .provider-subtitle {

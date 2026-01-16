@@ -56,27 +56,33 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 
-const props = defineProps({
-    toolCall: {
-        type: Object,
-        required: true
-    },
-    isDark: {
-        type: Boolean,
-        default: false
-    },
-    initialExpanded: {
-        type: Boolean,
-        default: false
-    }
-});
+type ToolCall = {
+    id: string;
+    name: string;
+    ts: number;
+    finished_ts?: number | null;
+    args?: unknown;
+    result?: string | null;
+};
 
-const isExpanded = ref(props.initialExpanded);
-const currentTime = ref(Date.now() / 1000);
-let timer = null;
+const props = withDefaults(
+    defineProps<{
+        toolCall: ToolCall;
+        isDark?: boolean;
+        initialExpanded?: boolean;
+    }>(),
+    {
+        isDark: false,
+        initialExpanded: false
+    }
+);
+
+const isExpanded = ref<boolean>(props.initialExpanded);
+const currentTime = ref<number>(Date.now() / 1000);
+let timer: ReturnType<typeof setInterval> | null = null;
 
 const elapsedTime = computed(() => {
     if (props.toolCall.finished_ts) return '';
@@ -94,7 +100,7 @@ const formattedResult = computed(() => {
     }
 });
 
-const formatDuration = (seconds) => {
+const formatDuration = (seconds: number) => {
     if (seconds < 1) {
         return `${Math.round(seconds * 1000)}ms`;
     } else if (seconds < 60) {
@@ -124,6 +130,7 @@ onMounted(() => {
 onUnmounted(() => {
     if (timer) {
         clearInterval(timer);
+        timer = null;
     }
 });
 </script>

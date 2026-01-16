@@ -29,43 +29,44 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useModuleI18n } from '@/i18n/composables';
-import { createHighlighter } from 'shiki';
+import { createHighlighter, type Highlighter } from 'shiki';
 
-const props = defineProps({
-    toolCall: {
-        type: Object,
-        required: true
-    },
-    isDark: {
-        type: Boolean,
-        default: false
-    },
-    initialExpanded: {
-        type: Boolean,
-        default: false
+type IPythonToolCall = {
+    args?: { code?: string } | null;
+    result?: string | null;
+};
+
+const props = withDefaults(
+    defineProps<{
+        toolCall: IPythonToolCall;
+        isDark?: boolean;
+        initialExpanded?: boolean;
+    }>(),
+    {
+        isDark: false,
+        initialExpanded: false
     }
-});
+);
 
 const { tm } = useModuleI18n('features/chat');
-const isExpanded = ref(props.initialExpanded);
-const shikiHighlighter = ref(null);
-const shikiReady = ref(false);
+const isExpanded = ref<boolean>(props.initialExpanded);
+const shikiHighlighter = ref<Highlighter | null>(null);
+const shikiReady = ref<boolean>(false);
 
 const code = computed(() => {
     try {
-        if (props.toolCall.args && props.toolCall.args.code) {
-            return props.toolCall.args.code;
-        }
+        const codeValue = props.toolCall.args?.code;
+        return codeValue ?? null;
     } catch (err) {
         console.error('Failed to get iPython code:', err);
     }
     return null;
 });
 
-const result = computed(() => props.toolCall.result);
+const result = computed<string | null | undefined>(() => props.toolCall.result);
 
 const formattedResult = computed(() => {
     if (!result.value) return '';
@@ -78,11 +79,12 @@ const formattedResult = computed(() => {
 });
 
 const highlightedCode = computed(() => {
-    if (!shikiReady.value || !shikiHighlighter.value || !code.value) {
+    const highlighter = shikiHighlighter.value;
+    if (!shikiReady.value || !highlighter || !code.value) {
         return '';
     }
     try {
-        return shikiHighlighter.value.codeToHtml(code.value, {
+        return highlighter.codeToHtml(code.value, {
             lang: 'python',
             theme: props.isDark ? 'min-dark' : 'github-light'
         });

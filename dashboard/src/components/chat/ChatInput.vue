@@ -15,17 +15,17 @@
                 <div class="reply-preview" v-if="props.replyTo && !isReplyClosing">
                     <div class="reply-content">
                         <v-icon size="small" class="reply-icon">mdi-reply</v-icon>
-                        "<span class="reply-text">{{ props.replyTo.selectedText }}</span>"
+                        "<span class="reply-text">{{ props.replyTo.selectedText || props.replyTo.messageContent }}</span>"
                     </div>
                     <v-btn @click="handleClearReply" class="remove-reply-btn" icon="mdi-close" size="x-small" color="grey" variant="text" />
                 </div>
             </transition>
-            <textarea 
+            <textarea
                 ref="inputField"
-                v-model="localPrompt" 
+                v-model="localPrompt"
                 @keydown="handleKeyDown"
-                :disabled="disabled" 
-                placeholder="Ask AstrBot..."
+                :disabled="disabled"
+                placeholder="Ask Nebula..."
                 style="width: 100%; resize: none; outline: none; border: 1px solid var(--v-theme-border); border-radius: 12px; padding: 12px 16px; min-height: 40px; font-family: inherit; font-size: 16px; background-color: var(--v-theme-surface);"></textarea>
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 14px;">
                 <div style="display: flex; justify-content: flex-start; margin-top: 4px; align-items: center; gap: 8px;">
@@ -36,7 +36,7 @@
                                 v-bind="activatorProps"
                                 icon="mdi-plus"
                                 variant="text"
-                                color="deep-purple"
+                                class="input-action-btn"
                             />
                         </template>
                         
@@ -87,14 +87,13 @@
                     <v-progress-circular v-if="disabled" indeterminate size="16" class="mr-1" width="1.5" />
                     <v-btn @click="handleRecordClick"
                         :icon="isRecording ? 'mdi-stop-circle' : 'mdi-microphone'" variant="text"
-                        :color="isRecording ? 'error' : 'deep-purple'" class="record-btn" size="small" />
-                    <v-btn @click="$emit('send')" icon="mdi-send" variant="text" color="deep-purple"
-                        :disabled="!canSend" class="send-btn" size="small" />
+                        :color="isRecording ? 'error' : undefined" :class="['record-btn', { 'input-action-btn': !isRecording }]" size="small" />
+                    <v-btn @click="$emit('send')" icon="mdi-send" variant="text"
+                        :disabled="!canSend" class="send-btn input-action-btn" size="small" />
                 </div>
             </div>
         </div>
 
-        <!-- 附件预览区 -->
         <div class="attachments-preview" v-if="stagedImagesUrl.length > 0 || stagedAudioUrl || (stagedFiles && stagedFiles.length > 0)">
             <div v-for="(img, index) in stagedImagesUrl" :key="'img-' + index" class="image-preview">
                 <img :src="img" class="preview-image" />
@@ -103,7 +102,7 @@
             </div>
 
             <div v-if="stagedAudioUrl" class="audio-preview">
-                <v-chip color="deep-purple-lighten-4" class="audio-chip">
+                <v-chip color="lightsecondary" class="audio-chip">
                     <v-icon start icon="mdi-microphone" size="small"></v-icon>
                     {{ tm('voice.recording') }}
                 </v-chip>
@@ -132,6 +131,7 @@ import ProviderModelMenu from './ProviderModelMenu.vue';
 import StyledMenu from '@/components/shared/StyledMenu.vue';
 import type { Session } from '@/composables/useSessions';
 
+// ... (Script 逻辑部分完全保持不变) ...
 interface StagedFileInfo {
     attachment_id: string;
     filename: string;
@@ -143,6 +143,7 @@ interface StagedFileInfo {
 interface ReplyInfo {
     messageId: number;
     selectedText?: string;
+    messageContent?: string;
 }
 
 interface Props {
@@ -219,7 +220,6 @@ function handleReplyAfterLeave() {
 }
 
 function handleKeyDown(e: KeyboardEvent) {
-    // Enter 发送消息
     if (e.keyCode === 13 && !e.shiftKey) {
         e.preventDefault();
         if (canSend.value) {
@@ -227,7 +227,6 @@ function handleKeyDown(e: KeyboardEvent) {
         }
     }
 
-    // Ctrl+B 录音
     if (e.ctrlKey && e.keyCode === 66) {
         e.preventDefault();
         if (ctrlKeyDown.value) return;
@@ -316,10 +315,16 @@ defineExpose({
 <style scoped>
 .input-area {
     padding: 16px;
-    background-color: transparent;
+    padding-top: 0; 
+    background-color: rgb(var(--v-theme-surface));
+    border-top: none;
     position: relative;
-    border-top: 1px solid var(--v-theme-border);
     flex-shrink: 0;
+    z-index: 20;
+}
+
+.input-container {
+    border-radius: 24px;
 }
 
 .reply-preview {
@@ -328,7 +333,7 @@ defineExpose({
     justify-content: space-between;
     padding: 8px 16px;
     margin: 8px 8px 0 8px;
-    background-color: rgba(103, 58, 183, 0.06);
+    background-color: rgba(var(--v-theme-primary), 0.08); 
     border-radius: 12px;
     gap: 8px;
     max-height: 500px;
@@ -388,13 +393,13 @@ defineExpose({
 }
 
 .reply-icon {
-    color: var(--v-theme-secondary);
+    color: rgb(var(--v-theme-secondary));
     flex-shrink: 0;
 }
 
 .reply-text {
     font-size: 13px;
-    color: var(--v-theme-secondaryText);
+    color: rgba(var(--v-theme-on-surface), 0.7);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -456,8 +461,16 @@ defineExpose({
     opacity: 1;
 }
 
+.input-action-btn {
+    color: rgba(var(--v-theme-secondaryText), 0.9);
+}
+
+.input-action-btn.v-btn--variant-text:hover {
+    background-color: rgba(var(--v-theme-secondaryText), 0.10);
+}
+
 .fade-in {
-    animation: fadeIn 0.3s ease-in-out;
+    animation: fadeIn 0.2s ease-in-out;
 }
 
 @keyframes fadeIn {
@@ -479,6 +492,11 @@ defineExpose({
     .input-container {
         width: 100% !important;
         max-width: 100% !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+        border-bottom: none !important;
     }
 }
 </style>

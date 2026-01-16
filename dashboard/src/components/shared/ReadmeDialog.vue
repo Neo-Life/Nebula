@@ -1,3 +1,8 @@
+/*
+ * 该组件已弃用
+ * 无论上游如何修改
+ * 也不会维护这个组件
+/*
 <script setup>
 import { ref, watch, computed, onUnmounted } from "vue";
 import MarkdownIt from "markdown-it";

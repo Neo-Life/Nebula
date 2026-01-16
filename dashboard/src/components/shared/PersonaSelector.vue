@@ -67,14 +67,11 @@
   <PersonaForm 
     v-model="showCreateDialog"
     :editing-persona="null"
-    :mcp-servers="mcpServers"
-    :available-tools="availableTools"
-    :loading-tools="loadingTools"
     @saved="handlePersonaCreated"
     @error="handleError" />
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue'
 import axios from 'axios'
 import PersonaForm from './PersonaForm.vue'

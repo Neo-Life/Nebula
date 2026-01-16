@@ -50,7 +50,7 @@
         </v-row>
 
         <div class="d-flex justify-end mb-4">
-          <v-btn prepend-icon="mdi-magnify" color="primary" variant="elevated" @click="performRetrieval"
+          <v-btn prepend-icon="mdi-magnify" color="primary" variant="flat" @click="performRetrieval"
             :loading="loading" :disabled="!query || query.trim() === ''">
             {{ loading ? t('retrieval.searching') : t('retrieval.search') }}
           </v-btn>

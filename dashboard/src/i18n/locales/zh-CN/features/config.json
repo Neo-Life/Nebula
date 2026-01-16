@@ -5,7 +5,10 @@
     "visual": "可视化编辑",
     "code": "代码编辑",
     "revertCode": "回到更改前的代码",
+    "revertShort": "撤回",
     "applyConfig": "应用此配置",
+    "applyShort": "应用",
+    "tipShort": "提示",
     "applyTip": "`应用此配置` 将配置暂存并应用到可视化。如要保存，需再点击右下角保存按钮。"
   },
   "actions": {
@@ -70,7 +73,7 @@
   },
   "configManagement": {
     "title": "配置文件管理",
-    "description": "AstrBot 支持针对不同机器人分别设置配置文件。默认会使用 `default` 配置。",
+    "description": "Nebula 支持针对不同机器人分别设置配置文件。默认会使用 `default` 配置。",
     "newConfig": "新建配置文件",
     "editConfig": "编辑配置文件",
     "manageConfigs": "管理配置文件...",

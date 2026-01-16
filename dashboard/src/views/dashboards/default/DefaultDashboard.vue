@@ -3,7 +3,7 @@
     <v-slide-y-transition>
       <v-row v-if="noticeTitle && noticeContent" class="notice-row">
         <v-alert
-          :type="noticeType"
+          :type="(noticeType as any)"
           :text="noticeContent"
           :title="noticeTitle"
           closable
@@ -52,7 +52,7 @@
       </v-col>
     </v-row>
     <div class="dashboard-footer">
-      <v-chip size="small" color="primary" variant="flat" prepend-icon="mdi-refresh">
+      <v-chip size="small" color="primary" variant="flat" theme="dark">
         {{ t('lastUpdate') }}: {{ lastUpdated }}
       </v-chip>
       <v-btn 
@@ -69,7 +69,7 @@
 </template>
 
 
-<script>
+<script lang="ts">
 import TotalMessage from './components/TotalMessage.vue';
 import OnlinePlatform from './components/OnlinePlatform.vue';
 import RunningTime from './components/RunningTime.vue';
