@@ -121,7 +121,7 @@ const isChristmas = computed(() => {
 </script>
 
 <template>
-  <v-app-bar elevation="0" height="55">
+  <v-app-bar elevation="0" height="55" class="header-with-border">
 
     <v-btn v-if="customizer.viewMode === 'bot' && useCustomizerStore().uiTheme === 'PurpleTheme'" style="margin-left: 16px;"
       class="hidden-md-and-down"  icon rounded="sm" variant="flat"
@@ -261,7 +261,10 @@ const isChristmas = computed(() => {
 </template>
 
 <style>
-/* 响应式布局样式 */
+.header-with-border {
+  border-bottom: 1px solid rgba(var(--v-theme-border), 0.5) !important;
+}
+
 .logo-container {
   margin-left: 10px;
   display: flex;
