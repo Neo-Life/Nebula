@@ -442,8 +442,7 @@ class InternalAgentSubStage(Stage):
                 "Output only the title itself or <None>, with no explanations."
             ),
             prompt=(
-                "Generate a concise title for the following user query:\n"
-                f"{title_input}"
+                f"Generate a concise title for the following user query:\n{title_input}"
             ),
         )
         if llm_resp and llm_resp.completion_text:

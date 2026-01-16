@@ -179,7 +179,6 @@
                                             </div>
                                         </div>
                                     </template>
-
                                     <!-- Text (Markdown / Plain multi-line logs) -->
                                     <template v-else-if="part.type === 'plain' && part.text && part.text.trim()">
                                         <pre v-if="shouldRenderAsPlainPre(part.text)" class="bot-plain-pre">{{ formatPlainPreText(part.text) }}</pre>
@@ -284,6 +283,9 @@
                                 @click="copyBotMessage(msg.content.message, index)" :title="t('core.common.copy')" />
                             <v-btn icon="mdi-reply-outline" size="x-small" variant="text" class="reply-message-btn"
                                 @click="$emit('replyMessage', msg, index)" :title="tm('actions.reply')" />
+                            
+                            <!-- Refs Visualization -->
+                            <ActionRef :refs="msg.content.refs" @open-refs="openRefsSidebar" />
                         </div>
                     </div>
                 </div>
@@ -308,17 +310,23 @@
 <script lang="ts">
 import type { PropType } from 'vue'
 import { useI18n, useModuleI18n } from '@/i18n/composables';
-import { MarkdownRender, enableKatex, enableMermaid } from 'markstream-vue';
+import { MarkdownRender, enableKatex, enableMermaid, setCustomComponents } from 'markstream-vue';
 import 'markstream-vue/index.css';
 import 'katex/dist/katex.min.css';
 import axios from 'axios';
 import IPythonToolBlock from '@/components/chat/message_list_comps/IPythonToolBlock.vue';
+import RefNode from '@/components/chat/message_list_comps/RefNode.vue';
+import ActionRef from '@/components/chat/message_list_comps/ActionRef.vue';
+
+// 注册自定义 ref 组件
+setCustomComponents('message-list', { ref: RefNode });
 
 export default {
     name: 'MessageList',
     components: {
         MarkdownRender,
-        IPythonToolBlock
+    IPythonToolBlock,
+    ActionRef
     },
     props: {
         messages: {
@@ -338,7 +346,7 @@ export default {
             default: false
         }
     },
-    emits: ['openImagePreview', 'replyMessage', 'replyWithText'],
+    emits: ['openImagePreview', 'replyMessage', 'replyWithText', 'openRefs'],
     setup() {
         enableKatex();
         enableMermaid();
@@ -348,6 +356,12 @@ export default {
         return {
             t,
             tm,
+        };
+    },
+    provide() {
+        return {
+            isDark: this.isDark,
+            webSearchResults: () => this.webSearchResults
         };
     },
     data() {
@@ -366,7 +380,9 @@ export default {
                 content: '',
                 messageIndex: null,
                 position: { top: 0, left: 0 }
-            }
+            },
+            // Web search results mapping: { 'uuid.idx': { url, title, snippet } }
+            webSearchResults: {}
         };
     },
     mounted() {
@@ -375,6 +391,7 @@ export default {
         this.addScrollListener();
         this.scrollToBottom();
         this.startElapsedTimeTimer();
+        this.extractWebSearchResults();
     },
     updated() {
         this.initCodeCopyButtons();
@@ -382,8 +399,55 @@ export default {
         if (this.isUserNearBottom) {
             this.scrollToBottom();
         }
+        this.extractWebSearchResults();
     },
     methods: {
+        // 从消息中提取 web_search_tavily 的搜索结果
+        extractWebSearchResults() {
+            const results = {};
+            
+            this.messages.forEach(msg => {
+                if (msg.content.type !== 'bot' || !Array.isArray(msg.content.message)) {
+                    return;
+                }
+                
+                msg.content.message.forEach(part => {
+                    if (part.type !== 'tool_call' || !Array.isArray(part.tool_calls)) {
+                        return;
+                    }
+                    
+                    part.tool_calls.forEach(toolCall => {
+                        // 检查是否是 web_search_tavily 工具调用
+                        if (toolCall.name !== 'web_search_tavily' || !toolCall.result) {
+                            return;
+                        }
+                        
+                        try {
+                            // 解析工具调用结果
+                            const resultData = typeof toolCall.result === 'string' 
+                                ? JSON.parse(toolCall.result) 
+                                : toolCall.result;
+                            
+                            if (resultData.results && Array.isArray(resultData.results)) {
+                                resultData.results.forEach(item => {
+                                    if (item.index) {
+                                        results[item.index] = {
+                                            url: item.url,
+                                            title: item.title,
+                                            snippet: item.snippet
+                                        };
+                                    }
+                                });
+                            }
+                        } catch (e) {
+                            console.error('Failed to parse web search result:', e);
+                        }
+                    });
+                });
+            });
+            
+            this.webSearchResults = results;
+        },
         // 复制文本到剪贴板（不使用已弃用的 document.execCommand）
         // 成功返回 true，失败返回 false。
         async copyTextToClipboard(text: string): Promise<boolean> {
@@ -408,7 +472,6 @@ export default {
                 return false;
             }
         },
-
         // 处理文本选择
         handleTextSelection() {
             const selection = window.getSelection();
@@ -962,6 +1025,11 @@ export default {
         formatTTFT(ttft) {
             if (!ttft || ttft <= 0) return '';
             return this.formatDuration(ttft);
+        },
+
+        // Open refs sidebar
+        openRefsSidebar(refs) {
+            this.$emit('openRefs', refs);
         }
     }
 }
