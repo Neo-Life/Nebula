@@ -248,8 +248,8 @@ export function unmount() {
 
 ## 8. 参考实现
 
-仓库内提供了一个最小示例插件：
-- `data/plugins/astrbot_plugin_frontend_demo`
+提供了一个最小示例插件：
+- `https://github.com/Neo-Life/astrbot_plugins_demo`
 
 你也可以对照这些关键实现：
 - 前端动态路由注册：`dashboard/src/utils/pluginFrontendRoutes.ts`
