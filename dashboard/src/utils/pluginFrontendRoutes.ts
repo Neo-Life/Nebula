@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { defineAsyncComponent, h, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import type { Router, RouteRecordRaw } from 'vue-router'
 
 type PluginFrontendRouteConfig = {
@@ -9,7 +10,7 @@ type PluginFrontendRouteConfig = {
   meta?: Record<string, unknown>
 }
 
-export async function initPluginFrontendRoutes(router: Router) {
+export async function initPluginFrontendRoutes(router: Router, parentRouteName: string | null = 'main') {
   try {
     const resp = await axios.get('/api/plugin/frontend-routes')
     const routeConfigs = (resp?.data?.data || []) as PluginFrontendRouteConfig[]
@@ -31,13 +32,17 @@ export async function initPluginFrontendRoutes(router: Router) {
             name: routeName,
             setup() {
               const container = ref<HTMLElement | null>(null)
+              const currentRouter = useRouter()
+              const currentRoute = useRoute()
 
               onMounted(() => {
                 try {
                   ;(mod as any).mount(container.value, {
                     plugin: cfg.plugin,
                     routeName,
-                    url: window.location.href
+                    url: window.location.href,
+                    router: currentRouter,
+                    route: currentRoute
                   })
                 } catch (e) {
                   console.error('❌ 插件页面 mount() 失败:', e)
@@ -73,7 +78,11 @@ export async function initPluginFrontendRoutes(router: Router) {
         }
       }
 
-      router.addRoute('main', route)
+      if (parentRouteName && router.hasRoute(parentRouteName)) {
+        router.addRoute(parentRouteName, route)
+      } else {
+        router.addRoute(route)
+      }
     }
   } catch (error) {
     console.error('❌ 插件前端路由加载失败:', error)

@@ -79,7 +79,9 @@ class PluginRoute(Route):
     async def get_frontend_entry_token(self, entry_path: str):
         try:
             if token := self._frontend_entry_cache.get(entry_path):
-                if not await file_token_service.check_token_expired(token):
+                if not os.path.exists(entry_path):
+                    self._frontend_entry_cache.pop(entry_path, None)
+                elif not await file_token_service.check_token_expired(token):
                     return token
             token = await file_token_service.register_file(
                 entry_path,
@@ -391,12 +393,19 @@ class PluginRoute(Route):
                 safe_entry = str(entry).lstrip("/\\")
                 abs_base = os.path.abspath(base_dir)
                 abs_entry = os.path.abspath(os.path.join(abs_base, safe_entry))
-                if not abs_entry.startswith(abs_base + os.sep):
+                try:
+                    if os.path.commonpath([abs_base, abs_entry]) != abs_base:
+                        logger.warning(
+                            f"插件 {plugin.name} frontend.entry 越界，已拒绝: {entry}"
+                        )
+                        continue
+                except ValueError:
                     logger.warning(
                         f"插件 {plugin.name} frontend.entry 越界，已拒绝: {entry}"
                     )
                     continue
-                if not os.path.exists(abs_entry):
+
+                if not os.path.isfile(abs_entry):
                     logger.warning(
                         f"插件 {plugin.name} frontend.entry 文件不存在: {abs_entry}"
                     )
