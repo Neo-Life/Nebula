@@ -10,7 +10,7 @@
                 <!-- 用户消息 -->
                 <div v-if="msg.content.type == 'user'" class="user-message">
                     <div class="user-message-content">
-                        <div class="message-bubble user-bubble" :class="{ 'has-audio': hasAudio(msg.content.message) }"
+                        <div class="message-bubble user-bubble" :class="{ 'has-audio': hasAudio(msg.content.message), 'has-corner-btn': shouldCollapseUserMsg(msg) }"
                             :style="{ backgroundColor: isDark ? '#2d2e30' : '#e7ebf4' }">
                             <!-- 右上角展开/收起按钮（仅当需要折叠时显示） -->
                             <v-btn
@@ -1478,6 +1478,17 @@ export default {
     min-width: 0;
     border-radius: 1.5rem;
     border-top-right-radius: 5px;
+}
+
+/* 给右上角按钮预留水平空间，避免覆盖第一行/右侧文本 */
+.user-bubble.has-corner-btn {
+    padding-right: 52px;
+}
+
+@media (max-width: 768px) {
+    .user-bubble.has-corner-btn {
+        padding-right: 48px;
+    }
 }
 
 /* 清除 pre 默认样式，避免短文本视觉不协调 */
