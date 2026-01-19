@@ -457,13 +457,6 @@ export default {
             const parts = msg?.content?.message;
             if (!Array.isArray(parts) || parts.length === 0) return false;
 
-            const hasAttachment = parts.some((p: any) =>
-                (p?.type === 'image' && p?.embedded_url) ||
-                (p?.type === 'record' && p?.embedded_url) ||
-                (p?.type === 'file' && p?.embedded_file)
-            );
-            if (hasAttachment) return false;
-
             const text = parts
                 .filter((p: any) => (p?.type === 'plain' && p?.text) || p?.type === 'reply')
                 .map((p: any) => (p?.type === 'reply' ? this.getReplyContent(p.message_id) : String(p.text ?? '')))
