@@ -362,7 +362,6 @@ const previewContent = computed(() => {
 })
 
 // --- API 调用方法 ---
-
 const loadInitialData = async () => {
   loading.value = true
   try {
@@ -459,7 +458,7 @@ const confirmDelete = async () => {
     const nameToDelete = selectedTemplate.value
     await axios.delete(`/api/t2i/templates/${nameToDelete}`)
     deleteDialog.value = false
-    
+
     // 如果删除的是当前活动模板，则将活动模板重置为base
     if (activeTemplate.value === nameToDelete) {
         await setActiveTemplate('base')
