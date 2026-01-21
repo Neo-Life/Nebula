@@ -1,14 +1,13 @@
 <template>
-    <div v-if="refs && refs.used && refs.used.length > 0" class="refs-container" @click="handleClick">
+    <div v-if="usedRefs.length > 0" class="refs-container" @click="handleClick">
         <div class="refs-avatars">
-            <div v-for="(ref, refIdx) in refs.used.slice(0, 3)" :key="refIdx" class="ref-avatar"
+            <div v-for="(ref, refIdx) in usedRefs.slice(0, 3)" :key="refIdx" class="ref-avatar"
                 :style="{ zIndex: 3 - refIdx }">
-                <img v-if="ref.favicon" :src="ref.favicon" class="ref-favicon"
-                    @error="(e) => e.target.style.display = 'none'" />
+                <img v-if="ref.favicon" :src="ref.favicon" class="ref-favicon" @error="handleFaviconError" />
                 <span v-else class="ref-initial">{{ getRefInitial(ref.title) }}</span>
             </div>
-            <span v-if="refs.used.length > 3" class="refs-more">
-                +{{ refs.used.length - 3 }}
+            <span v-if="usedRefs.length > 3" class="refs-more">
+                +{{ usedRefs.length - 3 }}
             </span>
             <span class="ml-2" style="color: gray;">
                 {{ tm('refs.sources') }}
@@ -17,33 +16,40 @@
     </div>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed } from 'vue';
 import { useModuleI18n } from '@/i18n/composables';
 
-export default {
-    name: 'ActionRef',
-    props: {
-        refs: {
-            type: Object,
-            default: null
-        }
-    },
-    emits: ['open-refs'],
-    setup() {
-        const { tm } = useModuleI18n('features/chat');
-        return { tm };
-    },
-    methods: {
-        // Get first character of ref title for fallback display
-        getRefInitial(title) {
-            if (!title) return '?';
-            return title.charAt(0).toUpperCase();
-        },
+type RefItem = {
+    title?: string;
+    url?: string;
+    favicon?: string;
+};
 
-        // Handle click to open refs sidebar
-        handleClick() {
-            this.$emit('open-refs', this.refs);
-        }
+type RefsPayload = {
+    used?: RefItem[];
+} | null;
+
+const props = defineProps<{ refs?: RefsPayload }>();
+const emit = defineEmits<{ 'open-refs': [refs: RefsPayload] }>();
+
+const { tm } = useModuleI18n('features/chat');
+
+const usedRefs = computed(() => props.refs?.used ?? []);
+
+function getRefInitial(title?: string): string {
+    if (!title) return '?';
+    return title.charAt(0).toUpperCase();
+}
+
+function handleClick() {
+    emit('open-refs', props.refs ?? null);
+}
+
+function handleFaviconError(event: Event) {
+    const target = event.target as HTMLImageElement | null;
+    if (target) {
+        target.style.display = 'none';
     }
 }
 </script>

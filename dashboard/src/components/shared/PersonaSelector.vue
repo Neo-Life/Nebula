@@ -1,85 +1,45 @@
 <template>
-  <div class="d-flex align-center justify-space-between">
-    <span v-if="!modelValue" style="color: rgb(var(--v-theme-primaryText));">
-      {{ tm('personaSelector.notSelected') }}
-    </span>
-    <span v-else>
-      {{ modelValue === 'default' ? tm('personaSelector.defaultPersona') : modelValue }}
-    </span>
-    <v-btn size="small" color="primary" variant="tonal" @click="openDialog">
-      {{ buttonText || tm('personaSelector.buttonText') }}
-    </v-btn>
-  </div>
-
-  <!-- Persona Selection Dialog -->
-  <v-dialog v-model="dialog" max-width="600px">
-    <v-card>
-      <v-card-title class="text-h3 py-4" style="font-weight: normal;">
-        {{ tm('personaSelector.dialogTitle') }}
-      </v-card-title>
-      
-      <v-card-text class="pa-2" style="max-height: 400px; overflow-y: auto;">
-        <v-progress-linear v-if="loading" indeterminate color="primary"></v-progress-linear>
-        
-        <v-list v-if="!loading && personaList.length > 0" density="compact">
-          <v-list-item
-            v-for="persona in personaList"
-            :key="persona.persona_id"
-            :value="persona.persona_id"
-            @click="selectPersona(persona)"
-            :active="selectedPersona === persona.persona_id"
-            rounded="md"
-            class="ma-1">
-            <v-list-item-title>{{ persona.persona_id === 'default' ? tm('personaSelector.defaultPersona') : persona.persona_id }}</v-list-item-title>
-            <v-list-item-subtitle>
-              {{ persona.system_prompt ? persona.system_prompt.substring(0, 50) + '...' : tm('personaSelector.noDescription') }}
-            </v-list-item-subtitle>
-            
-            <template v-slot:append>
-              <v-icon v-if="selectedPersona === persona.persona_id" color="primary">mdi-check-circle</v-icon>
-            </template>
-          </v-list-item>
-        </v-list>
-        
-        <div v-else-if="!loading && personaList.length === 0" class="text-center py-8">
-          <v-icon size="64" color="grey-lighten-1">mdi-account-off</v-icon>
-          <p class="text-grey mt-4">{{ tm('personaSelector.noPersonas') }}</p>
-        </div>
-      </v-card-text>
-      
-      <v-card-actions class="pa-4">
-        <v-btn variant="text" color="primary" prepend-icon="mdi-plus" @click="openCreatePersona">
-          {{ tm('personaSelector.createPersona') }}
-        </v-btn>
-        <v-spacer></v-spacer>
-        <v-btn variant="text" @click="cancelSelection">{{ t('core.common.cancel') }}</v-btn>
-        <v-btn
-          color="primary"
-          @click="confirmSelection"
-          :disabled="!selectedPersona">
-          {{ t('core.common.confirm') }}
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+  <BaseFolderItemSelector
+    :model-value="modelValue"
+    @update:model-value="handleUpdate"
+    :folder-tree="folderTree"
+    :items="currentPersonas as any"
+    :tree-loading="treeLoading"
+    :items-loading="itemsLoading"
+    :labels="labels"
+    :show-create-button="true"
+    :default-item="defaultPersona"
+    item-id-field="persona_id"
+    item-name-field="persona_id"
+    item-description-field="system_prompt"
+    :display-value-formatter="formatDisplayValue"
+    @navigate="handleNavigate"
+    @create="openCreatePersona"
+  />
 
   <!-- 创建人格对话框 -->
-  <PersonaForm 
+  <PersonaForm
     v-model="showCreateDialog"
     :editing-persona="null"
+    :current-folder-id="currentFolderId ?? undefined"
+    :current-folder-name="currentFolderName ?? undefined"
     @saved="handlePersonaCreated"
     @error="handleError" />
 </template>
 
 <script setup lang="ts">
-import { ref, watch, type PropType } from 'vue'
+import { ref, computed, onMounted, type PropType } from 'vue'
 import axios from 'axios'
+import BaseFolderItemSelector from '@/components/folder/BaseFolderItemSelector.vue'
 import PersonaForm from './PersonaForm.vue'
 import { useI18n, useModuleI18n } from '@/i18n/composables'
+import type { FolderTreeNode, SelectableItem } from '@/components/folder/types'
 
-type Persona = {
+interface Persona {
   persona_id: string
   system_prompt: string
+  folder_id?: string | null
+  [key: string]: any
 }
 
 const props = defineProps({
@@ -97,71 +57,108 @@ const emit = defineEmits(['update:modelValue'])
 const { t } = useI18n()
 const { tm } = useModuleI18n('core.shared')
 
-const dialog = ref(false)
-const personaList = ref<Persona[]>([])
-const loading = ref(false)
-const selectedPersona = ref('')
+const folderTree = ref<FolderTreeNode[]>([])
+const currentPersonas = ref<Persona[]>([])
+const treeLoading = ref(false)
+const itemsLoading = ref(false)
 const showCreateDialog = ref(false)
+const currentFolderId = ref<string | null>(null)
 
-// 监听 modelValue 变化，同步到 selectedPersona
-watch(() => props.modelValue, (newValue) => {
-  selectedPersona.value = newValue || ''
-}, { immediate: true })
-
-async function openDialog() {
-  selectedPersona.value = props.modelValue || ''
-  dialog.value = true
-  await loadPersonas()
+// 默认人格
+const defaultPersona: SelectableItem = {
+  id: 'default',
+  persona_id: 'default',
+  name: tm('personaSelector.defaultPersona'),
+  system_prompt: 'You are a helpful and friendly assistant.'
 }
 
-async function loadPersonas() {
-  loading.value = true
+// 递归查找文件夹名称
+function findFolderName(nodes: FolderTreeNode[], folderId: string): string | null {
+  for (const node of nodes) {
+    if (node.folder_id === folderId) {
+      return node.name
+    }
+    if (node.children && node.children.length > 0) {
+      const found = findFolderName(node.children, folderId)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+// 当前文件夹名称
+const currentFolderName = computed(() => {
+  if (!currentFolderId.value) {
+    return null
+  }
+  return findFolderName(folderTree.value, currentFolderId.value)
+})
+
+// 标签配置
+const labels = computed(() => ({
+  dialogTitle: tm('personaSelector.dialogTitle'),
+  notSelected: tm('personaSelector.notSelected'),
+  buttonText: props.buttonText || tm('personaSelector.buttonText'),
+  noItems: tm('personaSelector.noPersonas'),
+  defaultItem: tm('personaSelector.defaultPersona'),
+  noDescription: tm('personaSelector.noDescription'),
+  createButton: tm('personaSelector.createPersona'),
+  confirmButton: t('core.common.confirm'),
+  cancelButton: t('core.common.cancel'),
+  rootFolder: tm('personaSelector.rootFolder') || '全部人格',
+  emptyFolder: tm('personaSelector.emptyFolder') || '此文件夹为空'
+}))
+
+function formatDisplayValue(value: string): string {
+  if (value === 'default') {
+    return tm('personaSelector.defaultPersona')
+  }
+  return value
+}
+
+function handleUpdate(value: string) {
+  emit('update:modelValue', value)
+}
+
+async function loadFolderTree() {
+  treeLoading.value = true
   try {
-    const response = await axios.get('/api/persona/list')
+    const response = await axios.get('/api/persona/folder/tree')
     if (response.data.status === 'ok') {
-      const rawPersonas = (response.data.data || []) as unknown[]
-      const personas: Persona[] = rawPersonas
-        .map((p) => {
-          const maybe = p as { persona_id?: unknown; system_prompt?: unknown }
-          const persona_id = typeof maybe.persona_id === 'string' ? maybe.persona_id : ''
-          const system_prompt = typeof maybe.system_prompt === 'string' ? maybe.system_prompt : ''
-          return { persona_id, system_prompt }
-        })
-        .filter((p) => p.persona_id.length > 0)
-      // 添加默认人格选项
-      personaList.value = [
-        {
-          persona_id: 'default',
-          system_prompt: 'You are a helpful and friendly assistant.'
-        },
-        ...personas
-      ]
+      folderTree.value = response.data.data || []
     }
   } catch (error) {
-    console.error('加载人格列表失败:', error)
-    personaList.value = [
-      {
-        persona_id: 'default',
-        system_prompt: 'You are a helpful and friendly assistant.'
-      }
-    ]
+    console.error('加载文件夹树失败:', error)
+    folderTree.value = []
   } finally {
-    loading.value = false
+    treeLoading.value = false
   }
 }
 
-function selectPersona(persona: Persona) {
-  selectedPersona.value = persona.persona_id
+async function loadPersonasInFolder(folderId: string | null) {
+  itemsLoading.value = true
+  try {
+    const params = new URLSearchParams()
+    if (folderId !== null) {
+      params.set('folder_id', folderId)
+    } else {
+      params.set('folder_id', '')
+    }
+    const response = await axios.get(`/api/persona/list?${params.toString()}`)
+    if (response.data.status === 'ok') {
+      currentPersonas.value = response.data.data || []
+    }
+  } catch (error) {
+    console.error('加载人格列表失败:', error)
+    currentPersonas.value = []
+  } finally {
+    itemsLoading.value = false
+  }
 }
 
-function confirmSelection() {
-  emit('update:modelValue', selectedPersona.value)
-  dialog.value = false
-}
-
-function cancelSelection() {
-  selectedPersona.value = props.modelValue || ''
-  dialog.value = false
+async function handleNavigate(folderId: string | null) {
+  currentFolderId.value = folderId
+  await loadPersonasInFolder(folderId)
 }
 
 function openCreatePersona() {
@@ -171,25 +168,19 @@ function openCreatePersona() {
 async function handlePersonaCreated(message: unknown) {
   console.log('人格创建成功:', message)
   showCreateDialog.value = false
-  // 刷新人格列表
-  await loadPersonas()
+  await loadPersonasInFolder(currentFolderId.value)
 }
 
 function handleError(error: unknown) {
   console.error('创建人格失败:', error)
 }
+
+onMounted(() => {
+  loadFolderTree()
+  loadPersonasInFolder(null)
+})
 </script>
 
 <style scoped>
-.v-list-item {
-  transition: all 0.2s ease;
-}
-
-.v-list-item:hover {
-  background-color: rgba(var(--v-theme-primary), 0.04);
-}
-
-.v-list-item.v-list-item--active {
-  background-color: rgba(var(--v-theme-primary), 0.08);
-}
+/* 样式继承自 BaseFolderItemSelector */
 </style>

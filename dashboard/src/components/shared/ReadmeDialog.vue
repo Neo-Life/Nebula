@@ -3,7 +3,8 @@
  * 无论上游如何修改
  * 也不会维护这个组件
 /*
-<script setup>
+<script setup lang="ts">
+// @ts-nocheck
 import { ref, watch, computed, onUnmounted } from "vue";
 import MarkdownIt from "markdown-it";
 import hljs from "highlight.js";

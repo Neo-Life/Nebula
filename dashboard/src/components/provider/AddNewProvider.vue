@@ -159,7 +159,6 @@ export default {
 
 .provider-card {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 3px solid rgba(var(--v-theme-border), var(--v-theme-border-opacity, 1));
     color: rgba(var(--v-theme-primaryText));
     opacity: 0.8;
     border-radius: 12px;
@@ -170,11 +169,24 @@ export default {
     background-color: rgb(var(--v-theme-surface));
 }
 
+.provider-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    border: 3px solid rgba(var(--v-theme-border), var(--v-theme-border-opacity, 1));
+    z-index: 3;
+}
+
 .provider-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 12px 20px -8px rgba(var(--v-theme-primary), 0.15);
     color: rgba(var(--v-theme-primary));
     opacity: 1;
+}
+
+.provider-card:hover::before {
     border-color: rgb(var(--v-theme-primary));
 }
 

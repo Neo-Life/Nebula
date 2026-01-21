@@ -1,6 +1,6 @@
 <template>
   <v-card 
-    class="item-card hover-elevation" 
+    :class="['item-card', 'hover-elevation', { 'pin-actions': pinActions }]"
     elevation="0"
     v-bind="$attrs" 
   >
@@ -25,7 +25,7 @@
     </v-card-title>
 
     <v-card-text 
-      :class="[{'pa-0': noPadding}, 'flex-grow-1 d-flex flex-column']"
+      :class="[{ 'pa-0': noPadding }, pinActions ? 'flex-grow-1 d-flex flex-column' : '']"
       style="overflow: hidden; min-height: 0;"
     >
       <slot name="item-details" :item="item"></slot>
@@ -113,7 +113,8 @@ export default {
     titleClass: { type: String, default: 'text-h6' },
     showEditButton: { type: Boolean, default: true },
     showDeleteButton: { type: Boolean, default: true },
-    wrapActions: { type: Boolean, default: false }
+    wrapActions: { type: Boolean, default: false },
+    pinActions: { type: Boolean, default: true }
   },
   emits: ['toggle-enabled', 'delete', 'edit', 'copy'],
   methods: {
@@ -132,11 +133,15 @@ export default {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   height: 100%;
   border: 3px solid rgba(var(--v-theme-border), var(--v-theme-border-opacity, 1));
   color: rgba(var(--v-theme-primaryText));
   opacity: 0.8;
+}
+
+.item-card.pin-actions {
+  justify-content: space-between;
 }
 
 .hover-elevation:hover {

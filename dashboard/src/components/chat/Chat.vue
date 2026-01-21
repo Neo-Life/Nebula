@@ -3,7 +3,7 @@
         <v-card-text class="chat-page-container">
             <!-- 遮罩层 (手机端) -->
             <div class="mobile-overlay" v-if="isMobile && mobileMenuOpen" @click="closeMobileSidebar"></div>
-            
+
             <div class="chat-layout">
                 <ConversationSidebar
                     :sessions="sessions"
@@ -50,7 +50,7 @@
 
                     <div class="message-list-wrapper" v-if="!selectedProjectId && messages && messages.length > 0">
                         <MessageList :messages="messages" :isDark="isDark"
-                            :isStreaming="isStreaming || isConvRunning" 
+                            :isStreaming="isStreaming || isConvRunning"
                             :isLoadingMessages="isLoadingMessages"
                             @openImagePreview="openImagePreview"
                             @replyMessage="handleReplyMessage"
@@ -357,7 +357,7 @@ function handleReplyMessage(msg: any, index: number) {
         console.warn('Message does not have an id');
         return;
     }
-    
+
     // 获取消息内容用于显示
     let messageContent = '';
     if (typeof msg.content.message === 'string') {
@@ -369,12 +369,12 @@ function handleReplyMessage(msg: any, index: number) {
             .map((part: any) => part.text);
         messageContent = textParts.join('');
     }
-    
+
     // 截断过长的内容
     if (messageContent.length > 100) {
         messageContent = messageContent.substring(0, 100) + '...';
     }
-    
+
     replyTo.value = {
         messageId,
         selectedText: messageContent || '[媒体内容]'
@@ -388,12 +388,12 @@ function clearReply() {
 function handleReplyWithText(replyData: any) {
     // 处理选中文本的引用
     const { messageId, selectedText, messageIndex } = replyData;
-    
+
     if (!messageId) {
         console.warn('Message does not have an id');
         return;
     }
-    
+
     replyTo.value = {
         messageId,
         selectedText: selectedText  // 保存原始的选中文本
@@ -439,16 +439,16 @@ async function handleSelectConversation(sessionIds: string[]) {
 
     // 清除引用状态
     clearReply();
-    
+
     // 开始加载消息
     isLoadingMessages.value = true;
-    
+
     try {
         await getSessionMsg(sessionIds[0]);
     } finally {
         isLoadingMessages.value = false;
     }
-    
+
     nextTick(() => {
         messageList.value?.scrollToBottom();
     });
@@ -532,7 +532,10 @@ async function handleStopRecording() {
 
 async function handleFileSelect(files: FileList) {
     const imageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    for (const file of files) {
+    // 将 FileList 转换为数组，避免异步处理时 FileList 被清空
+    const fileArray = Array.from(files);
+    for (let i = 0; i < fileArray.length; i++) {
+        const file = fileArray[i];
         if (imageTypes.includes(file.type)) {
             await processAndUploadImage(file);
         } else {
@@ -826,7 +829,7 @@ onBeforeUnmount(() => {
     .chat-content-panel {
         width: 100%;
     }
-    
+
     .chat-page-container {
         padding: 0 !important;
     }
