@@ -103,7 +103,7 @@ export default defineComponent({
 
 .folder-card-fixed.drag-over {
     background-color: rgba(var(--v-theme-primary), 0.15);
-    border: 2px dashed rgb(var(--v-theme-primary));
+    border: 3px dashed rgb(var(--v-theme-primary));
     transform: scale(1.02);
 }
 
