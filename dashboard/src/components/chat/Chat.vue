@@ -30,24 +30,17 @@
 
                 <!-- 右侧聊天内容区域 -->
                 <div class="chat-content-panel">
+                    <!-- Live Mode -->
+                    <LiveMode v-if="liveModeOpen" @close="closeLiveMode" />
 
-                    <div class="conversation-header fade-in" v-if="isMobile">
-                        <!-- 手机端菜单按钮 -->
-                        <v-btn icon class="mobile-menu-btn" @click="toggleMobileSidebar" variant="text">
-                            <v-icon>mdi-menu</v-icon>
-                        </v-btn>
-                    </div>
-
-                    <!-- 面包屑导航 -->
-                    <div v-if="currentSessionProject && messages && messages.length > 0" class="breadcrumb-container">
-                        <div class="breadcrumb-content">
-                            <span class="breadcrumb-emoji">{{ currentSessionProject.emoji || '📁' }}</span>
-                            <span class="breadcrumb-project" @click="handleSelectProject(currentSessionProject.project_id)">{{ currentSessionProject.title }}</span>
-                            <v-icon size="small" class="breadcrumb-separator">mdi-chevron-right</v-icon>
-                            <span class="breadcrumb-session">{{ getCurrentSession?.display_name || tm('conversation.newConversation') }}</span>
+                    <!-- 正常聊天界面 -->
+                    <template v-else>
+                        <div class="conversation-header fade-in" v-if="isMobile">
+                            <!-- 手机端菜单按钮 -->
+                            <v-btn icon class="mobile-menu-btn" @click="toggleMobileSidebar" variant="text">
+                                <v-icon>mdi-menu</v-icon>
+                            </v-btn>
                         </div>
-                    </div>
-
                     <div class="message-list-wrapper" v-if="!selectedProjectId && messages && messages.length > 0">
                         <MessageList :messages="messages" :isDark="isDark"
                             :isStreaming="isStreaming || isConvRunning"
@@ -95,8 +88,10 @@
                         @pasteImage="handlePaste"
                         @fileSelect="handleFileSelect"
                         @clearReply="clearReply"
+                        @openLiveMode="openLiveMode"
                         ref="chatInputRef"
                     />
+                    </template>
                 </div>
 
                 <!-- Refs Sidebar -->
@@ -104,6 +99,7 @@
             </div>
         </v-card-text>
     </v-card>
+    
     <!-- 编辑对话标题对话框 -->
     <v-dialog v-model="editTitleDialog" max-width="400">
         <v-card>
@@ -159,13 +155,14 @@ import ProjectDialog from '@/components/chat/ProjectDialog.vue';
 import ProjectView from '@/components/chat/ProjectView.vue';
 import WelcomeView from '@/components/chat/WelcomeView.vue';
 import RefsSidebar from '@/components/chat/message_list_comps/RefsSidebar.vue';
+import LiveMode from '@/components/chat/LiveMode.vue';
 import type { ProjectFormData } from '@/components/chat/ProjectDialog.vue';
 import type { Project } from '@/components/chat/ProjectList.vue';
 import { useSessions } from '@/composables/useSessions';
 import { useMessages } from '@/composables/useMessages';
 import { useMediaHandling } from '@/composables/useMediaHandling';
-import { useRecording } from '@/composables/useRecording';
 import { useProjects } from '@/composables/useProjects';
+import { useRecording } from '@/composables/useRecording';
 
 interface Props {
     chatboxMode?: boolean;
@@ -187,6 +184,7 @@ const mobileMenuOpen = ref(false);
 const imagePreviewDialog = ref(false);
 const previewImageUrl = ref('');
 const isLoadingMessages = ref(false);
+const liveModeOpen = ref(false);
 
 let resyncTimer: number | null = null;
 
@@ -256,7 +254,7 @@ const {
     cleanupMediaCache
 } = useMediaHandling();
 
-const { isRecording, startRecording: startRec, stopRecording: stopRec } = useRecording();
+const { isRecording: isRecording, startRecording: startRec, stopRecording: stopRec } = useRecording();
 
 const {
     projects,
@@ -542,6 +540,14 @@ async function handleFileSelect(files: FileList) {
             await processAndUploadFile(file);
         }
     }
+}
+
+function openLiveMode() {
+    liveModeOpen.value = true;
+}
+
+function closeLiveMode() {
+    liveModeOpen.value = false;
 }
 
 async function handleSendMessage() {

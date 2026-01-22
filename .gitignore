@@ -52,3 +52,7 @@ pytest.ini
 AGENTS.md
 IFLOW.md
 /packages
+
+# genie_tts data
+CharacterModels/
+GenieData/
