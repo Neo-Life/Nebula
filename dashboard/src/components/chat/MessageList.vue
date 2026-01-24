@@ -1354,6 +1354,11 @@ export default {
     opacity: 1;
 }
 
+/* 避免同时显示两条消息的操作区：当悬停非最后一条消息时，隐藏最后一条的操作区 */
+.message-item:not(:last-child):hover ~ .message-item:last-child .message-actions {
+    opacity: 0;
+}
+
 .message-time {
     font-size: 12px;
     color: var(--v-theme-secondaryText);
