@@ -1,17 +1,14 @@
 <script setup lang="ts">
 import { defineAsyncComponent } from 'vue';
 
-import type { PluginHandlerInfo } from '@/types/extension';
 import { useExtensionPage } from '@/composables/extension/useExtensionPage';
 
 const InstalledExtensionsSection = defineAsyncComponent(() => import('@/components/extension/InstalledExtensionsSection.vue'));
 const MarketExtensionsSection = defineAsyncComponent(() => import('@/components/extension/MarketExtensionsSection.vue'));
 const McpServersSection = defineAsyncComponent(() => import('@/components/extension/McpServersSection.vue'));
 const ComponentPanel = defineAsyncComponent(() => import('@/components/extension/componentPanel/index.vue'));
-const AstrBotConfig = defineAsyncComponent(() => import('@/components/shared/AstrBotConfig.vue'));
 const ConsoleDisplayer = defineAsyncComponent(() => import('@/components/shared/ConsoleDisplayer.vue'));
 const ProxySelector = defineAsyncComponent(() => import('@/components/shared/ProxySelector.vue'));
-const UninstallConfirmDialog = defineAsyncComponent(() => import('@/components/shared/UninstallConfirmDialog.vue'));
 
 const {
   tm,
@@ -146,6 +143,10 @@ const {
           <div v-if="activeTab === 'installed'">
             <InstalledExtensionsSection
               v-model:isListView="isListView"
+              v-model:config-dialog="configDialog"
+              v-model:show-plugin-info-dialog="showPluginInfoDialog"
+              v-model:force-update-dialog-show="forceUpdateDialog.show"
+              v-model:show-uninstall-dialog="showUninstallDialog"
               :filtered-plugins="filteredPlugins"
               :loading="loading_"
               :plugin-headers="pluginHeaders"
@@ -153,6 +154,10 @@ const {
               :updatable-extensions="updatableExtensions"
               :updating-all="updatingAll"
               :extension-message="extension_data.message"
+              :extension-config="extension_config"
+              :curr-namespace="curr_namespace"
+              :selected-plugin="selectedPlugin"
+              :plugin-handler-info-headers="plugin_handler_info_headers"
               @toggle-show-reserved="toggleShowReserved"
               @update-all="updateAllExtensions"
               @open-install-dialog="dialog = true"
@@ -165,6 +170,10 @@ const {
               @view-changelog="viewChangelog"
               @update-extension="updateExtension"
               @uninstall="handleUninstall"
+              @save-config="updateConfig"
+              @confirm-force-update="confirmForceUpdate"
+              @cancel-force-update="cancelForceUpdate"
+              @uninstall-confirm="handleUninstallConfirm"
             />
           </div>
 
@@ -189,6 +198,11 @@ const {
           <!-- 插件市场标签页内容 -->
           <div v-if="activeTab === 'market'">
             <MarketExtensionsSection
+              v-model:danger-confirm-dialog="dangerConfirmDialog"
+              v-model:show-source-dialog="showSourceDialog"
+              v-model:source-name="sourceName"
+              v-model:source-url="sourceUrl"
+              v-model:show-remove-source-dialog="showRemoveSourceDialog"
               :filtered-market-plugins="filteredMarketPlugins"
               :paginated-plugins="paginatedPlugins"
               :current-page="currentPage"
@@ -204,6 +218,8 @@ const {
               :show-plugin-full-name="showPluginFullName"
               :cart-items="cartItems"
               :cart-count="cartCount"
+              :editing-source="editingSource"
+              :source-to-remove="sourceToRemove"
               @update:currentPage="currentPage = $event"
               @update:sortBy="sortBy = $event"
               @update:sortOrder="sortOrder = $event"
@@ -218,6 +234,10 @@ const {
               @clear-cart="clearCart"
               @install-cart="installCart"
               @view-readme="viewReadme"
+              @cancel-danger-install="cancelDangerInstall"
+              @confirm-danger-install="confirmDangerInstall"
+              @save-custom-source="saveCustomSource"
+              @confirm-remove-source="confirmRemoveSource"
             />
           </div>
 
@@ -257,24 +277,6 @@ const {
     </v-col>
   </v-row>
 
-  <!-- 配置对话框 -->
-  <v-dialog v-model="configDialog" width="1000">
-    <v-card>
-      <v-card-title class="text-h5">{{ tm('dialogs.config.title') }}</v-card-title>
-      <v-card-text>
-        <AstrBotConfig v-if="extension_config.metadata" :metadata="extension_config.metadata"
-          :iterable="extension_config.config" :metadataKey="curr_namespace" />
-        <p v-else>{{ tm('dialogs.config.noConfig') }}</p>
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn color="blue-darken-1" variant="text" @click="updateConfig">{{ tm('buttons.saveAndClose') }}</v-btn>
-        <v-btn color="blue-darken-1" variant="text" @click="configDialog = false">{{ tm('buttons.close') }}</v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
-
-
   <!-- 加载对话框 -->
   <v-dialog v-model="loadingDialog.show" width="700" persistent>
     <v-card>
@@ -306,61 +308,10 @@ const {
     </v-card>
   </v-dialog>
 
-  <!-- 强制更新确认对话框 -->
-  <v-dialog v-model="forceUpdateDialog.show" max-width="500">
-    <v-card class="rounded-lg">
-      <v-card-title class="headline">{{ tm('dialogs.forceUpdate.title') }}</v-card-title>
-      <v-card-text>
-        <p class="text-body-1">{{ tm('dialogs.forceUpdate.message') }}</p>
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn variant="text" @click="cancelForceUpdate">{{ tm('buttons.cancel') }}</v-btn>
-        <v-btn color="warning" variant="tonal" @click="confirmForceUpdate">{{ tm('dialogs.forceUpdate.confirm') }}</v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
-
-  <!-- 插件信息对话框 -->
-  <v-dialog v-model="showPluginInfoDialog" width="1200">
-    <v-card>
-      <v-card-title class="text-h5">{{ selectedPlugin?.name }} {{ tm('buttons.viewInfo') }}</v-card-title>
-      <v-card-text>
-        <v-data-table style="font-size: 17px;" :headers="plugin_handler_info_headers" :items="selectedPlugin?.handlers || []"
-          item-key="name">
-          <template v-slot:header.id="{ column }">
-            <p style="font-weight: bold;">{{ column.title }}</p>
-          </template>
-          <template v-slot:item.event_type="{ item }: { item: PluginHandlerInfo }">
-            {{ item.event_type }}
-          </template>
-          <template v-slot:item.desc="{ item }: { item: PluginHandlerInfo }">
-            {{ item.desc }}
-          </template>
-          <template v-slot:item.type="{ item }: { item: PluginHandlerInfo }">
-            <v-chip color="success">
-              {{ item.type }}
-            </v-chip>
-          </template>
-          <template v-slot:item.cmd="{ item }: { item: PluginHandlerInfo }">
-            <span style="font-weight: bold;">{{ item.cmd }}</span>
-          </template>
-        </v-data-table>
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn color="blue-darken-1" variant="text" @click="showPluginInfoDialog = false">{{ tm('buttons.close')
-          }}</v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
 
   <v-snackbar :timeout="2000" elevation="24" :color="snack_success" v-model="snack_show">
     {{ snack_message }}
   </v-snackbar>
-
-  <!-- 卸载插件确认对话框（列表模式用） -->
-  <UninstallConfirmDialog v-model="showUninstallDialog" @confirm="handleUninstallConfirm" />
 
   <!-- 指令冲突提示对话框 -->
   <v-dialog v-model="conflictDialog.show" max-width="420">
@@ -390,27 +341,6 @@ const {
     </v-card>
   </v-dialog>
 
-  <!-- 危险插件确认对话框 -->
-  <v-dialog v-model="dangerConfirmDialog" width="500" persistent>
-    <v-card>
-      <v-card-title class="text-h5 d-flex align-center">
-        <v-icon color="warning" class="mr-2">mdi-alert-circle</v-icon>
-        {{ tm('dialogs.danger_warning.title') }}
-      </v-card-title>
-      <v-card-text>
-        <div>{{ tm('dialogs.danger_warning.message') }}</div>
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn color="grey" @click="cancelDangerInstall">
-          {{ tm('dialogs.danger_warning.cancel') }}
-        </v-btn>
-        <v-btn color="warning" @click="confirmDangerInstall">
-          {{ tm('dialogs.danger_warning.confirm') }}
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
 
   <!-- 上传插件对话框 -->
   <v-dialog v-model="dialog" width="500">
@@ -473,65 +403,6 @@ const {
     </v-card>
   </v-dialog>
 
-  <!-- 添加/编辑自定义插件源对话框 -->
-  <v-dialog v-model="showSourceDialog" width="500">
-    <v-card>
-      <v-card-title class="text-h5">{{ editingSource ? tm('market.editSource') : tm('market.addSource') }}</v-card-title>
-      <v-card-text>
-        <div class="pa-2">
-          <v-text-field
-            v-model="sourceName"
-            :label="tm('market.sourceName')"
-            variant="outlined"
-            prepend-inner-icon="mdi-rename-box"
-            hide-details
-            class="mb-4"
-            placeholder="我的插件源"
-          ></v-text-field>
-          
-          <v-text-field
-            v-model="sourceUrl"
-            :label="tm('market.sourceUrl')"
-            variant="outlined"
-            prepend-inner-icon="mdi-link"
-            hide-details
-            placeholder="https://example.com/plugins.json"
-          ></v-text-field>
-          
-          <div class="text-caption text-medium-emphasis mt-2">
-            {{ tm('messages.enterJsonUrl') }}
-          </div>
-        </div>
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn color="grey" variant="text" @click="showSourceDialog = false">{{ tm('buttons.cancel') }}</v-btn>
-        <v-btn color="primary" variant="text" @click="saveCustomSource">{{ tm('buttons.save') }}</v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
-
-  <!-- 删除插件源确认对话框 -->
-  <v-dialog v-model="showRemoveSourceDialog" width="400">
-    <v-card>
-      <v-card-title class="text-h5 d-flex align-center">
-        <v-icon color="warning" class="mr-2">mdi-alert-circle</v-icon>
-        {{ tm('dialogs.uninstall.title') }}
-      </v-card-title>
-      <v-card-text>
-        <div>{{ tm('market.confirmRemoveSource') }}</div>
-        <div v-if="sourceToRemove" class="mt-2">
-          <strong>{{ sourceToRemove.name }}</strong>
-          <div class="text-caption">{{ sourceToRemove.url }}</div>
-        </div>
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn color="grey" variant="text" @click="showRemoveSourceDialog = false">{{ tm('buttons.cancel') }}</v-btn>
-        <v-btn color="error" variant="text" @click="confirmRemoveSource">{{ tm('buttons.deleteSource') }}</v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
 </template>
 
 <style scoped>

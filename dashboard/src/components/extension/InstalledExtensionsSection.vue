@@ -30,7 +30,7 @@
           variant="tonal"
           :disabled="updatableExtensions.length === 0"
           :loading="updatingAll"
-          @click="emit('update-all')"
+          @click="showUpdateAllConfirm"
         >
           <v-icon>mdi-update</v-icon>
           {{ tm('buttons.updateAll') }}
@@ -68,6 +68,21 @@
         </v-col>
       </v-col>
     </v-row>
+
+    <!-- 更新全部插件确认对话框（防误触） -->
+    <v-dialog v-model="updateAllConfirmDialog" max-width="500">
+      <v-card class="rounded-lg">
+        <v-card-title class="headline">{{ tm('dialogs.updateAllConfirm.title') }}</v-card-title>
+        <v-card-text>
+          <p class="text-body-1">{{ tm('dialogs.updateAllConfirm.message', { count: updatableExtensions.length }) }}</p>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn variant="text" @click="cancelUpdateAll">{{ tm('buttons.cancel') }}</v-btn>
+          <v-btn color="warning" variant="tonal" @click="confirmUpdateAll">{{ tm('dialogs.updateAllConfirm.confirm') }}</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <v-fade-transition hide-on-leave>
       <div v-if="isListView" key="list-view">
@@ -300,7 +315,7 @@
                   color="error"
                   variant="text"
                   :disabled="extension.reserved"
-                  @click.stop="requestUninstall(extension)"
+                  @click.stop="emit('uninstall', { extension })"
                 >
                   <v-icon>mdi-delete</v-icon>
                   <v-tooltip activator="parent" location="top">{{ tm('tooltips.uninstall') }}</v-tooltip>
@@ -312,22 +327,94 @@
       </div>
     </v-fade-transition>
 
-    <UninstallConfirmDialog
-      v-model="showUninstallDialog"
-      @confirm="handleUninstallConfirm"
-      @cancel="handleUninstallCancel"
-    />
+
+    <!-- 卸载插件确认对话框（列表/网格共用，状态由上层 composable 持有） -->
+    <UninstallConfirmDialog v-model="showUninstallDialogModel" @confirm="onUninstallConfirm" />
+
+    <!-- 配置对话框（下沉） -->
+    <v-dialog v-model="configDialogModel" width="1000">
+      <v-card>
+        <v-card-title class="text-h5">{{ tm('dialogs.config.title') }}</v-card-title>
+        <v-card-text>
+          <AstrBotConfig
+            v-if="extensionConfig?.metadata"
+            :metadata="extensionConfig.metadata"
+            :iterable="extensionIterable"
+            :metadataKey="currNamespace"
+          />
+          <p v-else>{{ tm('dialogs.config.noConfig') }}</p>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="blue-darken-1" variant="text" @click="emit('save-config')">{{ tm('buttons.saveAndClose') }}</v-btn>
+          <v-btn color="blue-darken-1" variant="text" @click="configDialogModel = false">{{ tm('buttons.close') }}</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- 强制更新确认对话框（下沉） -->
+    <v-dialog v-model="forceUpdateDialogShowModel" max-width="500">
+      <v-card class="rounded-lg">
+        <v-card-title class="headline">{{ tm('dialogs.forceUpdate.title') }}</v-card-title>
+        <v-card-text>
+          <p class="text-body-1">{{ tm('dialogs.forceUpdate.message') }}</p>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn variant="text" @click="emit('cancel-force-update')">{{ tm('buttons.cancel') }}</v-btn>
+          <v-btn color="warning" variant="tonal" @click="emit('confirm-force-update')">{{ tm('dialogs.forceUpdate.confirm') }}</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- 插件信息对话框（下沉） -->
+    <v-dialog v-model="showPluginInfoDialogModel" width="1200">
+      <v-card>
+        <v-card-title class="text-h5">{{ selectedPlugin?.name }} {{ tm('buttons.viewInfo') }}</v-card-title>
+        <v-card-text>
+          <v-data-table
+            style="font-size: 17px;"
+            :headers="pluginHandlerInfoHeaders"
+            :items="selectedPlugin?.handlers || []"
+            item-key="name"
+          >
+            <template v-slot:header.id="{ column }">
+              <p style="font-weight: bold;">{{ column.title }}</p>
+            </template>
+            <template v-slot:item.event_type="{ item }: { item: PluginHandlerInfo }">
+              {{ item.event_type }}
+            </template>
+            <template v-slot:item.desc="{ item }: { item: PluginHandlerInfo }">
+              {{ item.desc }}
+            </template>
+            <template v-slot:item.type="{ item }: { item: PluginHandlerInfo }">
+              <v-chip color="success">
+                {{ item.type }}
+              </v-chip>
+            </template>
+            <template v-slot:item.cmd="{ item }: { item: PluginHandlerInfo }">
+              <span style="font-weight: bold;">{{ item.cmd }}</span>
+            </template>
+          </v-data-table>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="blue-darken-1" variant="text" @click="showPluginInfoDialogModel = false">{{ tm('buttons.close') }}</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue' 
+import { computed, ref } from 'vue'
 import defaultPluginIcon from '@/assets/images/plugin_icon.png'
 import { useModuleI18n } from '@/i18n/composables'
 import ItemCard from '@/components/shared/ItemCard.vue' 
 import UninstallConfirmDialog from '@/components/shared/UninstallConfirmDialog.vue'
+import AstrBotConfig from '@/components/shared/AstrBotConfig.vue'
 
-import type { InstalledPlugin, UninstallOptions } from '@/types/extension'
+import type { InstalledPlugin, PluginHandlerInfo, UninstallOptions } from '@/types/extension'
 
 const props = defineProps<{
   isListView: boolean
@@ -338,6 +425,18 @@ const props = defineProps<{
   updatableExtensions: InstalledPlugin[]
   updatingAll: boolean
   extensionMessage?: string | null
+
+  configDialog: boolean
+  extensionConfig: { metadata?: Record<string, any>; config?: Record<string, any> } | null
+  currNamespace: string
+
+  showPluginInfoDialog: boolean
+  selectedPlugin: InstalledPlugin | null
+  pluginHandlerInfoHeaders: Array<{ title: string; key: string; [k: string]: unknown }>
+
+  forceUpdateDialogShow: boolean
+
+  showUninstallDialog: boolean
 }>()
 
 const emit = defineEmits<{
@@ -354,6 +453,18 @@ const emit = defineEmits<{
   (e: 'view-changelog', extension: InstalledPlugin): void
   (e: 'update-extension', name: string): void
   (e: 'uninstall', payload: { extension: InstalledPlugin; options?: UninstallOptions }): void
+
+  (e: 'update:configDialog', value: boolean): void
+  (e: 'save-config'): void
+
+  (e: 'update:showPluginInfoDialog', value: boolean): void
+
+  (e: 'update:forceUpdateDialogShow', value: boolean): void
+  (e: 'confirm-force-update'): void
+  (e: 'cancel-force-update'): void
+
+  (e: 'update:showUninstallDialog', value: boolean): void
+  (e: 'uninstall-confirm', options: UninstallOptions): void
 }>()
 
 const { tm } = useModuleI18n('features/extension')
@@ -382,8 +493,46 @@ const getExtensionDisplayTitle = (row: unknown) => {
 
 const extensionMessage = computed(() => props.extensionMessage ?? '')
 
-const showUninstallDialog = ref(false)
-const uninstallingExtension = ref<InstalledPlugin | null>(null)
+const configDialogModel = computed({
+  get: () => props.configDialog,
+  set: value => emit('update:configDialog', value),
+})
+
+const showPluginInfoDialogModel = computed({
+  get: () => props.showPluginInfoDialog,
+  set: value => emit('update:showPluginInfoDialog', value),
+})
+
+const forceUpdateDialogShowModel = computed({
+  get: () => props.forceUpdateDialogShow,
+  set: value => emit('update:forceUpdateDialogShow', value),
+})
+
+const showUninstallDialogModel = computed({
+  get: () => props.showUninstallDialog,
+  set: value => emit('update:showUninstallDialog', value),
+})
+
+const onUninstallConfirm = (options: UninstallOptions) => {
+  emit('uninstall-confirm', options)
+}
+
+const updateAllConfirmDialog = ref(false)
+
+const showUpdateAllConfirm = () => {
+  if (props.updatingAll) return
+  if (props.updatableExtensions.length === 0) return
+  updateAllConfirmDialog.value = true
+}
+
+const confirmUpdateAll = () => {
+  updateAllConfirmDialog.value = false
+  emit('update-all')
+}
+
+const cancelUpdateAll = () => {
+  updateAllConfirmDialog.value = false
+}
 
 const toItemCardExtension = (extension: InstalledPlugin) => {
   return {
@@ -392,23 +541,13 @@ const toItemCardExtension = (extension: InstalledPlugin) => {
   }
 }
 
-const requestUninstall = (extension: InstalledPlugin) => {
-  if (extension.reserved) return
-  uninstallingExtension.value = extension
-  showUninstallDialog.value = true
-}
-
-const handleUninstallConfirm = (options: UninstallOptions) => {
-  if (!uninstallingExtension.value) return
-  emit('uninstall', { extension: uninstallingExtension.value, options })
-  uninstallingExtension.value = null
-  showUninstallDialog.value = false 
-}
-
-const handleUninstallCancel = () => {
-  uninstallingExtension.value = null
-  showUninstallDialog.value = false
-}
+const extensionConfig = computed(() => props.extensionConfig)
+const extensionIterable = computed<Record<string, any>>(() => {
+  return (extensionConfig.value?.config ?? {}) as Record<string, any>
+})
+const currNamespace = computed(() => props.currNamespace)
+const selectedPlugin = computed(() => props.selectedPlugin)
+const pluginHandlerInfoHeaders = computed(() => props.pluginHandlerInfoHeaders)
 </script>
 
 <style scoped>

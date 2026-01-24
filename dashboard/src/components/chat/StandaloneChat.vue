@@ -7,15 +7,11 @@
                     <MessageList v-if="messages && messages.length > 0" :messages="messages" :isDark="isDark"
                         :isStreaming="isStreaming || isConvRunning" @openImagePreview="openImagePreview"
                         ref="messageList" />
-                    <div class="welcome-container fade-in" v-else>
-                        <div class="welcome-title">
-                            <span>Hello, I'm</span>
-                            <span class="bot-name">Nebula ⭐</span>
-                        </div>
-                        <p class="text-caption text-medium-emphasis mt-2">
+                    <WelcomeView v-else bot-name="Nebula">
+                        <p class="text-caption text-medium-emphasis mt-2 text-center">
                             测试配置: {{ configId || 'default' }}
                         </p>
-                    </div>
+                    </WelcomeView>
 
                     <!-- 输入区域 -->
                     <ChatInput
@@ -66,10 +62,10 @@
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import axios from 'axios';
 import { useCustomizerStore } from '@/stores/customizer';
-import { useI18n, useModuleI18n } from '@/i18n/composables';
-import { useTheme } from 'vuetify';
+import { useI18n } from '@/i18n/composables';
 import MessageList from '@/components/chat/MessageList.vue';
 import ChatInput from '@/components/chat/ChatInput.vue';
+import WelcomeView from '@/components/chat/WelcomeView.vue';
 import { useMessages } from '@/composables/useMessages';
 import { useMediaHandling } from '@/composables/useMediaHandling';
 import { useRecording } from '@/composables/useRecording';
@@ -232,18 +228,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* 基础动画 */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
 .standalone-chat-card {
     width: 100%;
     height: 100%;
@@ -296,29 +280,6 @@ onBeforeUnmount(() => {
     display: flex;
     gap: 8px;
     align-items: center;
-}
-
-.welcome-container {
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-}
-
-.welcome-title {
-    font-size: 28px;
-    margin-bottom: 8px;
-}
-
-.bot-name {
-    font-weight: 700;
-    margin-left: 8px;
-    color: var(--v-theme-secondary);
-}
-
-.fade-in {
-    animation: fadeIn 0.3s ease-in-out;
 }
 
 .image-preview-card {

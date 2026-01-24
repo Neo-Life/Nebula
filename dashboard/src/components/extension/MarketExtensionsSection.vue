@@ -428,6 +428,88 @@
       ></v-pagination>
     </div>
   </div>
+
+  <!-- 危险插件确认对话框（下沉） -->
+  <v-dialog v-model="dangerConfirmDialogModel" width="500" persistent>
+    <v-card>
+      <v-card-title class="text-h5 d-flex align-center">
+        <v-icon color="warning" class="mr-2">mdi-alert-circle</v-icon>
+        {{ tm('dialogs.danger_warning.title') }}
+      </v-card-title>
+      <v-card-text>
+        <div>{{ tm('dialogs.danger_warning.message') }}</div>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn color="grey" @click="emit('cancel-danger-install')">
+          {{ tm('dialogs.danger_warning.cancel') }}
+        </v-btn>
+        <v-btn color="warning" @click="emit('confirm-danger-install')">
+          {{ tm('dialogs.danger_warning.confirm') }}
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- 添加/编辑自定义插件源对话框（下沉） -->
+  <v-dialog v-model="showSourceDialogModel" width="500">
+    <v-card>
+      <v-card-title class="text-h5">{{ props.editingSource ? tm('market.editSource') : tm('market.addSource') }}</v-card-title>
+      <v-card-text>
+        <div class="pa-2">
+          <v-text-field
+            v-model="sourceNameModel"
+            :label="tm('market.sourceName')"
+            variant="outlined"
+            prepend-inner-icon="mdi-rename-box"
+            hide-details
+            class="mb-4"
+            placeholder="我的插件源"
+          ></v-text-field>
+
+          <v-text-field
+            v-model="sourceUrlModel"
+            :label="tm('market.sourceUrl')"
+            variant="outlined"
+            prepend-inner-icon="mdi-link"
+            hide-details
+            placeholder="https://example.com/plugins.json"
+          ></v-text-field>
+
+          <div class="text-caption text-medium-emphasis mt-2">
+            {{ tm('messages.enterJsonUrl') }}
+          </div>
+        </div>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn color="grey" variant="text" @click="showSourceDialogModel = false">{{ tm('buttons.cancel') }}</v-btn>
+        <v-btn color="primary" variant="text" @click="emit('save-custom-source')">{{ tm('buttons.save') }}</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- 删除插件源确认对话框（下沉） -->
+  <v-dialog v-model="showRemoveSourceDialogModel" width="400">
+    <v-card>
+      <v-card-title class="text-h5 d-flex align-center">
+        <v-icon color="warning" class="mr-2">mdi-alert-circle</v-icon>
+        {{ tm('dialogs.uninstall.title') }}
+      </v-card-title>
+      <v-card-text>
+        <div>{{ tm('market.confirmRemoveSource') }}</div>
+        <div v-if="props.sourceToRemove" class="mt-2">
+          <strong>{{ props.sourceToRemove.name }}</strong>
+          <div class="text-caption">{{ props.sourceToRemove.url }}</div>
+        </div>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn color="grey" variant="text" @click="showRemoveSourceDialogModel = false">{{ tm('buttons.cancel') }}</v-btn>
+        <v-btn color="error" variant="text" @click="emit('confirm-remove-source')">{{ tm('buttons.deleteSource') }}</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup lang="ts">
@@ -455,6 +537,16 @@ const props = defineProps<{
   showPluginFullName: boolean
   cartItems: PluginMarketItem[]
   cartCount: number
+
+  dangerConfirmDialog: boolean
+
+  showSourceDialog: boolean
+  sourceName: string
+  sourceUrl: string
+  editingSource: boolean
+
+  showRemoveSourceDialog: boolean
+  sourceToRemove: PluginSource | null
 }>()
 
 const emit = defineEmits<{
@@ -472,6 +564,18 @@ const emit = defineEmits<{
   (e: 'clear-cart'): void
   (e: 'install-cart'): void
   (e: 'view-readme', plugin: PluginMarketItem): void
+
+  (e: 'update:dangerConfirmDialog', value: boolean): void
+  (e: 'cancel-danger-install'): void
+  (e: 'confirm-danger-install'): void
+
+  (e: 'update:showSourceDialog', value: boolean): void
+  (e: 'update:sourceName', value: string): void
+  (e: 'update:sourceUrl', value: string): void
+  (e: 'save-custom-source'): void
+
+  (e: 'update:showRemoveSourceDialog', value: boolean): void
+  (e: 'confirm-remove-source'): void
 }>()
 
 const { tm } = useModuleI18n('features/extension')
@@ -479,6 +583,31 @@ const display = useDisplay()
 const MAX_DESCRIPTION_LENGTH = 50
 const sourceDialog = ref(false)
 const cartDialog = ref(false)
+
+const dangerConfirmDialogModel = computed({
+  get: () => props.dangerConfirmDialog,
+  set: value => emit('update:dangerConfirmDialog', value),
+})
+
+const showSourceDialogModel = computed({
+  get: () => props.showSourceDialog,
+  set: value => emit('update:showSourceDialog', value),
+})
+
+const sourceNameModel = computed({
+  get: () => props.sourceName,
+  set: value => emit('update:sourceName', value),
+})
+
+const sourceUrlModel = computed({
+  get: () => props.sourceUrl,
+  set: value => emit('update:sourceUrl', value),
+})
+
+const showRemoveSourceDialogModel = computed({
+  get: () => props.showRemoveSourceDialog,
+  set: value => emit('update:showRemoveSourceDialog', value),
+})
 
 const marketLoadingLatched = ref(false)
 const marketLoadingSeq = ref(0)
