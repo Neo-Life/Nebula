@@ -132,6 +132,7 @@
   "errors": {
     "sendMessageFailed": "Failed to send message, please try again",
     "createSessionFailed": "Failed to create session, please refresh the page",
+    "sessionNotFound": "Session does not exist or has been deleted",
     "sessionRunning": "This session is generating a reply. Please wait before sending."
   }
 } 

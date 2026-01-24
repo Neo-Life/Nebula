@@ -134,6 +134,7 @@
   "errors": {
     "sendMessageFailed": "发送消息失败，请重试",
     "createSessionFailed": "创建会话失败，请刷新页面重试",
+    "sessionNotFound": "会话不存在或已被删除",
     "sessionRunning": "该会话正在生成回复中，请稍候再发送。"
   }
 } 

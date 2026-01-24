@@ -225,7 +225,6 @@ const {
     sessions,
     selectedSessions,
     currSessionId,
-    pendingSessionId,
     editTitleDialog,
     editingTitle,
     getCurrentSession,
@@ -626,33 +625,56 @@ watch(
             return;
         }
 
-        if (to.startsWith('/chat/') || to.startsWith('/chatbox/')) {
+        const basePath = props.chatboxMode ? '/chatbox' : '/chat';
+        if (to.startsWith(`${basePath}/`)) {
             const pathSessionId = to.split('/')[2];
             if (pathSessionId && pathSessionId !== currSessionId.value) {
                 if (sessions.value.length > 0) {
-                    const session = sessions.value.find(s => s.session_id === pathSessionId);
-                    if (session) {
-                        handleSelectConversation([pathSessionId]);
+                    const exists = sessions.value.some((s) => s.session_id === pathSessionId);
+                    if (!exists) {
+                        useToast().error(tm('errors.sessionNotFound'), { timeout: 3000 });
+
+                        const firstSession = sessions.value[0];
+                        if (firstSession?.session_id) {
+                            void router.replace(`${basePath}/${firstSession.session_id}`);
+                            handleSelectConversation([firstSession.session_id]);
+                        } else {
+                            void router.replace(basePath);
+                        }
+                        return;
                     }
-                } else {
-                    pendingSessionId.value = pathSessionId;
                 }
+                handleSelectConversation([pathSessionId]);
             }
         }
     },
     { immediate: true }
 );
 
-// 会话列表加载后处理待定会话
+// 会话列表加载后：仅在“没有指定会话ID”时默认进入第一个会话
 watch(sessions, (newSessions) => {
-    if (pendingSessionId.value && newSessions.length > 0) {
-        const session = newSessions.find(s => s.session_id === pendingSessionId.value);
-        if (session) {
-            selectedSessions.value = [pendingSessionId.value];
-            handleSelectConversation([pendingSessionId.value]);
-            pendingSessionId.value = null;
+    const basePath = props.chatboxMode ? '/chatbox' : '/chat';
+    const pathSessionId = route.path.startsWith(`${basePath}/`) ? (route.path.split('/')[2] || '') : '';
+    const hasPathSessionId = !!pathSessionId;
+
+    // URL 指定了 sessionId，但列表里不存在：提示并回退到可用会话
+    if (hasPathSessionId && newSessions.length > 0) {
+        const exists = newSessions.some((s) => s.session_id === pathSessionId);
+        if (!exists) {
+            useToast().error(tm('errors.sessionNotFound'), { timeout: 3000 });
+            messages.value = [];
+            currSessionId.value = '';
+            selectedSessions.value = [];
+
+            const firstSession = newSessions[0];
+            selectedSessions.value = [firstSession.session_id];
+            void router.replace(`${basePath}/${firstSession.session_id}`);
+            handleSelectConversation([firstSession.session_id]);
+            return;
         }
-    } else if (!currSessionId.value && newSessions.length > 0) {
+    }
+
+    if (!currSessionId.value && !hasPathSessionId && newSessions.length > 0) {
         const firstSession = newSessions[0];
         selectedSessions.value = [firstSession.session_id];
         handleSelectConversation([firstSession.session_id]);
