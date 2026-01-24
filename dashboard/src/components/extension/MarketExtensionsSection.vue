@@ -145,7 +145,7 @@
             {{ filteredMarketPlugins.length }}
           </v-chip>
         </h2>
-        <v-btn icon variant="text" @click="emit('refresh')" :loading="refreshingMarket || marketLoading">
+        <v-btn icon variant="text" @click="emit('refresh')" :loading="marketLoadingLatched">
           <v-icon>mdi-refresh</v-icon>
         </v-btn>
       </div>
@@ -272,7 +272,7 @@
     </v-dialog>
 
     <v-row style="min-height: 26rem;">
-      <template v-if="(refreshingMarket || marketLoading) && paginatedPlugins.length === 0">
+      <template v-if="marketLoadingLatched">
         <v-col
           v-for="n in 6"
           :key="`skeleton-${n}`"
@@ -284,137 +284,139 @@
         </v-col>
       </template>
 
-      <v-col v-else v-for="plugin in paginatedPlugins" :key="plugin.name" cols="12" md="6" lg="4">
-        <ItemCard
-          :item="toItemCardPlugin(plugin)"
-          title-field="_title"
-          title-class="text-h3"
-          :show-switch="false"
-          :show-edit-button="false"
-          :show-delete-button="false"
-          :no-padding="true"
-          class="plugin-card"
-          style="height: 15rem;"
-        >
-          <template #item-details>
-            <v-chip v-if="plugin?.pinned" color="warning" size="x-small" label style="position: absolute; right: 8px; top: 8px; z-index: 10; height: 20px; font-weight: bold;">
-              🥳 {{ tm('market.recommended') }}
-            </v-chip>
+      <template v-else>
+        <v-col v-for="plugin in paginatedPlugins" :key="plugin.name" cols="12" md="6" lg="4">
+          <ItemCard
+            :item="toItemCardPlugin(plugin)"
+            title-field="_title"
+            title-class="text-h3"
+            :show-switch="false"
+            :show-edit-button="false"
+            :show-delete-button="false"
+            :no-padding="true"
+            class="plugin-card"
+            style="height: 15rem;"
+          >
+            <template #item-details>
+              <v-chip v-if="plugin?.pinned" color="warning" size="x-small" label style="position: absolute; right: 8px; top: 8px; z-index: 10; height: 20px; font-weight: bold;">
+                🥳 {{ tm('market.recommended') }}
+              </v-chip>
 
-            <div style="padding: 12px; padding-bottom: 8px; display: flex; gap: 12px; width: 100%; height: 100%; overflow: hidden;">
-              <div style="flex-shrink: 0;">
-                <img :src="plugin?.logo || defaultPluginIcon" :alt="plugin.name" style="height: 100px; width: 100px; border-radius: 8px; object-fit: cover;" />
+              <div style="padding: 12px; padding-bottom: 8px; display: flex; gap: 12px; width: 100%; height: 100%; overflow: hidden;">
+                <div style="flex-shrink: 0;">
+                  <img :src="plugin?.logo || defaultPluginIcon" :alt="plugin.name" style="height: 100px; width: 100px; border-radius: 8px; object-fit: cover;" />
+                </div>
+
+                <div style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+                  <div class="d-flex align-center" style="gap: 4px; margin-bottom: 6px;">
+                    <v-icon icon="mdi-account" size="x-small" style="color: rgba(var(--v-theme-on-surface), 0.5);"></v-icon>
+                    <a
+                      v-if="plugin?.social_link"
+                      :href="plugin.social_link"
+                      target="_blank"
+                      class="text-subtitle-2 font-weight-medium"
+                      style="text-decoration: none; color: rgb(var(--v-theme-primary)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                    >
+                      {{ plugin.author }}
+                    </a>
+                    <span
+                      v-else
+                      class="text-subtitle-2 font-weight-medium"
+                      style="color: rgb(var(--v-theme-primary)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                    >
+                      {{ plugin.author }}
+                    </span>
+                    <div class="d-flex align-center text-subtitle-2 ml-2" style="color: rgba(var(--v-theme-on-surface), 0.7);">
+                      <v-icon icon="mdi-source-branch" size="x-small" style="margin-right: 2px;"></v-icon>
+                      <span>{{ plugin.version }}</span>
+                    </div>
+                  </div>
+
+                  <div class="text-caption plugin-description">
+                    {{ formatDescription(plugin.desc) }}
+                  </div>
+
+                  <div class="d-flex align-center" style="gap: 8px; margin-top: auto;">
+                    <div v-if="plugin.stars !== undefined" class="d-flex align-center text-subtitle-2" style="color: rgba(var(--v-theme-on-surface), 0.7);">
+                      <v-icon icon="mdi-star" size="x-small" style="margin-right: 2px;"></v-icon>
+                      <span>{{ plugin.stars }}</span>
+                    </div>
+                    <div v-if="plugin.updated_at" class="d-flex align-center text-subtitle-2" style="color: rgba(var(--v-theme-on-surface), 0.7);">
+                      <v-icon icon="mdi-clock-outline" size="x-small" style="margin-right: 2px;"></v-icon>
+                      <span>{{ formatUpdatedAt(plugin.updated_at) }}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
+            </template>
 
-              <div style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
-                <div class="d-flex align-center" style="gap: 4px; margin-bottom: 6px;">
-                  <v-icon icon="mdi-account" size="x-small" style="color: rgba(var(--v-theme-on-surface), 0.5);"></v-icon>
-                  <a
-                    v-if="plugin?.social_link"
-                    :href="plugin.social_link"
-                    target="_blank"
-                    class="text-subtitle-2 font-weight-medium"
-                    style="text-decoration: none; color: rgb(var(--v-theme-primary)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
-                  >
-                    {{ plugin.author }}
-                  </a>
-                  <span
-                    v-else
-                    class="text-subtitle-2 font-weight-medium"
-                    style="color: rgb(var(--v-theme-primary)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
-                  >
-                    {{ plugin.author }}
-                  </span>
-                  <div class="d-flex align-center text-subtitle-2 ml-2" style="color: rgba(var(--v-theme-on-surface), 0.7);">
-                    <v-icon icon="mdi-source-branch" size="x-small" style="margin-right: 2px;"></v-icon>
-                    <span>{{ plugin.version }}</span>
-                  </div>
-                </div>
-
-                <div class="text-caption plugin-description">
-                  {{ formatDescription(plugin.desc) }}
-                </div>
-
-                <div class="d-flex align-center" style="gap: 8px; margin-top: auto;">
-                  <div v-if="plugin.stars !== undefined" class="d-flex align-center text-subtitle-2" style="color: rgba(var(--v-theme-on-surface), 0.7);">
-                    <v-icon icon="mdi-star" size="x-small" style="margin-right: 2px;"></v-icon>
-                    <span>{{ plugin.stars }}</span>
-                  </div>
-                  <div v-if="plugin.updated_at" class="d-flex align-center text-subtitle-2" style="color: rgba(var(--v-theme-on-surface), 0.7);">
-                    <v-icon icon="mdi-clock-outline" size="x-small" style="margin-right: 2px;"></v-icon>
-                    <span>{{ formatUpdatedAt(plugin.updated_at) }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </template>
-
-          <template #footer-start>
-            <v-chip
-              v-for="tag in plugin.tags?.slice(0, 2)"
-              :key="tag"
-              :color="tag === 'danger' ? 'error' : 'primary'"
-              label
-              size="x-small"
-              style="height: 20px;"
-            >
-              {{ tag === 'danger' ? tm('tags.danger') : tag }}
-            </v-chip>
-            <v-menu v-if="plugin.tags && plugin.tags.length > 2" open-on-hover offset-y>
-              <template v-slot:activator="{ props: menuProps }">
-                <v-chip v-bind="menuProps" color="grey" label size="x-small" style="height: 20px; cursor: pointer;">
-                  +{{ plugin.tags.length - 2 }}
-                </v-chip>
-              </template>
-              <v-list density="compact">
-                <v-list-item v-for="tag in plugin.tags.slice(2)" :key="tag">
-                  <v-chip :color="tag === 'danger' ? 'error' : 'primary'" label size="small">
-                    {{ tag === 'danger' ? tm('tags.danger') : tag }}
+            <template #footer-start>
+              <v-chip
+                v-for="tag in plugin.tags?.slice(0, 2)"
+                :key="tag"
+                :color="tag === 'danger' ? 'error' : 'primary'"
+                label
+                size="x-small"
+                style="height: 20px;"
+              >
+                {{ tag === 'danger' ? tm('tags.danger') : tag }}
+              </v-chip>
+              <v-menu v-if="plugin.tags && plugin.tags.length > 2" open-on-hover offset-y>
+                <template v-slot:activator="{ props: menuProps }">
+                  <v-chip v-bind="menuProps" color="grey" label size="x-small" style="height: 20px; cursor: pointer;">
+                    +{{ plugin.tags.length - 2 }}
                   </v-chip>
-                </v-list-item>
-              </v-list>
-            </v-menu>
-          </template>
+                </template>
+                <v-list density="compact">
+                  <v-list-item v-for="tag in plugin.tags.slice(2)" :key="tag">
+                    <v-chip :color="tag === 'danger' ? 'error' : 'primary'" label size="small">
+                      {{ tag === 'danger' ? tm('tags.danger') : tag }}
+                    </v-chip>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
+            </template>
 
-          <template #actions>
-            <v-tooltip :text="isInCart(plugin) ? tm('market.cart.remove') : tm('market.cart.add')" location="top">
-              <template #activator="{ props: tipProps }">
-                <v-btn
-                  v-bind="tipProps"
-                  icon
-                  variant="text"
-                  size="small"
-                  color="primary"
-                  style="height: 32px; width: 32px;"
-                  :disabled="!!plugin?.installed"
-                  @click="emit('toggle-cart', plugin)"
-                >
-                  <v-icon size="20">{{ isInCart(plugin) ? 'mdi-cart-remove' : 'mdi-cart-plus' }}</v-icon>
-                </v-btn>
-              </template>
-            </v-tooltip>
+            <template #actions>
+              <v-tooltip :text="isInCart(plugin) ? tm('market.cart.remove') : tm('market.cart.add')" location="top">
+                <template #activator="{ props: tipProps }">
+                  <v-btn
+                    v-bind="tipProps"
+                    icon
+                    variant="text"
+                    size="small"
+                    color="primary"
+                    style="height: 32px; width: 32px;"
+                    :disabled="!!plugin?.installed"
+                    @click="emit('toggle-cart', plugin)"
+                  >
+                    <v-icon size="20">{{ isInCart(plugin) ? 'mdi-cart-remove' : 'mdi-cart-plus' }}</v-icon>
+                  </v-btn>
+                </template>
+              </v-tooltip>
 
-            <v-btn v-if="plugin?.repo" color="secondary" size="70" variant="tonal" :href="plugin.repo" target="_blank" style="height: 32px;">
-              <v-icon icon="mdi-github" start size="20"></v-icon>
-              {{ tm('buttons.viewRepo') }}
-            </v-btn>
+              <v-btn v-if="plugin?.repo" color="secondary" size="70" variant="tonal" :href="plugin.repo" target="_blank" style="height: 32px;">
+                <v-icon icon="mdi-github" start size="20"></v-icon>
+                {{ tm('buttons.viewRepo') }}
+              </v-btn>
 
-            <v-btn
-              v-if="!plugin?.installed"
-              color="primary"
-              size="50"
-              @click="emit('handle-install-plugin', plugin)"
-              variant="flat"
-              style="height: 32px;"
-            >
-              {{ tm('buttons.install') }}
-            </v-btn>
-            <v-btn v-else color="success" size="70" variant="tonal" disabled style="height: 32px;">
-              ✓ {{ tm('status.installed') }}
-            </v-btn>
-          </template>
-        </ItemCard>
-      </v-col>
+              <v-btn
+                v-if="!plugin?.installed"
+                color="primary"
+                size="50"
+                @click="emit('handle-install-plugin', plugin)"
+                variant="flat"
+                style="height: 32px;"
+              >
+                {{ tm('buttons.install') }}
+              </v-btn>
+              <v-btn v-else color="success" size="70" variant="tonal" disabled style="height: 32px;">
+                ✓ {{ tm('status.installed') }}
+              </v-btn>
+            </template>
+          </ItemCard>
+        </v-col>
+      </template>
     </v-row>
 
     <div class="d-flex justify-center mt-4" v-if="totalPages > 1">
@@ -429,7 +431,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useDisplay } from 'vuetify'
 import defaultPluginIcon from '@/assets/images/plugin_icon.png'
 import { useModuleI18n } from '@/i18n/composables'
@@ -477,6 +479,35 @@ const display = useDisplay()
 const MAX_DESCRIPTION_LENGTH = 50
 const sourceDialog = ref(false)
 const cartDialog = ref(false)
+
+const marketLoadingLatched = ref(false)
+const marketLoadingSeq = ref(0)
+const marketLoadingStartedAt = ref(0)
+
+const isMarketLoading = computed(() => props.refreshingMarket || props.marketLoading)
+
+watch(
+  isMarketLoading,
+  (loading) => {
+    if (loading) {
+      marketLoadingSeq.value += 1
+      marketLoadingStartedAt.value = Date.now()
+      marketLoadingLatched.value = true
+      return
+    }
+
+    const seq = marketLoadingSeq.value
+    const elapsed = Date.now() - marketLoadingStartedAt.value
+    const remaining = Math.max(0, 1000 - elapsed)
+
+    window.setTimeout(() => {
+      if (marketLoadingSeq.value !== seq) return
+      if (isMarketLoading.value) return
+      marketLoadingLatched.value = false
+    }, remaining)
+  },
+  { immediate: true, flush: 'sync' }
+)
 
 const paginationTotalVisible = computed(() => (display.smAndDown.value ? 3 : 7))
 const paginationSize = computed(() => (display.smAndDown.value ? 'x-small' : 'small'))

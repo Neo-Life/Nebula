@@ -17,67 +17,75 @@
       </v-row>
 
       <div>
-        <v-row v-if="(config_data.platform || []).length === 0">
-          <v-col cols="12" class="text-center pa-8">
-            <v-icon size="64" color="grey-lighten-1">mdi-connection</v-icon>
-            <p class="text-grey mt-4">{{ tm('emptyText') }}</p>
-          </v-col>
-        </v-row>
+        <div style="min-height: 240px;">
+          <v-row v-if="loadingConfig" key="loading" style="min-height: 240px;">
+            <v-col cols="12" class="d-flex align-center justify-center pa-8">
+              <v-progress-circular indeterminate color="primary" size="42" width="4" />
+            </v-col>
+          </v-row>
 
-        <v-row v-else>
-          <v-col v-for="(platform, index) in config_data.platform || []" :key="index" cols="12" sm="6" md="6" lg="4" xl="3">
-            <item-card 
-              :item="platform" 
-              title-field="id" 
-              enabled-field="enable"
-              title-class="text-h3" 
-              :bglogo="getPlatformIcon(platform.type || platform.id)" 
-              @toggle-enabled="platformStatusChange"
-              @delete="deletePlatform" 
-              @edit="editPlatform" 
-              class="platform-card-item"
-            >
-              <template #item-details="{ item }">
-                <div class="platform-status-row mb-2" v-if="getPlatformStat(item?.id) && (getPlatformStat(item?.id)?.status !== 'running' || (getPlatformStat(item?.id)?.error_count || 0) > 0)">
-                  <v-chip
-                    v-if="getPlatformStat(item?.id)?.status !== 'running'"
-                    size="small"
-                    :color="getStatusColor(getPlatformStat(item?.id)?.status)"
-                    variant="tonal"
-                    class="status-chip"
-                  >
-                    <v-icon size="small" start>{{ getStatusIcon(getPlatformStat(item?.id)?.status) }}</v-icon>
-                    {{ tm('runtimeStatus.' + (getPlatformStat(item?.id)?.status || 'unknown')) }}
-                  </v-chip>
-                  <v-chip
-                    v-if="(getPlatformStat(item?.id)?.error_count || 0) > 0"
-                    size="small"
-                    color="error"
-                    variant="tonal"
-                    class="error-chip"
-                    :class="{ 'ms-2': getPlatformStat(item?.id)?.status !== 'running' }"
-                    @click.stop="showErrorDetails(item)"
-                  >
-                    <v-icon size="small" start>mdi-bug</v-icon>
-                    {{ getPlatformStat(item?.id)?.error_count || 0 }} {{ tm('runtimeStatus.errors') }}
-                  </v-chip>
-                </div>
-                <div v-if="getPlatformStat(item?.id)?.unified_webhook && item.webhook_uuid" class="webhook-info">
-                  <v-chip
-                    size="small"
-                    color="primary"
-                    variant="tonal"
-                    class="webhook-chip"
-                    @click.stop="openWebhookDialog(item.webhook_uuid)"
-                  >
-                    <v-icon size="small" start>mdi-webhook</v-icon>
-                    {{ tm('viewWebhook') }}
-                  </v-chip>
-                </div>
-              </template>
-            </item-card>
-          </v-col>
-        </v-row>
+          <v-row v-else-if="fetched && (config_data.platform || []).length === 0" key="empty">
+            <v-col cols="12" class="text-center pa-8">
+              <v-icon size="64" color="grey-lighten-1">mdi-connection</v-icon>
+              <p class="text-grey mt-4">{{ tm('emptyText') }}</p>
+            </v-col>
+          </v-row>
+
+          <v-row v-else key="content">
+            <v-col v-for="(platform, index) in config_data.platform || []" :key="index" cols="12" sm="6" md="6" lg="4" xl="3">
+              <item-card 
+                :item="platform" 
+                title-field="id" 
+                enabled-field="enable"
+                title-class="text-h3" 
+                :bglogo="getPlatformIcon(platform.type || platform.id)" 
+                @toggle-enabled="platformStatusChange"
+                @delete="deletePlatform" 
+                @edit="editPlatform" 
+                class="platform-card-item"
+              >
+                <template #item-details="{ item }">
+                  <div class="platform-status-row mb-2" v-if="getPlatformStat(item?.id) && (getPlatformStat(item?.id)?.status !== 'running' || (getPlatformStat(item?.id)?.error_count || 0) > 0)">
+                    <v-chip
+                      v-if="getPlatformStat(item?.id)?.status !== 'running'"
+                      size="small"
+                      :color="getStatusColor(getPlatformStat(item?.id)?.status)"
+                      variant="tonal"
+                      class="status-chip"
+                    >
+                      <v-icon size="small" start>{{ getStatusIcon(getPlatformStat(item?.id)?.status) }}</v-icon>
+                      {{ tm('runtimeStatus.' + (getPlatformStat(item?.id)?.status || 'unknown')) }}
+                    </v-chip>
+                    <v-chip
+                      v-if="(getPlatformStat(item?.id)?.error_count || 0) > 0"
+                      size="small"
+                      color="error"
+                      variant="tonal"
+                      class="error-chip"
+                      :class="{ 'ms-2': getPlatformStat(item?.id)?.status !== 'running' }"
+                      @click.stop="showErrorDetails(item)"
+                    >
+                      <v-icon size="small" start>mdi-bug</v-icon>
+                      {{ getPlatformStat(item?.id)?.error_count || 0 }} {{ tm('runtimeStatus.errors') }}
+                    </v-chip>
+                  </div>
+                  <div v-if="getPlatformStat(item?.id)?.unified_webhook && item.webhook_uuid" class="webhook-info">
+                    <v-chip
+                      size="small"
+                      color="primary"
+                      variant="tonal"
+                      class="webhook-chip"
+                      @click.stop="openWebhookDialog(item.webhook_uuid)"
+                    >
+                      <v-icon size="small" start>mdi-webhook</v-icon>
+                      {{ tm('viewWebhook') }}
+                    </v-chip>
+                  </div>
+                </template>
+              </item-card>
+            </v-col>
+          </v-row>
+        </div>
       </div>
 
       <v-card elevation="0" class="mt-4 mb-10">
@@ -242,6 +250,8 @@ export default {
     return {
       config_data: {} as any,
       fetched: false,
+      loadingConfig: false,
+      configLoadSeq: 0,
       metadata: {} as any,
       showAddPlatformDialog: false,
 
@@ -315,13 +325,34 @@ export default {
       return getPlatformIcon(platform_id);
     },
 
-    getConfig() {
+    async getConfig() {
+      const seq = ++this.configLoadSeq;
+      const startAt = Date.now();
+
+      this.loadingConfig = true;
+      this.fetched = false;
+
+      await this.$nextTick();
+
+      const finish = () => {
+        const elapsed = Date.now() - startAt;
+        const remaining = Math.max(0, 500 - elapsed);
+        setTimeout(() => {
+          if (this.configLoadSeq !== seq) return;
+          this.loadingConfig = false;
+          this.fetched = true;
+        }, remaining);
+      };
+
       axios.get('/api/config/get').then((res) => {
+        if (this.configLoadSeq !== seq) return;
         this.config_data = res.data.data.config;
-        this.fetched = true
         this.metadata = res.data.data.metadata;
+        finish();
       }).catch((err) => {
+        if (this.configLoadSeq !== seq) return;
         this.showError(err);
+        finish();
       });
     },
 
