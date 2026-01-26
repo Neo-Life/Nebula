@@ -6,7 +6,7 @@
         </div>
         <!-- 聊天消息列表 -->
         <div class="message-list" :class="{ 'loading-blur': isLoadingMessages }" @mouseup="handleTextSelection">
-            <div class="message-item fade-in" v-for="(msg, index) in messages" :key="index">
+            <div class="message-item fade-in" v-for="(msg, index) in messages" :key="index" :class="{ 'is-last-actionable': isLastActionableMessage(index) }">
                 <!-- 用户消息 -->
                 <div v-if="msg.content.type == 'user'" class="user-message">
                     <div class="user-message-content">
@@ -279,7 +279,7 @@
                                 </template>
                             </template>
                         </div>
-                        <div class="message-actions" v-if="!msg.content.isLoading || index === messages.length - 1">
+                        <div class="message-actions" v-if="isBotMessageActionable(msg)">
                             <span class="message-time" v-if="msg.created_at">{{ formatMessageTime(msg.created_at)
                                 }}</span>
                             <!-- Agent Stats Menu -->
@@ -452,6 +452,26 @@ export default {
         this.extractWebSearchResults();
     },
     methods: {
+        isBotMessageActionable(msg: any): boolean {
+            return (
+                msg?.content?.type === 'bot' &&
+                !msg?.content?.isLoading &&
+                ((Array.isArray(msg.content.message) && msg.content.message.length > 0) ||
+                    (typeof msg.content.reasoning === 'string' && msg.content.reasoning.trim()) ||
+                    (Array.isArray(msg.content.refs) && msg.content.refs.length > 0) ||
+                    !!msg.content.agentStats)
+            );
+        },
+
+        isLastActionableMessage(index: number): boolean {
+            for (let i = this.messages.length - 1; i >= 0; i--) {
+                if (this.isBotMessageActionable(this.messages[i])) {
+                    return i === index;
+                }
+            }
+            return false;
+        },
+
         shouldCollapseUserMsg(msg: any): boolean {
             if (!msg || msg?.content?.type !== 'user') return false;
             const parts = msg?.content?.message;
@@ -538,14 +558,13 @@ export default {
         getNonIPythonToolCalls(toolCalls: unknown) {
             return Array.isArray(toolCalls) ? toolCalls.filter((toolCall: any) => !this.isIPythonTool(toolCall)) : [];
         },
-        // 复制文本到剪贴板（不使用已弃用的 document.execCommand）
-        // 成功返回 true，失败返回 false。
+
         async copyTextToClipboard(text: string): Promise<boolean> {
             const value = (text ?? '').toString();
             if (!value) return false;
 
             try {
-                // 现代浏览器：优先使用 Clipboard API
+
                 if (navigator?.clipboard?.writeText) {
                     await navigator.clipboard.writeText(value);
                     return true;
@@ -1323,6 +1342,47 @@ export default {
     justify-content: flex-end;
     width: 100%;
     margin-right: 6px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.user-message:hover .user-message-actions {
+    opacity: 1;
+}
+
+.user-message:focus-within .user-message-actions {
+    opacity: 1;
+}
+
+@media (hover: none) {
+    .user-message-actions {
+        opacity: 1;
+    }
+}
+
+/* 移动端缩小操作按钮（scoped 下需 deep 选择 Vuetify 组件根元素） */
+@media (max-width: 768px), (pointer: coarse) {
+    .user-message-actions :deep(.v-btn.v-btn--icon) {
+        min-width: 28px;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+    }
+
+    .user-message-actions :deep(.v-icon) {
+        font-size: 16px;
+    }
+
+    .message-actions :deep(.v-btn.v-btn--icon) {
+        min-width: 28px;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+    }
+
+    .message-actions :deep(.v-icon) {
+        font-size: 16px;
+    }
 }
 
 .bot-message {
@@ -1354,8 +1414,18 @@ export default {
     opacity: 1;
 }
 
+/* 如果最后一条是空占位，则让最后一条“可操作消息”始终显示 */
+.message-item.is-last-actionable .message-actions {
+    opacity: 1;
+}
+
 /* 避免同时显示两条消息的操作区：当悬停非最后一条消息时，隐藏最后一条的操作区 */
 .message-item:not(:last-child):hover ~ .message-item:last-child .message-actions {
+    opacity: 0;
+}
+
+/* 同理：当悬停非最后一条消息时，隐藏“最后可操作消息”的操作区 */
+.message-item:not(.is-last-actionable):hover ~ .message-item.is-last-actionable .message-actions {
     opacity: 0;
 }
 
