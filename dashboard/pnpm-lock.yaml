@@ -42,8 +42,8 @@ importers:
         specifier: ^14.1.0
         version: 14.1.0
       markstream-vue:
-        specifier: ^0.0.6-beta.1
-        version: 0.0.6-beta.2(katex@0.16.27)(mermaid@11.12.2)(shiki@3.21.0)(stream-markdown@0.0.13(shiki@3.21.0))(stream-monaco@0.0.15(monaco-editor@0.52.2))(vue-i18n@11.2.8(vue@3.5.26(typescript@5.7.3)))(vue@3.5.26(typescript@5.7.3))
+        specifier: ^0.0.6
+        version: 0.0.6(katex@0.16.27)(mermaid@11.12.2)(shiki@3.21.0)(stream-markdown@0.0.13(shiki@3.21.0))(stream-monaco@0.0.17(monaco-editor@0.52.2))(vue-i18n@11.2.8(vue@3.5.26(typescript@5.7.3)))(vue@3.5.26(typescript@5.7.3))
       mermaid:
         specifier: ^11.12.2
         version: 11.12.2
@@ -60,8 +60,8 @@ importers:
         specifier: ^0.0.13
         version: 0.0.13(shiki@3.21.0)
       stream-monaco:
-        specifier: ^0.0.15
-        version: 0.0.15(monaco-editor@0.52.2)
+        specifier: ^0.0.17
+        version: 0.0.17(monaco-editor@0.52.2)
       vee-validate:
         specifier: 4.11.3
         version: 4.11.3(vue@3.5.26(typescript@5.7.3))
@@ -1426,15 +1426,15 @@ packages:
     engines: {node: '>= 20'}
     hasBin: true
 
-  markstream-vue@0.0.6-beta.2:
-    resolution: {integrity: sha512-DPJau8GGF+DJHrRJU+LgRpJPYOUntwcIN6tN0eDfOJovSoloOnLokv30h5O5SCiv61tYaqmKblBza3k3t4ZuPQ==}
+  markstream-vue@0.0.6:
+    resolution: {integrity: sha512-5YrpNrTRdbO0YvKPx2sNu4pq+y+UZ1CPbf9Znoydt3ZL7c7zfBhmViCij+VmAmBrr3VLAgD2HToU8PAtuWySxg==}
     peerDependencies:
       '@antv/infographic': ^0.2.3
       katex: '>=0.16.22'
       mermaid: '>=11'
       shiki: ^3.13.0
       stream-markdown: '>=0.0.13'
-      stream-monaco: '>=0.0.15'
+      stream-monaco: '>=0.0.17'
       vue: '>=3.0.0'
       vue-i18n: '>=9'
     peerDependenciesMeta:
@@ -1675,16 +1675,16 @@ packages:
   state-local@1.0.7:
     resolution: {integrity: sha512-HTEHMNieakEnoe33shBYcZ7NX83ACUjCu8c40iOGEZsngj9zRnkqS9j1pqQPXwobB0ZcVTk27REb7COQ0UR59w==}
 
-  stream-markdown-parser@0.0.58-beta.6:
-    resolution: {integrity: sha512-5xltimRsgnmLhEcmZ4mYiSFknMosCLhrJPhiJrb2TJr3pds0WXLByfRV+G42FeFM2Ac6CcMqDajgRdAQKmSJ1g==}
+  stream-markdown-parser@0.0.59-beta.3:
+    resolution: {integrity: sha512-F++KEcHsXeWjKLKw8id6L1JVqQH22fslEZRNbt1NAMUwr8KTI/vOE3UuXYGnJDyXt0yv5JXbO4KdXrvMlWM0qQ==}
 
   stream-markdown@0.0.13:
     resolution: {integrity: sha512-XYhBEtKA76L6q3Uegvu8QOiUDAV4bfF1TcP3rot8eK0AR1+WGHBB6IfT9GJeLFJ7+qZgrH+WxQp/8lZ6CXjeeg==}
     peerDependencies:
       shiki: '>=3.13.0'
 
-  stream-monaco@0.0.15:
-    resolution: {integrity: sha512-ynAgbLjlsJ9e/TSGK7/TsBrbma2Tk+F7iXgAw0PzZfCZMy9EP+j6taqnRQqp8SsljVRoHHa5xIz+lNVPsYmq/w==}
+  stream-monaco@0.0.17:
+    resolution: {integrity: sha512-xpMiFAQEDLxRjNOXobomP9vEJmv5tWU8oN54+SHqL+eeHMNugU7fpmUIqZRSh53p+a/ZYt+DE75jgHwlKOXEuQ==}
     hasBin: true
     peerDependencies:
       monaco-editor: ^0.52.2
@@ -3245,17 +3245,17 @@ snapshots:
 
   marked@16.4.2: {}
 
-  markstream-vue@0.0.6-beta.2(katex@0.16.27)(mermaid@11.12.2)(shiki@3.21.0)(stream-markdown@0.0.13(shiki@3.21.0))(stream-monaco@0.0.15(monaco-editor@0.52.2))(vue-i18n@11.2.8(vue@3.5.26(typescript@5.7.3)))(vue@3.5.26(typescript@5.7.3)):
+  markstream-vue@0.0.6(katex@0.16.27)(mermaid@11.12.2)(shiki@3.21.0)(stream-markdown@0.0.13(shiki@3.21.0))(stream-monaco@0.0.17(monaco-editor@0.52.2))(vue-i18n@11.2.8(vue@3.5.26(typescript@5.7.3)))(vue@3.5.26(typescript@5.7.3)):
     dependencies:
       '@floating-ui/dom': 1.7.4
-      stream-markdown-parser: 0.0.58-beta.6
+      stream-markdown-parser: 0.0.59-beta.3
       vue: 3.5.26(typescript@5.7.3)
     optionalDependencies:
       katex: 0.16.27
       mermaid: 11.12.2
       shiki: 3.21.0
       stream-markdown: 0.0.13(shiki@3.21.0)
-      stream-monaco: 0.0.15(monaco-editor@0.52.2)
+      stream-monaco: 0.0.17(monaco-editor@0.52.2)
       vue-i18n: 11.2.8(vue@3.5.26(typescript@5.7.3))
 
   math-intrinsics@1.1.0: {}
@@ -3520,7 +3520,7 @@ snapshots:
 
   state-local@1.0.7: {}
 
-  stream-markdown-parser@0.0.58-beta.6:
+  stream-markdown-parser@0.0.59-beta.3:
     dependencies:
       markdown-it-container: 4.0.0
       markdown-it-footnote: 4.0.0
@@ -3535,7 +3535,7 @@ snapshots:
     dependencies:
       shiki: 3.21.0
 
-  stream-monaco@0.0.15(monaco-editor@0.52.2):
+  stream-monaco@0.0.17(monaco-editor@0.52.2):
     dependencies:
       '@shikijs/monaco': 3.21.0
       alien-signals: 2.0.8
