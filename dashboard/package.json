@@ -23,7 +23,7 @@
     "highlight.js": "^11.11.1",
     "js-md5": "^0.8.3",
     "katex": "^0.16.27",
-    "lodash": "4.17.21",
+    "lodash": "4.17.23",
     "markdown-it": "^14.1.0",
     "markstream-vue": "^0.0.6",
     "mermaid": "^11.12.2",
