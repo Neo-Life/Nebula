@@ -1,4 +1,4 @@
-import { createApp } from 'vue';
+import { createApp, type Plugin } from 'vue';
 import { createPinia } from 'pinia';
 import App from './App.vue';
 import { router } from './router';
@@ -11,46 +11,48 @@ import VueApexCharts from 'vue3-apexcharts';
 import print from 'vue3-print-nb';
 import { loader } from '@guolao/vue-monaco-editor'
 import axios from 'axios';
+import { initShikiWasm } from '@/composables/shikiWasm';
+import { MarkdownCodeBlockNode, setCustomComponents } from 'markstream-vue';
 
-// 初始化新的i18n系统，等待完成后再挂载应用
-setupI18n().then(() => {
-  console.log('🌍 新i18n系统初始化完成');
-  
+const mountApp = () => {
   const app = createApp(App);
   app.use(router);
+
   const pinia = createPinia();
   app.use(pinia);
+
   app.use(print);
-  app.use(VueApexCharts);
+  app.use(VueApexCharts as Plugin);
   app.use(vuetify);
   app.use(confirmPlugin);
   app.mount('#app');
-  
+
   // 挂载后同步 Vuetify 主题
   import('./stores/customizer').then(({ useCustomizerStore }) => {
     const customizer = useCustomizerStore(pinia);
     vuetify.theme.global.name.value = customizer.uiTheme;
   });
-}).catch(error => {
-  console.error('❌ 新i18n系统初始化失败:', error);
-  
-  // 即使i18n初始化失败，也要挂载应用（使用回退机制）
-  const app = createApp(App);
-  app.use(router);
-  const pinia = createPinia();
-  app.use(pinia);
-  app.use(print);
-  app.use(VueApexCharts);
-  app.use(vuetify);
-  app.use(confirmPlugin);
-  app.mount('#app');
-  
-  // 挂载后同步 Vuetify 主题
-  import('./stores/customizer').then(({ useCustomizerStore }) => {
-    const customizer = useCustomizerStore(pinia);
-    vuetify.theme.global.name.value = customizer.uiTheme;
-  });
-});
+};
+
+const bootstrap = async () => {
+  try {
+    // 初始化 i18n 系统，等待完成后再挂载应用
+    await setupI18n();
+    console.log('🌍 i18n系统初始化完成');
+  } catch (error) {
+    console.error('❌ i18n系统初始化失败:', error);
+  }
+
+  // 无论 i18n 是否初始化成功，都初始化 Shiki 并挂载应用（i18n 内部有回退机制）
+  await initShikiWasm();
+
+  // Prefer Shiki-based code blocks over plain <pre> / Monaco.
+  setCustomComponents({ code_block: MarkdownCodeBlockNode });
+
+  mountApp();
+};
+
+void bootstrap();
 
 
 axios.interceptors.request.use((config) => {
@@ -65,4 +67,5 @@ loader.config({
   paths: {
     vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.54.0/min/vs',
   },
+  'vs/nls': { availableLanguages: { '*': 'zh-cn' } },
 })

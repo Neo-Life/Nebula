@@ -13,13 +13,13 @@
                 <div class="welcome-title">
                     <span class="bot-name-container">
                         <span class="bot-name-text">
-                            Hello, I'm <span class="highlight-name">AstrBot</span>
+                            Hello, I'm <span class="highlight-name">{{ botName }}</span>
                         </span>
-                        <span class="bot-name-star">⭐</span>
+                        <v-icon size="small" class="bot-name-star">mdi-star-four-points</v-icon>
                     </span>
                 </div>
             </div>
-            <div class="welcome-input">
+            <div v-if="hasDefaultSlot" class="welcome-input">
                 <slot></slot>
             </div>
         </template>
@@ -27,13 +27,20 @@
 </template>
 
 <script setup lang="ts">
+import { computed, useSlots } from 'vue';
+
 interface Props {
     isLoading?: boolean;
+    botName?: string;
 }
 
 withDefaults(defineProps<Props>(), {
-    isLoading: false
+    isLoading: false,
+    botName: 'Nebula',
 });
+
+const slots = useSlots();
+const hasDefaultSlot = computed(() => Boolean(slots.default));
 </script>
 
 <style scoped>
@@ -105,11 +112,29 @@ withDefaults(defineProps<Props>(), {
 
 .bot-name-star {
     margin-left: 0;
-    display: inline-block;
+    display: inline-flex;
     transform-origin: center;
     animation: rotateStar 1.2s cubic-bezier(0.34, 1, 0.64, 1) forwards;
     animation-delay: 0.2s;
     padding-left: 4px;
+    background: linear-gradient(135deg, #ffe082, #fdd835, #ff8f00, #ffe082);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    animation: rotateStar 1.2s cubic-bezier(0.34, 1, 0.64, 1) forwards,
+               gradientShift 4s ease-in-out infinite;
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@media (max-width: 600px) {
+    .welcome-input {
+        width: 100%;
+    }
 }
 
 @keyframes revealText {
@@ -132,13 +157,15 @@ withDefaults(defineProps<Props>(), {
     }
 }
 
-.fade-in {
-    animation: fadeIn 0.3s ease-in-out;
-}
-
-@media (max-width: 600px) {
-    .welcome-input {
-        width: 100%;
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
     }
 }
 </style>

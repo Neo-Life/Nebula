@@ -53,6 +53,37 @@ from ...utils import (
 
 
 class InternalAgentSubStage(Stage):
+    def _spawn_task(self, coro, *, name: str) -> asyncio.Task:
+        """统一创建后台任务并收敛异常。
+
+        说明：直接 `asyncio.create_task()` 的异常如果无人 await/读取，会走 asyncio 默认异常处理，
+        只打印到 stderr，WebUI 的 live-log 订阅不到。这里通过 done_callback 主动读取异常并用
+        AstrBot logger 输出完整堆栈，确保可观测性一致。
+        """
+
+        task = asyncio.create_task(coro)
+
+        def _on_done(t: asyncio.Task):
+            try:
+                exc = t.exception()
+            except asyncio.CancelledError:
+                return
+            except Exception:
+                logger.exception("后台任务异常（读取 exception 失败）：%s", name)
+                return
+
+            if exc is None:
+                return
+
+            logger.error(
+                "后台任务异常：%s",
+                name,
+                exc_info=(type(exc), exc, exc.__traceback__),
+            )
+
+        task.add_done_callback(_on_done)
+        return task
+
     async def initialize(self, ctx: PipelineContext) -> None:
         self.ctx = ctx
         conf = ctx.astrbot_config
@@ -371,13 +402,47 @@ class InternalAgentSubStage(Stage):
         user_prompt = req.prompt
 
         session = await db_helper.get_platform_session_by_id(chatui_session_id)
+        needs_session_title = bool(session and not session.display_name)
+        needs_conversation_title = bool(
+            getattr(req, "conversation", None)
+            and not getattr(req.conversation, "title", None)
+        )
 
-        if (
-            not user_prompt
-            or not chatui_session_id
-            or not session
-            or session.display_name
-        ):
+        if not needs_session_title and not needs_conversation_title:
+            return
+
+        cleaned_text: str | None = None
+        if getattr(req, "conversation", None):
+            conversation = await self.conv_manager.get_conversation(
+                event.unified_msg_origin,
+                req.conversation.cid,
+            )
+            if conversation:
+                try:
+                    messages = json.loads(conversation.history)
+                except Exception:
+                    messages = None
+
+                if messages:
+                    latest_pair = messages[-2:]
+                    if latest_pair:
+                        content = latest_pair[0].get("content", "")
+                        if isinstance(content, list):
+                            text_parts = []
+                            for item in content:
+                                if isinstance(item, dict):
+                                    if item.get("type") == "text":
+                                        text_parts.append(item.get("text", ""))
+                                    elif item.get("type") == "image":
+                                        text_parts.append("[图片]")
+                                elif isinstance(item, str):
+                                    text_parts.append(item)
+                            cleaned_text = "User: " + " ".join(text_parts).strip()
+                        elif isinstance(content, str):
+                            cleaned_text = "User: " + content.strip()
+
+        title_input = cleaned_text or user_prompt
+        if not title_input:
             return
 
         llm_resp = await prov.text_chat(
@@ -390,7 +455,7 @@ class InternalAgentSubStage(Stage):
                 "Output only the title itself or <None>, with no explanations."
             ),
             prompt=(
-                f"Generate a concise title for the following user query:\n{user_prompt}"
+                f"Generate a concise title for the following user query:\n{title_input}"
             ),
         )
         if llm_resp and llm_resp.completion_text:
@@ -400,10 +465,17 @@ class InternalAgentSubStage(Stage):
             logger.info(
                 f"Generated chatui title for session {chatui_session_id}: {title}"
             )
-            await db_helper.update_platform_session(
-                session_id=chatui_session_id,
-                display_name=title,
-            )
+            if needs_session_title:
+                await db_helper.update_platform_session(
+                    session_id=chatui_session_id,
+                    display_name=title,
+                )
+            if needs_conversation_title and getattr(req, "conversation", None):
+                await self.conv_manager.update_conversation_title(
+                    unified_msg_origin=event.unified_msg_origin,
+                    title=title,
+                    conversation_id=req.conversation.cid,
+                )
 
     async def _save_to_history(
         self,
@@ -806,12 +878,20 @@ class InternalAgentSubStage(Stage):
                         agent_runner.stats,
                     )
 
-            asyncio.create_task(
+            # 异步处理 WebChat 特殊情况
+            if event.get_platform_name() == "webchat":
+                self._spawn_task(
+                    self._handle_webchat(event, req, provider),
+                    name=f"InternalAgentSubStage._handle_webchat umo={event.unified_msg_origin} cid={getattr(getattr(req, 'conversation', None), 'cid', None)}",
+                )
+
+            self._spawn_task(
                 Metric.upload(
                     llm_tick=1,
                     model_name=agent_runner.provider.get_model(),
                     provider_type=agent_runner.provider.meta().type,
                 ),
+                name="Metric.upload",
             )
 
         except Exception as e:

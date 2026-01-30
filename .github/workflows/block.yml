@@ -1,0 +1,57 @@
+name: 👻 GHOST PRANK Star Remover
+
+on:
+  watch:
+    types: [started]
+
+jobs:
+  ghost-action:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 👻 幽灵开始执行任务啦
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
+          # ✅ 白名单：Master 和 Bot 自己
+          WHITELIST: "IGCrystal IGCrystal-G" 
+        run: |
+          ACTOR=${{ github.actor }}
+          ORG_NAME=${{ github.repository_owner }}
+          
+          echo "👻 幽灵 IGCrystal-G 正在巡视组织: $ORG_NAME"
+          echo "检测到操作者: $ACTOR"
+          
+          # ---------------------------------------------------
+          # 第一步：友军识别 (IFF)
+          # ---------------------------------------------------
+          if [[ " $WHITELIST " =~ " $ACTOR " ]]; then
+            echo "✅ [友军] 识别为自己人 ($ACTOR)，解除警戒。喵~ 😽"
+            exit 0
+          fi
+
+          # ---------------------------------------------------
+          # 第二步：施展【星光移除术】
+          # ---------------------------------------------------
+          echo "❌ [入侵者发现] $ACTOR 试图点赞..."
+          echo "👻 正在发动组织级 Ban Hammer..."
+          
+          # 执行拉黑
+          gh api --method PUT /orgs/$ORG_NAME/blocks/$ACTOR
+          
+          echo "💥 目标 [$ACTOR] 已被暂时拉黑，Star 已被强制剥夺咯！"
+          
+          # ---------------------------------------------------
+          # 第三步：幽灵的恶作剧
+          # ---------------------------------------------------
+          echo "⏳ 让 Star 飞一会儿..."
+          sleep 2
+          
+          # ---------------------------------------------------
+          # 第四步：潜入黑暗 
+          # ---------------------------------------------------
+          echo "🔓 正在解除封印 (Unblocking)..."
+          
+          # 执行解封
+          gh api --method DELETE /orgs/$ORG_NAME/blocks/$ACTOR
+          
+          echo "👻 目标 [$ACTOR] 已被放出小黑屋，但他会发现 Star 没了！"
+          echo "任务完成。IGCrystal-G 重新潜入黑暗... 🌑"

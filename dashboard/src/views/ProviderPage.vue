@@ -2,7 +2,7 @@
   <div class="provider-page">
     <v-container fluid class="pa-0">
       <!-- 页面标题 -->
-      <v-row class="d-flex justify-space-between align-center px-4 py-3 pb-4">
+      <v-row class="provider-no-transition d-flex justify-space-between align-center px-4 py-3 pb-4">
         <div>
           <h1 class="text-h1 font-weight-bold mb-2">
             <v-icon color="black" class="me-2">mdi-creation</v-icon>{{ tm('title') }}
@@ -21,8 +21,20 @@
 
       <div>
         <!-- Provider Type 标签页 -->
-        <v-tabs v-model="selectedProviderType" bg-color="transparent" class="mb-4">
-          <v-tab v-for="type in providerTypes" :key="type.value" :value="type.value" class="font-weight-medium px-3">
+        <v-tabs
+          v-model="selectedProviderType"
+          grow
+          color="primary"
+          align-tabs="center"
+          bg-color="transparent"
+          class="provider-tabs mb-4"
+        >
+          <v-tab
+            v-for="type in providerTypes"
+            :key="type.value"
+            :value="type.value"
+            class="font-weight-medium px-3 rounded-t-lg"
+          >
             <v-icon start>{{ type.icon }}</v-icon>
             {{ type.label }}
           </v-tab>
@@ -45,7 +57,7 @@
               />
             </v-col>
 
-            <v-col cols="12" md="8" lg="9">
+            <v-col cols="12" md="8" lg="9" class="provider-no-transition">
               <v-card class="provider-config-card h-100" elevation="0" style="overflow-y: auto;">
                 <v-card-title class="d-flex align-center justify-space-between flex-wrap ga-3 pt-4 pl-5">
                   <div class="d-flex align-center ga-3" v-if="selectedProviderSource">
@@ -133,19 +145,19 @@
                   <!-- 测试状态 chip -->
                   <v-tooltip v-if="getProviderStatus(item.id)" location="top" max-width="300">
                     <template v-slot:activator="{ props }">
-                      <v-chip v-bind="props" :color="getStatusColor(getProviderStatus(item.id).status)" size="small">
+                      <v-chip v-bind="props" :color="getStatusColor(getProviderStatus(item.id)?.status)" size="small">
                         <v-icon start size="small">
-                          {{ getProviderStatus(item.id).status === 'available' ? 'mdi-check-circle' :
-                            getProviderStatus(item.id).status === 'unavailable' ? 'mdi-alert-circle' :
+                          {{ getProviderStatus(item.id)?.status === 'available' ? 'mdi-check-circle' :
+                            getProviderStatus(item.id)?.status === 'unavailable' ? 'mdi-alert-circle' :
                               'mdi-clock-outline' }}
                         </v-icon>
-                        {{ getStatusText(getProviderStatus(item.id).status) }}
+                        {{ getStatusText(getProviderStatus(item.id)?.status) }}
                       </v-chip>
                     </template>
-                    <span v-if="getProviderStatus(item.id).status === 'unavailable'">
-                      {{ getProviderStatus(item.id).error }}
+                    <span v-if="getProviderStatus(item.id)?.status === 'unavailable'">
+                      {{ getProviderStatus(item.id)?.error }}
                     </span>
-                    <span v-else>{{ getStatusText(getProviderStatus(item.id).status) }}</span>
+                    <span v-else>{{ getStatusText(getProviderStatus(item.id)?.status) }}</span>
                   </v-tooltip>
                 </template>
                 <template #actions="{ item }">
@@ -215,10 +227,10 @@
         <v-card-actions class="pa-4">
           <v-spacer></v-spacer>
           <v-btn variant="text" @click="showProviderEditDialog = false"
-            :disabled="savingProviders.includes(providerEditData?.id)">
+            :disabled="!providerEditData || savingProviders.includes(providerEditData.id)">
             {{ tm('dialogs.config.cancel') }}
           </v-btn>
-          <v-btn color="primary" @click="saveEditedProvider" :loading="savingProviders.includes(providerEditData?.id)">
+          <v-btn color="primary" @click="saveEditedProvider" :loading="!!providerEditData && savingProviders.includes(providerEditData.id)">
             {{ tm('dialogs.config.save') }}
           </v-btn>
         </v-card-actions>
@@ -256,7 +268,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
@@ -267,7 +279,8 @@ import AddNewProvider from '@/components/provider/AddNewProvider.vue'
 import ProviderModelsPanel from '@/components/provider/ProviderModelsPanel.vue'
 import ProviderSourcesPanel from '@/components/provider/ProviderSourcesPanel.vue'
 import { useProviderSources } from '@/composables/useProviderSources'
-import { getProviderIcon } from '@/utils/providerUtils'
+import { getProviderIcon, type TranslateFn } from '@/utils/providerUtils'
+import type { ProviderBase, ProviderStatus, ProviderStatusValue } from '@/types/provider'
 
 const props = defineProps({
   defaultTab: {
@@ -276,7 +289,8 @@ const props = defineProps({
   }
 })
 
-const { tm } = useModuleI18n('features/provider')
+const { tm: rawTm } = useModuleI18n('features/provider')
+const tm: TranslateFn = rawTm
 const router = useRouter()
 
 const snackbar = ref({
@@ -285,7 +299,7 @@ const snackbar = ref({
   color: 'success'
 })
 
-function showMessage(message, color = 'success') {
+function showMessage(message: string, color: string = 'success') {
   snackbar.value = { show: true, message, color }
 }
 
@@ -337,20 +351,20 @@ const {
 const showAddProviderDialog = ref(false)
 const showProviderCfg = ref(false)
 const newSelectedProviderName = ref('')
-const newSelectedProviderConfig = ref({})
+const newSelectedProviderConfig = ref<Record<string, unknown>>({})
 const newProviderOriginalId = ref('')
 const updatingMode = ref(false)
 const loading = ref(false)
-const providerStatuses = ref([])
+const providerStatuses = ref<ProviderStatus[]>([])
 const showAgentRunnerDialog = ref(false)
 const showProviderEditDialog = ref(false)
-const providerEditData = ref(null)
+const providerEditData = ref<ProviderBase | null>(null)
 const providerEditOriginalId = ref('')
 const showManualModelDialog = ref(false)
 
-const savingProviders = ref([])
+const savingProviders = ref<string[]>([])
 
-function openProviderEdit(provider) {
+function openProviderEdit(provider: ProviderBase) {
   providerEditData.value = JSON.parse(JSON.stringify(provider))
   providerEditOriginalId.value = provider.id
   showProviderEditDialog.value = true
@@ -392,7 +406,7 @@ function getEmptyText() {
   return tm('providers.empty.typed', { type: selectedProviderType.value })
 }
 
-function selectProviderTemplate(name) {
+function selectProviderTemplate(name: string) {
   newSelectedProviderName.value = name
   newProviderOriginalId.value = ''
   showProviderCfg.value = true
@@ -402,25 +416,29 @@ function selectProviderTemplate(name) {
   ))
 }
 
-function configExistingProvider(provider) {
+function configExistingProvider(provider: ProviderBase) {
   newSelectedProviderName.value = provider.id
   newProviderOriginalId.value = provider.id
   newSelectedProviderConfig.value = {}
 
   // 比对默认配置模版，看看是否有更新
-  let templates = configSchema.value.provider.config_template || {}
-  let defaultConfig = {}
-  for (let key in templates) {
+  const templates = configSchema.value.provider.config_template || {}
+  let defaultConfig: Record<string, any> = {}
+  for (const key in templates) {
     if (templates[key]?.type === provider.type) {
       defaultConfig = templates[key]
       break
     }
   }
 
-  const mergeConfigWithOrder = (target, source, reference) => {
+  const mergeConfigWithOrder = (
+    target: Record<string, any>,
+    source: Record<string, any>,
+    reference: Record<string, any>
+  ) => {
     if (source && typeof source === 'object' && !Array.isArray(source)) {
-      for (let key in source) {
-        if (source.hasOwnProperty(key)) {
+      for (const key in source) {
+        if (Object.prototype.hasOwnProperty.call(source, key)) {
           if (typeof source[key] === 'object' && source[key] !== null) {
             target[key] = Array.isArray(source[key]) ? [...source[key]] : { ...source[key] }
           } else {
@@ -430,7 +448,7 @@ function configExistingProvider(provider) {
       }
     }
 
-    for (let key in reference) {
+    for (const key in reference) {
       if (typeof reference[key] === 'object' && reference[key] !== null) {
         if (!(key in target)) {
           if (Array.isArray(reference[key])) {
@@ -486,8 +504,8 @@ async function newProvider() {
       showMessage(res.data.message || "添加成功!")
     }
     showProviderCfg.value = false
-  } catch (err) {
-    showMessage(err.response?.data?.message || err.message, 'error')
+  } catch (err: any) {
+    showMessage(err?.response?.data?.message || err?.message || '请求失败', 'error')
   } finally {
     loading.value = false
     await loadConfig()
@@ -497,7 +515,8 @@ async function newProvider() {
 async function saveEditedProvider() {
   if (!providerEditData.value) return
 
-  savingProviders.value.push(providerEditData.value.id)
+  const savingId = providerEditData.value.id
+  savingProviders.value.push(savingId)
   try {
     const res = await axios.post('/api/config/provider/update', {
       id: providerEditOriginalId.value || providerEditData.value.id,
@@ -511,20 +530,20 @@ async function saveEditedProvider() {
     showMessage(res.data.message || tm('providerSources.saveSuccess'))
     showProviderEditDialog.value = false
     await loadConfig()
-  } catch (err) {
-    showMessage(err.response?.data?.message || err.message || tm('providerSources.saveError'), 'error')
+  } catch (err: any) {
+    showMessage(err?.response?.data?.message || err?.message || tm('providerSources.saveError'), 'error')
   } finally {
-    savingProviders.value = savingProviders.value.filter(id => id !== providerEditData.value?.id)
+    savingProviders.value = savingProviders.value.filter((id) => id !== savingId)
   }
 }
 
-async function copyProvider(providerToCopy) {
+async function copyProvider(providerToCopy: ProviderBase) {
   const newProviderConfig = JSON.parse(JSON.stringify(providerToCopy))
 
-  const generateUniqueId = (baseId) => {
+  const generateUniqueId = (baseId: string) => {
     let newId = `${baseId}_copy`
     let counter = 1
-    const existingIds = providers.value.map(p => p.id)
+    const existingIds = providers.value.map((p: any) => p.id as string)
     while (existingIds.includes(newId)) {
       newId = `${baseId}_copy_${counter}`
       counter++
@@ -539,14 +558,14 @@ async function copyProvider(providerToCopy) {
     const res = await axios.post('/api/config/provider/new', newProviderConfig)
     showMessage(res.data.message || `成功复制并创建了 ${newProviderConfig.id}`)
     await loadConfig()
-  } catch (err) {
-    showMessage(err.response?.data?.message || err.message, 'error')
+  } catch (err: any) {
+    showMessage(err?.response?.data?.message || err?.message || '请求失败', 'error')
   } finally {
     loading.value = false
   }
 }
 
-async function toggleProviderEnable(provider, value) {
+async function toggleProviderEnable(provider: ProviderBase, value: boolean) {
   provider.enable = value
 
   try {
@@ -559,28 +578,28 @@ async function toggleProviderEnable(provider, value) {
       throw new Error(res.data.message)
     }
     showMessage(res.data.message || tm('messages.success.statusUpdate'))
-  } catch (error) {
-    showMessage(error.response?.data?.message || error.message || tm('providerSources.saveError'), 'error')
+  } catch (error: any) {
+    showMessage(error?.response?.data?.message || error?.message || tm('providerSources.saveError'), 'error')
   } finally {
     await loadConfig()
   }
 }
 
-function isProviderTesting(providerId) {
+function isProviderTesting(providerId: string) {
   return testingProviders.value.includes(providerId)
 }
 
-function getProviderStatus(providerId) {
-  return providerStatuses.value.find(s => s.id === providerId)
+function getProviderStatus(providerId: string): ProviderStatus | undefined {
+  return providerStatuses.value.find((s) => s.id === providerId)
 }
 
-async function testSingleProvider(provider) {
+async function testSingleProvider(provider: ProviderBase) {
   if (isProviderTesting(provider.id)) return
 
   testingProviders.value.push(provider.id)
 
   const statusIndex = providerStatuses.value.findIndex(s => s.id === provider.id)
-  const pendingStatus = {
+  const pendingStatus: ProviderStatus = {
     id: provider.id,
     name: provider.id,
     status: 'pending',
@@ -606,15 +625,15 @@ async function testSingleProvider(provider) {
     if (res.data && res.data.status === 'ok') {
       const index = providerStatuses.value.findIndex(s => s.id === provider.id)
       if (index !== -1) {
-        providerStatuses.value.splice(index, 1, res.data.data)
+        providerStatuses.value.splice(index, 1, res.data.data as ProviderStatus)
       }
     } else {
       throw new Error(res.data?.message || `Failed to check status for ${provider.id}`)
     }
-  } catch (err) {
-    const errorMessage = err.response?.data?.message || err.message || 'Unknown error'
+  } catch (err: any) {
+    const errorMessage = err?.response?.data?.message || err?.message || 'Unknown error'
     const index = providerStatuses.value.findIndex(s => s.id === provider.id)
-    const failedStatus = {
+    const failedStatus: ProviderStatus = {
       id: provider.id,
       name: provider.id,
       status: 'unavailable',
@@ -631,7 +650,7 @@ async function testSingleProvider(provider) {
   }
 }
 
-function getStatusColor(status) {
+function getStatusColor(status?: ProviderStatusValue) {
   switch (status) {
     case 'available':
       return 'success'
@@ -644,13 +663,16 @@ function getStatusColor(status) {
   }
 }
 
-function getStatusText(status) {
-  const messages = {
+function getStatusText(status?: ProviderStatusValue) {
+  const messages: Record<'available' | 'unavailable' | 'pending', string> = {
     available: tm('availability.available'),
     unavailable: tm('availability.unavailable'),
     pending: tm('availability.pending')
   }
-  return messages[status] || status
+  if (status === 'available' || status === 'unavailable' || status === 'pending') {
+    return messages[status as 'available' | 'unavailable' | 'pending']
+  }
+  return status || ''
 }
 
 function goToConfigPage() {
@@ -665,6 +687,43 @@ function goToConfigPage() {
   padding: 20px;
   padding-top: 8px;
   padding-bottom: 40px;
+}
+
+.provider-tabs {
+  position: relative;
+  padding-bottom: 2px;
+}
+
+.provider-tabs::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: rgba(var(--v-border-color), var(--v-border-opacity));
+  pointer-events: none;
+}
+
+.provider-tabs :deep(.v-tab__slider) {
+  bottom: 2px !important;
+  z-index: 1;
+}
+
+.provider-tabs :deep(.v-tab--selected .v-tab__slider) {
+  opacity: 1 !important;
+}
+
+.provider-no-transition,
+.provider-no-transition :deep(*) {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Keep VProgressCircular indeterminate spinner animated even when transitions are disabled */
+.provider-no-transition :deep(.v-progress-circular--indeterminate .v-progress-circular__overlay) {
+  animation: progress-circular-dash 1.4s ease-in-out infinite, progress-circular-rotate 1.4s linear infinite !important;
+  transform-origin: center center;
 }
 
 .provider-config-card {

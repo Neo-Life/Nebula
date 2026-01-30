@@ -114,7 +114,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useI18n } from '@/i18n/composables';
 import sidebarItems from '@/layouts/full/vertical-sidebar/sidebarItem';
@@ -122,15 +122,27 @@ import {
   getSidebarCustomization, 
   setSidebarCustomization, 
   clearSidebarCustomization,
-  resolveSidebarItems
+  resolveSidebarItems,
+  type SidebarItem
 } from '@/utils/sidebarCustomization';
 
 const { t } = useI18n();
 
 const dialog = ref(false);
-const mainItems = ref([]);
-const moreItems = ref([]);
-const draggedItem = ref(null);
+
+type SidebarListType = 'main' | 'more'
+
+type SidebarItemWithTitle = SidebarItem & { title: string }
+
+type DraggedSidebarItem = {
+  type: SidebarListType
+  index: number
+  item: SidebarItemWithTitle
+}
+
+const mainItems = ref<SidebarItemWithTitle[]>([]);
+const moreItems = ref<SidebarItemWithTitle[]>([]);
+const draggedItem = ref<DraggedSidebarItem | null>(null);
 
 function initializeItems() {
   const customization = getSidebarCustomization();
@@ -138,8 +150,10 @@ function initializeItems() {
     sidebarItems,
     customization
   );
-  mainItems.value = resolvedMain;
-  moreItems.value = resolvedMore;
+  const hasTitle = (item: SidebarItem): item is SidebarItemWithTitle =>
+    typeof item.title === 'string' && item.title.length > 0
+  mainItems.value = resolvedMain.filter(hasTitle)
+  moreItems.value = resolvedMore.filter(hasTitle)
 }
 
 function openDialog() {
@@ -147,16 +161,16 @@ function openDialog() {
   dialog.value = true;
 }
 
-function handleDragStart(event, listType, index) {
+function handleDragStart(event: DragEvent, listType: SidebarListType, index: number) {
   draggedItem.value = {
     type: listType,
     index: index,
     item: listType === 'main' ? mainItems.value[index] : moreItems.value[index]
   };
-  event.dataTransfer.effectAllowed = 'move';
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
 }
 
-function handleDrop(event, targetListType, targetIndex) {
+function handleDrop(event: DragEvent, targetListType: SidebarListType, targetIndex: number) {
   event.preventDefault();
   
   if (!draggedItem.value) return;
@@ -182,7 +196,7 @@ function handleDrop(event, targetListType, targetIndex) {
   draggedItem.value = null;
 }
 
-function handleDropToList(event, targetListType) {
+function handleDropToList(event: DragEvent, targetListType: SidebarListType) {
   event.preventDefault();
   
   if (!draggedItem.value) return;
@@ -208,14 +222,14 @@ function handleDropToList(event, targetListType) {
   draggedItem.value = null;
 }
 
-function moveToMore(index) {
+function moveToMore(index: number) {
   const item = mainItems.value.splice(index, 1)[0];
-  moreItems.value.push(item);
+  if (item) moreItems.value.push(item);
 }
 
-function moveToMain(index) {
+function moveToMain(index: number) {
   const item = moreItems.value.splice(index, 1)[0];
-  mainItems.value.push(item);
+  if (item) mainItems.value.push(item);
 }
 
 function saveCustomization() {

@@ -4,7 +4,7 @@
       <v-card flat>
         <v-card-title class="d-flex align-center py-3 px-4">
           <span class="text-h4">{{ tm('customRules.title') }}</span>
-          <v-btn icon="mdi-information-outline" size="small" variant="text" href="https://astrbot.app/use/custom-rules.html" target="_blank"></v-btn>
+          <v-btn icon="mdi-information-outline" size="small" variant="text" href="https://docs.astrbot.app/use/custom-rules.html" target="_blank"></v-btn>
           <v-chip size="small" class="ml-1">{{ totalItems }} {{ tm('customRules.rulesCount') }}</v-chip>
           <v-row class="me-4 ms-4" dense>
             <v-text-field v-model="searchQuery" prepend-inner-icon="mdi-magnify" :label="tm('search.placeholder')"
@@ -519,9 +519,20 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import axios from 'axios'
 import { useI18n, useModuleI18n } from '@/i18n/composables'
+import type { PersonaSummary, ProviderSummary } from '@/types/provider'
+import type {
+  KnowledgeBaseSummary,
+  PluginSummary,
+  SessionGroup,
+  SessionRuleItem,
+  SessionRules,
+  SessionServiceConfig,
+  SessionPluginConfig,
+  SessionKbConfig,
+} from '@/types/session'
 
 export default {
   name: 'SessionManagementPage',
@@ -540,32 +551,32 @@ export default {
       saving: false,
       deleting: false,
       loadingUmos: false,
-      rulesList: [],
+      rulesList: [] as SessionRuleItem[],
       searchQuery: '',
 
       // 分页
       currentPage: 1,
       itemsPerPage: 10,
       totalItems: 0,
-      searchTimeout: null,
+      searchTimeout: null as number | null,
 
       // 可用选项
-      availablePersonas: [],
-      availableChatProviders: [],
-      availableSttProviders: [],
-      availableTtsProviders: [],
-      availablePlugins: [],
-      availableKbs: [],
+      availablePersonas: [] as PersonaSummary[],
+      availableChatProviders: [] as ProviderSummary[],
+      availableSttProviders: [] as ProviderSummary[],
+      availableTtsProviders: [] as ProviderSummary[],
+      availablePlugins: [] as PluginSummary[],
+      availableKbs: [] as KnowledgeBaseSummary[],
 
       // 添加规则
       addRuleDialog: false,
-      availableUmos: [],
-      selectedNewUmo: null,
+      availableUmos: [] as string[],
+      selectedNewUmo: null as string | null,
 
       // 规则编辑
       ruleDialog: false,
-      selectedUmo: null,
-      editingRules: {},
+      selectedUmo: null as SessionRuleItem | null,
+      editingRules: {} as SessionRules,
 
       // 服务配置
       serviceConfig: {
@@ -574,43 +585,43 @@ export default {
         tts_enabled: true,
         custom_name: '',
         persona_id: null,
-      },
+      } as SessionServiceConfig,
 
       // Provider 配置
       providerConfig: {
         chat_completion: null,
         speech_to_text: null,
         text_to_speech: null,
-      },
+      } as Record<'chat_completion' | 'speech_to_text' | 'text_to_speech', string | null>,
 
       // 插件配置
       pluginConfig: {
         enabled_plugins: [],
         disabled_plugins: [],
-      },
+      } as SessionPluginConfig,
 
       // 知识库配置
       kbConfig: {
         kb_ids: [],
         top_k: 5,
         enable_rerank: true,
-      },
+      } as SessionKbConfig,
 
       // 删除确认
       deleteDialog: false,
-      deleteTarget: null,
+      deleteTarget: null as SessionRuleItem | null,
 
       // 批量选择和删除
-      selectedItems: [],
+      selectedItems: [] as SessionRuleItem[],
       batchDeleteDialog: false,
 
       // 快速编辑备注名
       quickEditNameDialog: false,
-      quickEditNameTarget: null,
+      quickEditNameTarget: null as SessionRuleItem | null,
       quickEditNameValue: '',
       // 批量操作
       batchScope: 'selected',
-      batchGroupId: null,
+      batchGroupId: null as string | null,
       batchLlmStatus: null,
       batchTtsStatus: null,
       batchChatProvider: null,
@@ -618,17 +629,17 @@ export default {
       batchUpdating: false,
 
       // 分组管理
-      groups: [],
+      groups: [] as SessionGroup[],
       groupsLoading: false,
       groupDialog: false,
-      groupDialogMode: 'create',
+      groupDialogMode: 'create' as 'create' | 'edit',
       editingGroup: {
-        id: null,
+        id: null as string | null,
         name: '',
-        umos: [],
+        umos: [] as string[],
       },
       groupMemberDialog: false,
-      groupMemberTarget: null,
+      groupMemberTarget: null as SessionGroup | null,
       groupMemberSearch: '',
       groupSelectedSearch: '',
 
@@ -707,7 +718,7 @@ export default {
       }))
     },
     batchScopeOptions() {
-      const options = [
+      const options: Array<{ label: string; value: string; disabled?: boolean }> = [
         { label: this.tm('batchOperations.scopeSelected'), value: 'selected' },
         { label: this.tm('batchOperations.scopeAll'), value: 'all' },
         { label: this.tm('batchOperations.scopeGroup'), value: 'group' },
@@ -822,7 +833,7 @@ export default {
       this.loading = false
     },
 
-    onTableOptionsUpdate(options) {
+    onTableOptionsUpdate(options: { page: number; itemsPerPage: number }) {
       // 当分页参数变化时重新加载数据
       this.currentPage = options.page
       this.itemsPerPage = options.itemsPerPage
@@ -842,10 +853,11 @@ export default {
         if (response.data.status === 'ok') {
           // 过滤掉已有规则的 umo
           const existingUmos = new Set(this.rulesList.map(r => r.umo))
-          this.availableUmos = response.data.data.umos.filter(umo => !existingUmos.has(umo))
+          const umos: string[] = (response.data.data.umos || []) as string[]
+          this.availableUmos = umos.filter((umo: string) => !existingUmos.has(umo))
         }
-      } catch (error) {
-        this.showError(error.response?.data?.message || this.tm('messages.loadError'))
+      } catch (error: any) {
+        this.showError(error?.response?.data?.message || this.tm('messages.loadError'))
       }
       this.loadingUmos = false
     },
@@ -855,7 +867,7 @@ export default {
       this.showSuccess(this.tm('messages.refreshSuccess'))
     },
 
-    hasProviderConfig(rules) {
+    hasProviderConfig(rules: SessionRules) {
       return rules && (
         rules['provider_perf_chat_completion'] ||
         rules['provider_perf_speech_to_text'] ||
@@ -873,7 +885,7 @@ export default {
       if (!this.selectedNewUmo) return
 
       // 创建一个新的规则项并打开编辑器
-      const newItem = {
+      const newItem: SessionRuleItem = {
         umo: this.selectedNewUmo,
         rules: {},
       }
@@ -889,7 +901,7 @@ export default {
       this.openRuleEditor(newItem)
     },
 
-    openRuleEditor(item) {
+    openRuleEditor(item: SessionRuleItem) {
       this.selectedUmo = item
       this.editingRules = item.rules || {}
 
@@ -905,9 +917,9 @@ export default {
 
       // 初始化 Provider 配置
       this.providerConfig = {
-        chat_completion: this.editingRules['provider_perf_chat_completion'] || null,
-        speech_to_text: this.editingRules['provider_perf_speech_to_text'] || null,
-        text_to_speech: this.editingRules['provider_perf_text_to_speech'] || null,
+        chat_completion: (this.editingRules['provider_perf_chat_completion'] as string) || null,
+        speech_to_text: (this.editingRules['provider_perf_speech_to_text'] as string) || null,
+        text_to_speech: (this.editingRules['provider_perf_text_to_speech'] as string) || null,
       }
 
       // 初始化插件配置
@@ -937,6 +949,8 @@ export default {
     async saveServiceConfig() {
       if (!this.selectedUmo) return
 
+      const selectedUmo = this.selectedUmo
+
       this.saving = true
       try {
         const config = { ...this.serviceConfig }
@@ -945,7 +959,7 @@ export default {
         if (config.persona_id === null) delete config.persona_id
 
         const response = await axios.post('/api/session/update-rule', {
-          umo: this.selectedUmo.umo,
+          umo: selectedUmo.umo,
           rule_key: 'session_service_config',
           rule_value: config
         })
@@ -955,24 +969,24 @@ export default {
           this.editingRules.session_service_config = config
 
           // 更新或添加到列表
-          let item = this.rulesList.find(u => u.umo === this.selectedUmo.umo)
+          let item = this.rulesList.find(u => u.umo === selectedUmo.umo)
           if (item) {
             item.rules = { ...item.rules, session_service_config: config }
           } else {
             // 新规则，添加到列表
             this.rulesList.push({
-              umo: this.selectedUmo.umo,
-              platform: this.selectedUmo.platform,
-              message_type: this.selectedUmo.message_type,
-              session_id: this.selectedUmo.session_id,
+              umo: selectedUmo.umo,
+              platform: selectedUmo.platform,
+              message_type: selectedUmo.message_type,
+              session_id: selectedUmo.session_id,
               rules: { session_service_config: config }
             })
           }
         } else {
           this.showError(response.data.message || this.tm('messages.saveError'))
         }
-      } catch (error) {
-        this.showError(error.response?.data?.message || this.tm('messages.saveError'))
+      } catch (error: any) {
+        this.showError(error?.response?.data?.message || this.tm('messages.saveError'))
       }
       this.saving = false
     },
@@ -980,11 +994,14 @@ export default {
     async saveProviderConfig() {
       if (!this.selectedUmo) return
 
+      const selectedUmo = this.selectedUmo
+
       this.saving = true
       try {
-        const updateTasks = []
-        const deleteTasks = []
-        const providerTypes = ['chat_completion', 'speech_to_text', 'text_to_speech']
+        const updateTasks: Array<Promise<unknown>> = []
+        const deleteTasks: Array<Promise<unknown>> = []
+        const providerTypes = ['chat_completion', 'speech_to_text', 'text_to_speech'] as const
+        type ProviderPerfType = (typeof providerTypes)[number]
 
         for (const type of providerTypes) {
           const value = this.providerConfig[type]
@@ -992,7 +1009,7 @@ export default {
             // 有值时更新
             updateTasks.push(
               axios.post('/api/session/update-rule', {
-                umo: this.selectedUmo.umo,
+                umo: selectedUmo.umo,
                 rule_key: `provider_perf_${type}`,
                 rule_value: value
               })
@@ -1001,7 +1018,7 @@ export default {
             // 选择了"跟随配置文件"（null）且之前有配置，则删除
             deleteTasks.push(
               axios.post('/api/session/delete-rule', {
-                umo: this.selectedUmo.umo,
+                umo: selectedUmo.umo,
                 rule_key: `provider_perf_${type}`
               })
             )
@@ -1014,21 +1031,22 @@ export default {
           this.showSuccess(this.tm('messages.saveSuccess'))
 
           // 更新或添加到列表
-          let item = this.rulesList.find(u => u.umo === this.selectedUmo.umo)
+          let item = this.rulesList.find(u => u.umo === selectedUmo.umo)
           if (!item) {
             item = {
-              umo: this.selectedUmo.umo,
-              platform: this.selectedUmo.platform,
-              message_type: this.selectedUmo.message_type,
-              session_id: this.selectedUmo.session_id,
+              umo: selectedUmo.umo,
+              platform: selectedUmo.platform,
+              message_type: selectedUmo.message_type,
+              session_id: selectedUmo.session_id,
               rules: {}
             }
             this.rulesList.push(item)
           }
           for (const type of providerTypes) {
-            if (this.providerConfig[type]) {
-              item.rules[`provider_perf_${type}`] = this.providerConfig[type]
-              this.editingRules[`provider_perf_${type}`] = this.providerConfig[type]
+            const configured = this.providerConfig[type]
+            if (configured) {
+              item.rules[`provider_perf_${type}`] = configured
+              this.editingRules[`provider_perf_${type}`] = configured
             } else {
               // 删除本地数据
               delete item.rules[`provider_perf_${type}`]
@@ -1038,8 +1056,8 @@ export default {
         } else {
           this.showSuccess(this.tm('messages.noChanges'))
         }
-      } catch (error) {
-        this.showError(error.response?.data?.message || this.tm('messages.saveError'))
+      } catch (error: any) {
+        this.showError(error?.response?.data?.message || this.tm('messages.saveError'))
       }
       this.saving = false
     },
@@ -1047,28 +1065,30 @@ export default {
     async savePluginConfig() {
       if (!this.selectedUmo) return
 
+      const selectedUmo = this.selectedUmo
+
       this.saving = true
       try {
         const config = {
-          enabled_plugins: this.pluginConfig.enabled_plugins,
-          disabled_plugins: this.pluginConfig.disabled_plugins,
+          enabled_plugins: this.pluginConfig.enabled_plugins || [],
+          disabled_plugins: this.pluginConfig.disabled_plugins || [],
         }
 
         // 如果两个列表都为空，删除配置
         if (config.enabled_plugins.length === 0 && config.disabled_plugins.length === 0) {
           if (this.editingRules.session_plugin_config) {
             await axios.post('/api/session/delete-rule', {
-              umo: this.selectedUmo.umo,
+              umo: selectedUmo.umo,
               rule_key: 'session_plugin_config'
             })
             delete this.editingRules.session_plugin_config
-            let item = this.rulesList.find(u => u.umo === this.selectedUmo.umo)
+            let item = this.rulesList.find(u => u.umo === selectedUmo.umo)
             if (item) delete item.rules.session_plugin_config
           }
           this.showSuccess(this.tm('messages.saveSuccess'))
         } else {
           const response = await axios.post('/api/session/update-rule', {
-            umo: this.selectedUmo.umo,
+            umo: selectedUmo.umo,
             rule_key: 'session_plugin_config',
             rule_value: config
           })
@@ -1077,15 +1097,15 @@ export default {
             this.showSuccess(this.tm('messages.saveSuccess'))
             this.editingRules.session_plugin_config = config
 
-            let item = this.rulesList.find(u => u.umo === this.selectedUmo.umo)
+            let item = this.rulesList.find(u => u.umo === selectedUmo.umo)
             if (item) {
               item.rules.session_plugin_config = config
             } else {
               this.rulesList.push({
-                umo: this.selectedUmo.umo,
-                platform: this.selectedUmo.platform,
-                message_type: this.selectedUmo.message_type,
-                session_id: this.selectedUmo.session_id,
+                umo: selectedUmo.umo,
+                platform: selectedUmo.platform,
+                message_type: selectedUmo.message_type,
+                session_id: selectedUmo.session_id,
                 rules: { session_plugin_config: config }
               })
             }
@@ -1093,8 +1113,8 @@ export default {
             this.showError(response.data.message || this.tm('messages.saveError'))
           }
         }
-      } catch (error) {
-        this.showError(error.response?.data?.message || this.tm('messages.saveError'))
+      } catch (error: any) {
+        this.showError(error?.response?.data?.message || this.tm('messages.saveError'))
       }
       this.saving = false
     },
@@ -1102,10 +1122,12 @@ export default {
     async saveKbConfig() {
       if (!this.selectedUmo) return
 
+      const selectedUmo = this.selectedUmo
+
       this.saving = true
       try {
         const config = {
-          kb_ids: this.kbConfig.kb_ids,
+          kb_ids: this.kbConfig.kb_ids || [],
           top_k: this.kbConfig.top_k,
           enable_rerank: this.kbConfig.enable_rerank,
         }
@@ -1114,17 +1136,17 @@ export default {
         if (config.kb_ids.length === 0) {
           if (this.editingRules.kb_config) {
             await axios.post('/api/session/delete-rule', {
-              umo: this.selectedUmo.umo,
+              umo: selectedUmo.umo,
               rule_key: 'kb_config'
             })
             delete this.editingRules.kb_config
-            let item = this.rulesList.find(u => u.umo === this.selectedUmo.umo)
+            let item = this.rulesList.find(u => u.umo === selectedUmo.umo)
             if (item) delete item.rules.kb_config
           }
           this.showSuccess(this.tm('messages.saveSuccess'))
         } else {
           const response = await axios.post('/api/session/update-rule', {
-            umo: this.selectedUmo.umo,
+            umo: selectedUmo.umo,
             rule_key: 'kb_config',
             rule_value: config
           })
@@ -1133,15 +1155,15 @@ export default {
             this.showSuccess(this.tm('messages.saveSuccess'))
             this.editingRules.kb_config = config
 
-            let item = this.rulesList.find(u => u.umo === this.selectedUmo.umo)
+            let item = this.rulesList.find(u => u.umo === selectedUmo.umo)
             if (item) {
               item.rules.kb_config = config
             } else {
               this.rulesList.push({
-                umo: this.selectedUmo.umo,
-                platform: this.selectedUmo.platform,
-                message_type: this.selectedUmo.message_type,
-                session_id: this.selectedUmo.session_id,
+                umo: selectedUmo.umo,
+                platform: selectedUmo.platform,
+                message_type: selectedUmo.message_type,
+                session_id: selectedUmo.session_id,
                 rules: { kb_config: config }
               })
             }
@@ -1149,13 +1171,13 @@ export default {
             this.showError(response.data.message || this.tm('messages.saveError'))
           }
         }
-      } catch (error) {
-        this.showError(error.response?.data?.message || this.tm('messages.saveError'))
+      } catch (error: any) {
+        this.showError(error?.response?.data?.message || this.tm('messages.saveError'))
       }
       this.saving = false
     },
 
-    confirmDeleteRules(item) {
+    confirmDeleteRules(item: SessionRuleItem) {
       this.deleteTarget = item
       this.deleteDialog = true
     },
@@ -1163,16 +1185,18 @@ export default {
     async deleteAllRules() {
       if (!this.deleteTarget) return
 
+      const deleteTarget = this.deleteTarget
+
       this.deleting = true
       try {
         const response = await axios.post('/api/session/delete-rule', {
-          umo: this.deleteTarget.umo
+          umo: deleteTarget.umo
         })
 
         if (response.data.status === 'ok') {
           this.showSuccess(this.tm('messages.deleteSuccess'))
           // 从列表中移除
-          const index = this.rulesList.findIndex(u => u.umo === this.deleteTarget.umo)
+          const index = this.rulesList.findIndex(u => u.umo === deleteTarget.umo)
           if (index > -1) {
             this.rulesList.splice(index, 1)
           }
@@ -1183,8 +1207,8 @@ export default {
         } else {
           this.showError(response.data.message || this.tm('messages.deleteError'))
         }
-      } catch (error) {
-        this.showError(error.response?.data?.message || this.tm('messages.deleteError'))
+      } catch (error: any) {
+        this.showError(error?.response?.data?.message || this.tm('messages.deleteError'))
       }
       this.deleting = false
     },
@@ -1214,14 +1238,14 @@ export default {
         } else {
           this.showError(response.data.message || this.tm('messages.batchDeleteError'))
         }
-      } catch (error) {
-        this.showError(error.response?.data?.message || this.tm('messages.batchDeleteError'))
+      } catch (error: any) {
+        this.showError(error?.response?.data?.message || this.tm('messages.batchDeleteError'))
       }
       this.deleting = false
     },
 
-    getPlatformColor(platform) {
-      const colors = {
+    getPlatformColor(platform?: string) {
+      const colors: Record<string, string> = {
         'aiocqhttp': 'blue',
         'qq_official': 'purple',
         'telegram': 'light-blue',
@@ -1229,22 +1253,23 @@ export default {
         'webchat': 'orange',
         'default': 'grey'
       }
-      return colors[platform] || colors.default
+      const key = platform || 'default'
+      return colors[key] || colors.default
     },
 
-    showSuccess(message) {
+    showSuccess(message: string) {
       this.snackbarText = message
       this.snackbarColor = 'success'
       this.snackbar = true
     },
 
-    showError(message) {
+    showError(message: string) {
       this.snackbarText = message
       this.snackbarColor = 'error'
       this.snackbar = true
     },
 
-    openQuickEditName(item) {
+    openQuickEditName(item: SessionRuleItem) {
       this.quickEditNameTarget = item
       this.quickEditNameValue = item.rules?.session_service_config?.custom_name || ''
       this.quickEditNameDialog = true
@@ -1252,6 +1277,8 @@ export default {
 
     async saveQuickEditName() {
       if (!this.quickEditNameTarget) return
+
+      const quickEditNameTarget = this.quickEditNameTarget
 
       this.saving = true
       try {
@@ -1272,7 +1299,7 @@ export default {
         }
 
         const response = await axios.post('/api/session/update-rule', {
-          umo: this.quickEditNameTarget.umo,
+          umo: quickEditNameTarget.umo,
           rule_key: 'session_service_config',
           rule_value: config
         })
@@ -1281,15 +1308,15 @@ export default {
           this.showSuccess(this.tm('messages.saveSuccess'))
 
           // 更新或添加到列表
-          let item = this.rulesList.find(u => u.umo === this.quickEditNameTarget.umo)
+          let item = this.rulesList.find(u => u.umo === quickEditNameTarget.umo)
           if (item) {
             if (!item.rules) item.rules = {}
             item.rules.session_service_config = config
           } else {
             // 新规则，添加到列表
-            const parts = this.quickEditNameTarget.umo.split(':')
+            const parts = quickEditNameTarget.umo.split(':')
             this.rulesList.push({
-              umo: this.quickEditNameTarget.umo,
+              umo: quickEditNameTarget.umo,
               platform: parts[0] || '',
               message_type: parts[1] || '',
               session_id: parts[2] || '',
@@ -1303,8 +1330,8 @@ export default {
         } else {
           this.showError(response.data.message || this.tm('messages.saveError'))
         }
-      } catch (error) {
-        this.showError(error.response?.data?.message || this.tm('messages.saveError'))
+      } catch (error: any) {
+        this.showError(error?.response?.data?.message || this.tm('messages.saveError'))
       }
       this.saving = false
     },
@@ -1313,8 +1340,8 @@ export default {
       this.batchUpdating = true
       try {
         let scope = this.batchScope
-        let groupId = null
-        let umos = []
+        let groupId: string | null = null
+        let umos: string[] = []
 
         // 处理自定义分组
         if (scope.startsWith('custom_group:')) {
@@ -1334,7 +1361,13 @@ export default {
         const tasks = []
 
         if (this.batchLlmStatus !== null || this.batchTtsStatus !== null) {
-          const serviceData = { scope, umos, group_id: groupId }
+          const serviceData: {
+            scope: string
+            umos: any[]
+            group_id: any
+            llm_enabled?: boolean
+            tts_enabled?: boolean
+          } = { scope, umos, group_id: groupId }
           if (this.batchLlmStatus !== null) {
             serviceData.llm_enabled = this.batchLlmStatus
           }
@@ -1383,8 +1416,8 @@ export default {
         } else {
           this.showError('部分更新失败')
         }
-      } catch (error) {
-        this.showError(error.response?.data?.message || '批量更新失败')
+      } catch (error: any) {
+        this.showError(error?.response?.data?.message || '批量更新失败')
       }
       this.batchUpdating = false
     },
@@ -1426,7 +1459,7 @@ export default {
       this.groupDialog = true
     },
 
-    openEditGroupDialog(group) {
+    openEditGroupDialog(group: SessionGroup) {
       this.groupDialogMode = 'edit'
       this.editingGroup = { ...group, umos: [...(group.umos || [])] }
       this.groupMemberSearch = ''
@@ -1435,13 +1468,13 @@ export default {
     },
 
     // 穿梭框操作方法
-    addToGroup(umo) {
+    addToGroup(umo: string) {
       if (!this.editingGroup.umos.includes(umo)) {
         this.editingGroup.umos.push(umo)
       }
     },
 
-    removeFromGroup(umo) {
+    removeFromGroup(umo: string) {
       const idx = this.editingGroup.umos.indexOf(umo)
       if (idx > -1) {
         this.editingGroup.umos.splice(idx, 1)
@@ -1460,7 +1493,7 @@ export default {
       this.editingGroup.umos = []
     },
 
-    formatUmoShort(umo) {
+    formatUmoShort(umo: string) {
       // 简化显示：平台:类型:ID -> 只显示ID部分
       const parts = umo.split(':')
       if (parts.length >= 3) {
@@ -1497,12 +1530,12 @@ export default {
         } else {
           this.showError(response.data.message)
         }
-      } catch (error) {
-        this.showError(error.response?.data?.message || '保存分组失败')
+      } catch (error: any) {
+        this.showError(error?.response?.data?.message || '保存分组失败')
       }
     },
 
-    async deleteGroup(group) {
+    async deleteGroup(group: SessionGroup) {
       if (!confirm(`确定要删除分组 "${group.name}" 吗？`)) return
 
       try {
@@ -1513,17 +1546,17 @@ export default {
         } else {
           this.showError(response.data.message)
         }
-      } catch (error) {
-        this.showError(error.response?.data?.message || '删除分组失败')
+      } catch (error: any) {
+        this.showError(error?.response?.data?.message || '删除分组失败')
       }
     },
 
-    openGroupMemberDialog(group) {
+    openGroupMemberDialog(group: SessionGroup) {
       this.groupMemberTarget = { ...group }
       this.groupMemberDialog = true
     },
 
-    async addSelectedToGroup(groupId) {
+    async addSelectedToGroup(groupId: string) {
       if (this.selectedItems.length === 0) {
         this.showError('请先选择要添加的会话')
         return
@@ -1540,8 +1573,8 @@ export default {
         } else {
           this.showError(response.data.message)
         }
-      } catch (error) {
-        this.showError(error.response?.data?.message || '添加失败')
+      } catch (error: any) {
+        this.showError(error?.response?.data?.message || '添加失败')
       }
     },
   },

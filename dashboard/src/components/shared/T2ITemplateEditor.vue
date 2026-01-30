@@ -200,7 +200,7 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn text @click="resetDialog = false">{{ t('core.common.cancel') }}</v-btn>
+          <v-btn variant="text" @click="resetDialog = false">{{ t('core.common.cancel') }}</v-btn>
           <v-btn color="warning" @click="confirmReset" :loading="resetLoading">{{ tm('t2iTemplateEditor.confirmResetButton') }}</v-btn>
         </v-card-actions>
       </v-card>
@@ -211,11 +211,11 @@
       <v-card>
         <v-card-title>{{ tm('t2iTemplateEditor.confirmDelete') }}</v-card-title>
         <v-card-text>
-          {{ tm('t2iTemplateEditor.confirmDeleteMessage', { name: selectedTemplate }) }}
+          {{ tm('t2iTemplateEditor.confirmDeleteMessage', { name: selectedTemplate ?? '' }) }}
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn text @click="deleteDialog = false">{{ t('core.common.cancel') }}</v-btn>
+          <v-btn variant="text" @click="deleteDialog = false">{{ t('core.common.cancel') }}</v-btn>
           <v-btn color="error" @click="confirmDelete" :loading="saveLoading">{{ tm('t2iTemplateEditor.confirmDeleteButton') }}</v-btn>
         </v-card-actions>
       </v-card>
@@ -226,11 +226,11 @@
       <v-card>
         <v-card-title>{{ tm('t2iTemplateEditor.confirmAction') }}</v-card-title>
         <v-card-text>
-          {{ tm('t2iTemplateEditor.confirmApplyMessage', { name: selectedTemplate }) }}
+          {{ tm('t2iTemplateEditor.confirmApplyMessage', { name: selectedTemplate ?? '' }) }}
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn text @click="applyAndCloseDialog = false">{{ t('core.common.cancel') }}</v-btn>
+          <v-btn variant="text" @click="applyAndCloseDialog = false">{{ t('core.common.cancel') }}</v-btn>
           <v-btn color="primary" @click="confirmApplyAndClose" :loading="saveLoading">{{ t('core.common.confirm') }}</v-btn>
         </v-card-actions>
       </v-card>
@@ -239,14 +239,60 @@
   </v-dialog>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, nextTick, watch } from 'vue'
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 import { useI18n, useModuleI18n } from '@/i18n/composables'
 import axios from 'axios'
+import hljs from 'highlight.js/lib/core'
+
+import bash from 'highlight.js/lib/languages/bash'
+import css from 'highlight.js/lib/languages/css'
+import javascript from 'highlight.js/lib/languages/javascript'
+import json from 'highlight.js/lib/languages/json'
+import markdown from 'highlight.js/lib/languages/markdown'
+import python from 'highlight.js/lib/languages/python'
+import typescript from 'highlight.js/lib/languages/typescript'
+import xml from 'highlight.js/lib/languages/xml'
+import yaml from 'highlight.js/lib/languages/yaml'
 
 const { t } = useI18n()
 const { tm } = useModuleI18n('core.shared')
+
+const globalWindow = window as unknown as Record<string, unknown>
+hljs.registerLanguage('bash', bash)
+hljs.registerLanguage('sh', bash)
+hljs.registerLanguage('shell', bash)
+hljs.registerLanguage('css', css)
+hljs.registerLanguage('javascript', javascript)
+hljs.registerLanguage('js', javascript)
+hljs.registerLanguage('json', json)
+hljs.registerLanguage('markdown', markdown)
+hljs.registerLanguage('md', markdown)
+hljs.registerLanguage('python', python)
+hljs.registerLanguage('py', python)
+hljs.registerLanguage('typescript', typescript)
+hljs.registerLanguage('ts', typescript)
+hljs.registerLanguage('xml', xml)
+hljs.registerLanguage('html', xml)
+hljs.registerLanguage('yaml', yaml)
+hljs.registerLanguage('yml', yaml)
+
+if (!globalWindow.hljs) {
+  globalWindow.hljs = hljs
+}
+
+function injectHljsShim(html: string) {
+  const hljsShim = '<script>window.hljs=window.hljs||(window.parent&&window.parent.hljs);</scr' + 'ipt>'
+
+  if (/<head[\s>]/i.test(html)) {
+    return html.replace(/<head(\b[^>]*)>/i, `<head$1>${hljsShim}`)
+  }
+  if (/^\s*<!doctype\b/i.test(html)) {
+    return html.replace(/^(\s*<!doctype\b[^>]*>)/i, `$1${hljsShim}`)
+  }
+  return `${hljsShim}${html}`
+}
 
 // --- 响应式数据 ---
 const dialog = ref(false)
@@ -257,9 +303,9 @@ const previewLoading = ref(false)
 const applyLoading = ref(false)
 
 // 模板管理
-const templates = ref([])
+const templates = ref<Array<{ name: string; [key: string]: unknown }>>([])
 const activeTemplate = ref('base')
-const selectedTemplate = ref(null)
+const selectedTemplate = ref<string | null>(null)
 const editingName = ref('') // 用于新建模式下的名称输入
 const templateContent = ref('')
 const isCreatingNew = ref(false)
@@ -269,11 +315,11 @@ const resetDialog = ref(false)
 const deleteDialog = ref(false)
 const applyAndCloseDialog = ref(false)
 
-const previewFrame = ref(null)
+const previewFrame = ref<HTMLIFrameElement | null>(null)
 
 // --- 编辑器配置 ---
 const editorTheme = computed(() => 'vs-light')
-const editorOptions = {
+const editorOptions: any = {
   automaticLayout: true,
   fontSize: 12,
   lineNumbers: 'on',
@@ -283,32 +329,35 @@ const editorOptions = {
 }
 
 // --- 预览逻辑 ---
-const previewVersion = ref('v4.0.0')
+const previewText = tm('t2iTemplateEditor.previewText') || '这是一个示例文本，用于预览模板效果。\n\n这里可以包含多行文本，支持换行和各种格式。'
+const previewVersion = ref<string>('v4.0.0')
+
 const syncPreviewVersion = async () => {
   try {
     const res = await axios.get('/api/stat/version')
-    const rawVersion = res?.data?.data?.version || res?.data?.version
-    if (rawVersion) {
-      previewVersion.value = rawVersion.startsWith('v') ? rawVersion : `v${rawVersion}`
+    const rawVersion = res?.data?.data?.version
+    if (typeof rawVersion === 'string' && rawVersion.trim()) {
+      previewVersion.value = `v${rawVersion.trim().replace(/^v/i, '')}`
     }
   } catch (error) {
-    console.warn('Failed to fetch version:', error)
+    // 预览版本获取失败不阻塞编辑器使用，回退默认值
+    console.error('获取当前版本失败:', error)
   }
 }
 
 const previewData = computed(() => ({
-  text: tm('t2iTemplateEditor.previewText') || '这是一个示例文本，用于预览模板效果。\n\n这里可以包含多行文本，支持换行和各种格式。',
-  version: previewVersion.value 
+  text: previewText,
+  version: tm('t2iTemplateEditor.previewVersion', { version: previewVersion.value }) || previewVersion.value
 }))
-
 const previewContent = computed(() => {
   try {
     let content = templateContent.value
     content = content.replace(/\{\{\s*text\s*\|\s*safe\s*\}\}/g, previewData.value.text)
     content = content.replace(/\{\{\s*version\s*\}\}/g, previewData.value.version)
-    return content
+    return injectHljsShim(content)
   } catch (error) {
-    return `<div style="color: red; padding: 20px;">模板渲染错误: ${error.message}</div>`
+    const message = error instanceof Error ? error.message : String(error)
+    return `<div style="color: red; padding: 20px;">${tm('t2iTemplateEditor.renderError', { message })}</div>`
   }
 })
 
@@ -345,7 +394,7 @@ const loadInitialData = async () => {
   }
 }
 
-const loadTemplateContent = async (name) => {
+const loadTemplateContent = async (name: string) => {
   if (!name) return
   previewLoading.value = true
   try {
@@ -390,7 +439,7 @@ const saveTemplate = async () => {
   }
 }
 
-const setActiveTemplate = async (name) => {
+const setActiveTemplate = async (name: string) => {
   applyLoading.value = true
   try {
     await axios.post('/api/t2i/templates/set_active', { name })
@@ -481,7 +530,9 @@ const confirmApplyAndClose = async () => {
   if (isCreatingNew.value) return
   
   await saveTemplate()
-  await setActiveTemplate(selectedTemplate.value)
+  if (selectedTemplate.value) {
+    await setActiveTemplate(selectedTemplate.value)
+  }
   applyAndCloseDialog.value = false
   closeDialog()
 }
@@ -490,9 +541,7 @@ const refreshPreview = () => {
   previewLoading.value = true
   syncPreviewVersion()
   nextTick(() => {
-    if (previewFrame.value) {
-      previewFrame.value.contentWindow.location.reload()
-    }
+    previewFrame.value?.contentWindow?.location.reload()
     setTimeout(() => previewLoading.value = false, 500)
   })
 }

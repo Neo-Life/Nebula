@@ -101,18 +101,25 @@
   </v-dialog>
 </template>
 
-<script setup>
-import { ref, computed, watch } from 'vue'
+<script setup lang="ts">
+import { ref, computed, watch, type PropType } from 'vue'
 import axios from 'axios'
 import { useModuleI18n } from '@/i18n/composables'
 
+type PluginMeta = {
+  name: string
+  desc?: string
+  activated?: boolean
+  reserved?: boolean
+}
+
 const props = defineProps({
   modelValue: {
-    type: Array,
+    type: Array as PropType<string[]>,
     default: () => []
   },
   buttonText: {
-    type: String,
+    type: String as PropType<string>,
     default: ''
   },
   maxDisplayItems: {
@@ -125,10 +132,10 @@ const emit = defineEmits(['update:modelValue'])
 const { tm } = useModuleI18n('core.shared')
 
 const dialog = ref(false)
-const pluginList = ref([])
+const pluginList = ref<PluginMeta[]>([])
 const loading = ref(false)
-const selectionMode = ref('custom') // 'all', 'none', 'custom'
-const selectedPlugins = ref([])
+const selectionMode = ref<'all' | 'none' | 'custom'>('custom') // 'all', 'none', 'custom'
+const selectedPlugins = ref<string[]>([])
 
 // 判断是否为"所有插件"模式
 const isAllPlugins = computed(() => {
@@ -136,9 +143,9 @@ const isAllPlugins = computed(() => {
 })
 
 // 移除插件
-function removePlugin(pluginName) {
+function removePlugin(pluginName: string) {
   if (props.modelValue && props.modelValue.length > 0) {
-    const newValue = props.modelValue.filter(name => name !== pluginName)
+    const newValue = props.modelValue.filter((name) => name !== pluginName)
     emit('update:modelValue', newValue)
   }
 }
@@ -168,13 +175,22 @@ async function loadPlugins() {
     const response = await axios.get('/api/plugin/get')
     if (response.data.status === 'ok') {
       // 只显示已激活且非系统的插件，并按名称排序
-      pluginList.value = (response.data.data || [])
-        .filter(plugin => plugin.activated && !plugin.reserved)
-        .sort((a, b) => {
-          const nameA = a.name || '';
-          const nameB = b.name || '';
-          return nameA.localeCompare(nameB);
+      const raw = (response.data.data || []) as unknown[]
+      const normalized: PluginMeta[] = raw
+        .map((p) => {
+          const maybe = p as { name?: unknown; desc?: unknown; activated?: unknown; reserved?: unknown }
+          const name = typeof maybe.name === 'string' ? maybe.name : ''
+          return {
+            name,
+            desc: typeof maybe.desc === 'string' ? maybe.desc : undefined,
+            activated: typeof maybe.activated === 'boolean' ? maybe.activated : undefined,
+            reserved: typeof maybe.reserved === 'boolean' ? maybe.reserved : undefined
+          }
         })
+        .filter((p) => p.name.length > 0)
+      pluginList.value = normalized
+        .filter((plugin) => Boolean(plugin.activated) && !plugin.reserved)
+        .sort((a, b) => a.name.localeCompare(b.name))
     }
   } catch (error) {
     console.error('加载插件列表失败:', error)
@@ -185,7 +201,7 @@ async function loadPlugins() {
 }
 
 function confirmSelection() {
-  let newValue = []
+  let newValue: string[] = []
   
   switch (selectionMode.value) {
     case 'all':

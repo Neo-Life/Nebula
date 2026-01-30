@@ -1,9 +1,3 @@
-<script setup>
-import { useCommonStore } from '@/stores/common';
-import axios from 'axios';
-import { EventSourcePolyfill } from 'event-source-polyfill';
-</script>
-
 <template>
   <div>
     <div class="filter-controls mb-2" v-if="showLevelBtns">
@@ -15,16 +9,31 @@ import { EventSourcePolyfill } from 'event-source-polyfill';
       </v-chip-group>
     </div>
 
-    <div id="term" style="background-color: #1e1e1e; padding: 16px; border-radius: 8px; overflow-y:auto; height: 100%">
+    <div ref="term" style="background-color: #1e1e1e; padding: 16px; border-radius: 8px; overflow-y:auto; height: 100%">
     </div>
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import axios from 'axios';
+import { EventSourcePolyfill } from 'event-source-polyfill';
+
+type LogLevel = 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL'
+
+type RawLog = Record<string, unknown>
+
+type NormalizedLog = {
+  time: number
+  __timeMs: number
+  level: string
+  data: string
+} & RawLog
+
 export default {
   name: 'ConsoleDisplayer',
   data() {
     return {
+      maxLocalLogCacheLen: 1000,
       autoScroll: true,
       logColorAnsiMap: {
         '\u001b[1;34m': 'color: #0000FF; font-weight: bold;',
@@ -35,29 +44,24 @@ export default {
         '\u001b[0m': 'color: inherit; font-weight: normal;',
         '\u001b[32m': 'color: #00FF00;',
         'default': 'color: #FFFFFF;'
-      },
-      logLevels: ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
-      selectedLevels: [0, 1, 2, 3, 4],
+      } as Record<string, string>,
+      logLevels: ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'] as LogLevel[],
+      selectedLevels: [0, 1, 2, 3, 4] as number[],
       levelColors: {
         'DEBUG': 'grey',
         'INFO': 'blue-lighten-3',
         'WARNING': 'amber',
         'ERROR': 'red',
         'CRITICAL': 'purple'
-      },
-      localLogCache: [],
-      eventSource: null,
-      retryTimer: null,
+      } as Record<LogLevel, string>,
+      localLogCache: [] as NormalizedLog[],
+      eventSource: null as EventSourcePolyfill | null,
+      retryTimer: null as number | null,
       retryAttempts: 0,           
       maxRetryAttempts: 10,       
       baseRetryDelay: 1000,       
-      lastEventId: null,          
+      lastEventId: null as string | null,          
     }
-  },
-  computed: {
-    commonStore() {
-      return useCommonStore();
-    },
   },
   props: {
     historyNum: {
@@ -79,7 +83,11 @@ export default {
   },
   async mounted() {
     await this.fetchLogHistory();
-    this.connectSSE();
+
+    const token = localStorage.getItem('token');
+    if (token) {
+      this.connectSSE();
+    }
   },
   beforeUnmount() {
     if (this.eventSource) {
@@ -93,6 +101,21 @@ export default {
     this.retryAttempts = 0;
   },
   methods: {
+    normalizeLog(log: unknown): NormalizedLog {
+      const raw = (log && typeof log === 'object' ? (log as RawLog) : {})
+      const rawTime = Object.prototype.hasOwnProperty.call(raw, 'time') ? raw.time : 0;
+      const timeNum = typeof rawTime === 'string' ? Number.parseFloat(rawTime) : Number(rawTime ?? 0);
+      const timeMs = Number.isFinite(timeNum) ? Math.round(timeNum * 1000) : 0;
+
+      return {
+        ...(raw as RawLog),
+        time: Number.isFinite(timeNum) ? timeNum : 0,
+        __timeMs: timeMs,
+        level: (raw.level ?? '').toString(),
+        data: (raw.data ?? '').toString(),
+      };
+    },
+
     connectSSE() {
       if (this.eventSource) {
         this.eventSource.close();
@@ -102,8 +125,12 @@ export default {
       console.log(`正在连接日志流... (尝试次数: ${this.retryAttempts})`);
       
       const token = localStorage.getItem('token');
+      if (!token) {
+        // 未登录时不要连接（否则后端会刷大量 401）
+        return;
+      }
 
-      this.eventSource = new EventSourcePolyfill('/api/live-log', {
+      const eventSource = new EventSourcePolyfill('/api/live-log', {
         headers: {
             'Authorization': token ? `Bearer ${token}` : ''
         },
@@ -111,36 +138,49 @@ export default {
         withCredentials: true 
       });
 
-      this.eventSource.onopen = () => {
+      this.eventSource = eventSource;
+
+      eventSource.onopen = () => {
         console.log('日志流连接成功！');
         this.retryAttempts = 0;
 
-        if (!this.lastEventId) {
-            this.fetchLogHistory();
+        if (this.localLogCache.length === 0) {
+          this.fetchLogHistory();
         }
       };
 
-      this.eventSource.onmessage = (event) => {
+      eventSource.onmessage = (event: MessageEvent) => {
         try {
-          if (event.lastEventId) {
-            this.lastEventId = event.lastEventId;
+          const lastId = (event as any)?.lastEventId as unknown
+          if (typeof lastId === 'string' && lastId) {
+            this.lastEventId = lastId;
           }
 
-          const payload = JSON.parse(event.data);
+          const payload = JSON.parse(String(event.data));
           this.processNewLogs([payload]);
         } catch (e) {
           console.error('解析日志失败:', e);
         }
       };
 
-      this.eventSource.onerror = (err) => {
+      eventSource.onerror = (err: unknown) => {
 
-        if (err.status === 401) {
-            console.error('鉴权失败 (401)，可能是 Token 过期了。');
-
-        } else {
-            console.warn('日志流连接错误:', err);
+        const status = (err as any)?.status;
+        if (status === 401 || status === 403) {
+          console.error(`鉴权失败 (${status})，停止重连。请重新登录/刷新页面。`);
+          if (this.eventSource) {
+            this.eventSource.close();
+            this.eventSource = null;
+          }
+          if (this.retryTimer) {
+            clearTimeout(this.retryTimer);
+            this.retryTimer = null;
+          }
+          this.retryAttempts = this.maxRetryAttempts;
+          return;
         }
+
+        console.warn('日志流连接错误:', err);
         
         if (this.eventSource) {
             this.eventSource.close();
@@ -164,7 +204,7 @@ export default {
           this.retryTimer = null;
         }
 
-        this.retryTimer = setTimeout(async () => {
+        this.retryTimer = window.setTimeout(async () => {
           this.retryAttempts++;
           
           if (!this.lastEventId) {
@@ -176,33 +216,35 @@ export default {
       };
     },
 
-    processNewLogs(newLogs) {
+    processNewLogs(newLogs: unknown[]) {
       if (!newLogs || newLogs.length === 0) return;
 
       let hasUpdate = false;
 
-      newLogs.forEach(log => {
+      newLogs.forEach((log) => {
 
-        const exists = this.localLogCache.some(existing => 
-          existing.time === log.time && 
-          existing.data === log.data &&
-          existing.level === log.level
+        const normalized = this.normalizeLog(log);
+
+        const exists = this.localLogCache.some((existing) =>
+          existing.__timeMs === normalized.__timeMs &&
+          existing.data === normalized.data &&
+          existing.level === normalized.level
         );
         
         if (!exists) {
-            this.localLogCache.push(log);
+            this.localLogCache.push(normalized);
             hasUpdate = true;
             
-            if (this.isLevelSelected(log.level)) {
-              this.printLog(log.data);
+            if (this.isLevelSelected(normalized.level)) {
+              this.printLog(normalized.data);
             }
         }
       });
 
       if (hasUpdate) {
-        this.localLogCache.sort((a, b) => a.time - b.time);
+        this.localLogCache.sort((a, b) => a.__timeMs - b.__timeMs);
         
-        const maxSize = this.commonStore.log_cache_max_len || 200;
+        const maxSize = this.maxLocalLogCacheLen || 200;
         if (this.localLogCache.length > maxSize) {
            this.localLogCache.splice(0, this.localLogCache.length - maxSize);
         }
@@ -220,11 +262,11 @@ export default {
       }
     },
     
-    getLevelColor(level) {
-      return this.levelColors[level] || 'grey';
+    getLevelColor(level: string) {
+      return this.levelColors[level as LogLevel] || 'grey';
     },
 
-    isLevelSelected(level) {
+    isLevelSelected(level: string) {
       for (let i = 0; i < this.selectedLevels.length; ++i) {
         let level_ = this.logLevels[this.selectedLevels[i]]
         if (level_ === level) {
@@ -235,12 +277,12 @@ export default {
     },
 
     refreshDisplay() {
-      const termElement = document.getElementById('term');
+      const termElement = this.$refs.term as HTMLElement | undefined;
       if (termElement) {
         termElement.innerHTML = '';
         
         if (this.localLogCache && this.localLogCache.length > 0) {
-          this.localLogCache.forEach(logItem => {
+          this.localLogCache.forEach((logItem) => {
             if (this.isLevelSelected(logItem.level)) {
               this.printLog(logItem.data);
             }
@@ -253,8 +295,8 @@ export default {
       this.autoScroll = !this.autoScroll;
     },
 
-    printLog(log) {
-      let ele = document.getElementById('term')
+    printLog(log: string) {
+      const ele = this.$refs.term as HTMLElement | undefined;
       if (!ele) {
         return;
       }
@@ -263,13 +305,15 @@ export default {
       let style = this.logColorAnsiMap['default']
       for (let key in this.logColorAnsiMap) {
         if (log.startsWith(key)) {
-          style = this.logColorAnsiMap[key]
+          style = this.logColorAnsiMap[key] || this.logColorAnsiMap['default']
           log = log.replace(key, '').replace('\u001b[0m', '')
           break
         }
       }
 
-      span.style = style + 'display: block; font-size: 12px; font-family: Consolas, monospace; white-space: pre-wrap; margin-bottom: 2px;'
+      span.style.cssText =
+        style +
+        'display: block; font-size: 12px; font-family: Consolas, monospace; white-space: pre-wrap; margin-bottom: 2px;'
       span.classList.add('fade-in')
       span.innerText = `${log}`;
       ele.appendChild(span)

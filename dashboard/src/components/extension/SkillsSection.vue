@@ -23,7 +23,7 @@
 
       <v-row v-else>
         <v-col v-for="skill in skills" :key="skill.name" cols="12" md="6" lg="4" xl="3">
-          <item-card :item="skill" title-field="name" enabled-field="active" :loading="itemLoading[skill.name] || false"
+          <item-card :item="skill" title-field="name" enabled-field="active" title-class="text-h3" :loading="itemLoading[skill.name] || false"
             :show-edit-button="false" @toggle-enabled="toggleSkill" @delete="confirmDelete">
             <template v-slot:item-details="{ item }">
               <div class="text-caption text-medium-emphasis mb-2 skill-description">

@@ -76,7 +76,7 @@
     "save": "Save",
     "livePreview": "Live Preview (may differ)",
     "refreshPreview": "Refresh Preview",
-    "syntaxHint": "Supports jinja2 syntax. Available variables: text | safe (text to render), version (AstrBot version)",
+    "syntaxHint": "Supports jinja2 syntax. Available variables: text | safe (text to render), version (Nebula version)",
     "saveAndApply": "Save and Apply Current Template",
     "confirmReset": "Confirm Reset",
     "confirmResetMessage": "Are you sure you want to reset the 'base' template to default content? Any unsaved changes in the editor will be lost. This action cannot be undone.",
@@ -85,6 +85,9 @@
     "confirmDeleteMessage": "Are you sure you want to delete template '{name}'? This action cannot be undone.",
     "confirmDeleteButton": "Confirm Delete",
     "confirmAction": "Confirm Action",
-    "confirmApplyMessage": "Are you sure you want to save changes to '{name}' and set it as the active template?"
+    "confirmApplyMessage": "Are you sure you want to save changes to '{name}' and set it as the active template?",
+    "renderError": "Template render error: {message}",
+    "previewText": "This is a sample text used for template preview.\n\nIt can contain multiple lines and various formatting.",
+    "previewVersion": "{version}"
   }
 }

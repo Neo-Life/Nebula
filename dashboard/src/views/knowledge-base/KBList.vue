@@ -7,12 +7,12 @@
         <p class="text-subtitle-1 text-medium-emphasis">{{ t('list.subtitle') }}</p>
       </div>
       <v-btn icon="mdi-information-outline" variant="text" size="small" color="grey"
-        href="https://astrbot.app/use/knowledge-base.html" target="_blank" />
+        href="https://docs.astrbot.app/use/knowledge-base.html" target="_blank" />
     </div>
 
     <!-- 操作按钮栏 -->
     <div class="action-bar mb-6">
-      <v-btn prepend-icon="mdi-plus" color="primary" variant="elevated" @click="showCreateDialog = true">
+      <v-btn prepend-icon="mdi-plus" color="primary" variant="flat" @click="showCreateDialog = true">
         {{ t('list.create') }}
       </v-btn>
       <v-btn prepend-icon="mdi-refresh" variant="tonal" @click="loadKnowledgeBases" :loading="loading">
@@ -57,7 +57,7 @@
     <div v-else class="empty-state">
       <v-icon size="100" color="grey-lighten-2">mdi-book-open-variant</v-icon>
       <h2 class="mt-4">{{ t('list.empty') }}</h2>
-      <v-btn class="mt-6" prepend-icon="mdi-plus" color="primary" variant="elevated" size="large"
+      <v-btn class="mt-6" prepend-icon="mdi-plus" color="primary" variant="flat" size="large"
         @click="showCreateDialog = true">
         {{ t('list.create') }}
       </v-btn>
@@ -128,7 +128,7 @@
           <v-btn variant="text" @click="closeCreateDialog">
             {{ t('create.cancel') }}
           </v-btn>
-          <v-btn color="primary" variant="elevated" @click="submitForm" :loading="saving">
+          <v-btn color="primary" variant="flat" @click="submitForm" :loading="saving">
             {{ editingKB ? t('edit.submit') : t('create.submit') }}
           </v-btn>
         </v-card-actions>
@@ -137,21 +137,23 @@
 
     <!-- Emoji 选择器对话框 -->
     <v-dialog v-model="showEmojiPicker" max-width="500px">
-      <v-card>
-        <v-card-title class="pa-4">{{ t('emoji.title') }}</v-card-title>
+      <v-card class="emoji-dialog-card">
+        <v-card-title class="pa-4 emoji-dialog-title">{{ t('emoji.title') }}</v-card-title>
         <v-divider />
-        <v-card-text class="pa-4">
-          <div v-for="category in emojiCategories" :key="category.key" class="mb-4">
-            <p class="text-subtitle-2 mb-2">{{ t(`emoji.categories.${category.key}`) }}</p>
-            <div class="emoji-grid">
-              <div v-for="emoji in category.emojis" :key="emoji" class="emoji-item" @click="selectEmoji(emoji)">
-                {{ emoji }}
+        <v-card-text class="pa-4 emoji-dialog-content">
+          <div class="emoji-scroll-wrapper">
+            <div v-for="category in emojiCategories" :key="category.key" class="mb-4">
+              <p class="text-subtitle-2 mb-2">{{ t(`emoji.categories.${category.key}`) }}</p>
+              <div class="emoji-grid">
+                <div v-for="emoji in category.emojis" :key="emoji" class="emoji-item" @click="selectEmoji(emoji)">
+                  {{ emoji }}
+                </div>
               </div>
             </div>
           </div>
         </v-card-text>
         <v-divider />
-        <v-card-actions class="pa-4">
+        <v-card-actions class="pa-4 emoji-dialog-actions">
           <v-spacer />
           <v-btn variant="text" @click="showEmojiPicker = false">
             {{ t('emoji.close') }}
@@ -177,7 +179,7 @@
           <v-btn variant="text" @click="cancelDelete">
             {{ t('delete.cancel') }}
           </v-btn>
-          <v-btn color="error" variant="elevated" @click="deleteKB" :loading="deleting">
+          <v-btn color="error" variant="flat" @click="deleteKB" :loading="deleting">
             {{ t('delete.confirm') }}
           </v-btn>
         </v-card-actions>
@@ -578,7 +580,7 @@ onMounted(() => {
 
 .emoji-grid {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
+  grid-template-columns: repeat(8, 56px);
   gap: 8px;
 }
 
@@ -598,6 +600,27 @@ onMounted(() => {
   transform: scale(1.2);
 }
 
+.emoji-dialog-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.emoji-dialog-title,
+.emoji-dialog-actions {
+  flex-shrink: 0;
+}
+
+.emoji-dialog-content {
+  overflow-x: auto;
+}
+
+.emoji-scroll-wrapper {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: max-content;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .kb-list-page {
@@ -609,7 +632,7 @@ onMounted(() => {
   }
 
   .emoji-grid {
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(6, 48px);
   }
 }
 </style>

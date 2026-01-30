@@ -109,7 +109,7 @@
     <WaitingForRestart ref="wfr"></WaitingForRestart>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import axios from 'axios'
 import { useI18n } from '@/i18n/composables'
@@ -123,18 +123,38 @@ const loading = ref(false)
 const error = ref('')
 const migrating = ref(false)
 const migrationCompleted = ref(false)
-const migrationResult = ref(null)
-const platforms = ref([])
-const selectedPlatforms = ref({})
-const wfr = ref(null)
+type MigrationResult = {
+    success: boolean
+    message?: string
+    cancelled?: boolean
+}
 
-let resolvePromise = null
+const migrationResult = ref<MigrationResult | null>(null)
+
+type Platform = {
+    id: string
+    platform_type?: string
+    type?: string
+    [key: string]: any
+}
+
+type PlatformGroup = {
+    type: string
+    platforms: Platform[]
+}
+
+const platforms = ref<Platform[]>([])
+const selectedPlatforms = ref<Record<string, string>>({})
+const wfr = ref<InstanceType<typeof WaitingForRestart> | null>(null)
+
+let resolvePromise: ((result: MigrationResult | null) => void) | null = null
 
 // 计算属性：将平台按类型分组
-const platformGroups = computed(() => {
-    const groups = {}
+const platformGroups = computed<PlatformGroup[]>(() => {
+    const groups: Record<string, PlatformGroup> = {}
     platforms.value.forEach(platform => {
-        const type = platform.platform_type || platform.type
+        const type = (platform.platform_type || platform.type || '').toString()
+        if (!type) return
         if (!groups[type]) {
             groups[type] = {
                 type,
@@ -143,7 +163,7 @@ const platformGroups = computed(() => {
         }
         groups[type].platforms.push(platform)
     })
-    return Object.values(groups)
+    return Object.values(groups) as PlatformGroup[]
 })
 
 // 计算属性：检查是否可以开始迁移
@@ -199,7 +219,7 @@ const handleMigration = async () => {
 
     try {
         // 构建 platform_id_map
-        const platformIdMap = {}
+        const platformIdMap: Record<string, { platform_id: string; platform_type: string }> = {}
 
         Object.entries(selectedPlatforms.value).forEach(([type, platformId]) => {
             const selectedPlatform = platforms.value.find(p => p.id === platformId)
@@ -228,7 +248,7 @@ const handleMigration = async () => {
         }
     } catch (err) {
         console.error('Migration failed:', err)
-        error.value = err.message || t('features.migration.dialog.migrationError')
+        error.value = (err instanceof Error ? err.message : '') || t('features.migration.dialog.migrationError')
     } finally {
         migrating.value = false
     }
@@ -239,6 +259,7 @@ const handleCancel = () => {
     isOpen.value = false
     if (resolvePromise) {
         resolvePromise({ success: false, cancelled: true })
+        resolvePromise = null
     }
 }
 
@@ -247,12 +268,13 @@ const handleClose = () => {
     isOpen.value = false
     if (resolvePromise) {
         resolvePromise(migrationResult.value)
+        resolvePromise = null
     }
 }
 
 
 // 获取平台显示标签
-const getPlatformLabel = (platform) => {
+const getPlatformLabel = (platform: Platform) => {
     const name = platform.name || platform.id || 'Unknown'
     return `${name}`
 }
@@ -260,9 +282,7 @@ const getPlatformLabel = (platform) => {
 // 重启 AstrBot
 const restartAstrBot = () => {
     axios.post('/api/stat/restart-core').then(() => {
-        if (wfr.value) {
-            wfr.value.check();
-        }
+        wfr.value?.check()
     })
 }
 
@@ -271,7 +291,7 @@ const open = () => {
     isOpen.value = true
 
     return new Promise((resolve) => {
-        resolvePromise = resolve
+        resolvePromise = resolve as (result: MigrationResult | null) => void
     })
 }
 

@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="project-list-container">
         <!-- 项目按钮 -->
         <div style="padding: 0 8px 0px 8px; opacity: 0.6;">
             <v-btn block variant="text" class="project-btn" @click="toggleExpanded" prepend-icon="mdi-folder-outline">
@@ -102,6 +102,10 @@ function handleDeleteProject(project: Project) {
     text-transform: none;
 }
 
+.project-list-container {
+    border-bottom: 2px solid rgba(0, 0, 0, 0.04);
+}
+
 .project-item {
     border-radius: 16px !important;
     padding: 4px 12px !important;
@@ -109,7 +113,7 @@ function handleDeleteProject(project: Project) {
 }
 
 .project-item:hover {
-    background-color: rgba(103, 58, 183, 0.05);
+    background-color: rgba(58, 106, 183, 0.05);
 }
 
 .project-item:hover .project-actions {
@@ -153,7 +157,7 @@ function handleDeleteProject(project: Project) {
 }
 
 .create-project-item:hover {
-    background-color: rgba(103, 58, 183, 0.08);
+    background-color: rgba(58, 108, 183, 0.08);
     opacity: 1;
 }
 </style>

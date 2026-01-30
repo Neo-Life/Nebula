@@ -1,8 +1,16 @@
 <template>
-  <v-card class="item-card hover-elevation" style="padding: 4px;" elevation="0">
-    <v-card-title class="d-flex justify-space-between align-center pb-1 pt-3">
-      <span class="text-h2 text-truncate" :title="getItemTitle()">{{ getItemTitle() }}</span>
-      <v-tooltip location="top">
+  <v-card 
+    :class="['item-card', 'hover-elevation', { 'pin-actions': pinActions }]"
+    elevation="0"
+    v-bind="$attrs" 
+  >
+    <v-card-title v-if="!hideHeader" class="d-flex justify-space-between align-center pb-1 pt-3 flex-shrink-0">
+      <div class="d-flex align-center ga-2 flex-grow-1" style="min-width: 0;">
+        <slot name="title-prepend" :item="item"></slot>
+        <span :class="['text-truncate', titleClass]" style="min-width: 0;" :title="getItemTitle()">{{ getItemTitle() }}</span>
+      </div>
+      
+      <v-tooltip location="top" v-if="showSwitch">
         <template v-slot:activator="{ props }">
           <v-switch
             color="primary"
@@ -19,32 +27,25 @@
       </v-tooltip>
     </v-card-title>
 
-    <v-card-text>
+    <v-card-text 
+      :class="[{ 'pa-0': noPadding }, pinActions ? 'flex-grow-1 d-flex flex-column' : '']"
+      style="overflow: hidden; min-height: 0;"
+    >
       <slot name="item-details" :item="item"></slot>
     </v-card-text>
 
-  <v-card-actions style="margin: 8px;">
-    <v-btn
-      variant="outlined"
-      color="error"
-      size="small"
-      rounded="xl"
-      :disabled="loading"
-      @click="$emit('delete', item)"
+    <v-card-actions
+      v-if="!hideHeader"
+      :class="['flex-shrink-0 align-center', wrapActions ? 'flex-wrap ga-2' : '']"
+      style="margin: 8px;"
     >
-      {{ t('core.common.itemCard.delete') }}
-    </v-btn>
-    <v-btn
-      v-if="showEditButton"
-      variant="tonal"
-      color="primary"
-      size="small"
-      rounded="xl"
-      :disabled="loading"
-      @click="$emit('edit', item)"
-    >
-      {{ t('core.common.itemCard.edit') }}
-    </v-btn>
+      
+      <slot name="footer-start" :item="item"></slot>
+      
+      <v-spacer></v-spacer>
+      
+      <slot name="actions" :item="item"></slot>
+      
       <v-btn
         v-if="showCopyButton"
         variant="tonal"
@@ -52,15 +53,37 @@
         size="small"
         rounded="xl"
         :disabled="loading"
-        @click="$emit('copy', item)"
+        @click.stop="$emit('copy', item)"
       >
         {{ t('core.common.itemCard.copy') }}
       </v-btn>
-      <slot name="actions" :item="item"></slot>
-      <v-spacer></v-spacer>
+
+      <v-btn
+        v-if="showEditButton"
+        variant="tonal"
+        color="primary"
+        size="small"
+        rounded="xl"
+        :disabled="loading"
+        @click.stop="$emit('edit', item)"
+      >
+        {{ t('core.common.itemCard.edit') }}
+      </v-btn>
+
+      <v-btn
+        v-if="showDeleteButton"
+        variant="outlined"
+        color="error"
+        size="small"
+        rounded="xl"
+        :disabled="loading"
+        @click.stop="$emit('delete', item)"
+      >
+        {{ t('core.common.itemCard.delete') }}
+      </v-btn>
     </v-card-actions>
 
-    <div class="d-flex justify-end align-center" style="position: absolute; bottom: 16px; right: 16px; opacity: 0.2;" v-if="bglogo">
+    <div class="d-flex justify-end align-center" style="position: absolute; bottom: 16px; right: 16px; opacity: 0.2; pointer-events: none;" v-if="bglogo">
       <v-img
         :src="bglogo"
         contain
@@ -71,7 +94,7 @@
   </v-card>
 </template>
 
-<script>
+<script lang="ts">
 import { useI18n } from '@/i18n/composables';
 
 export default {
@@ -81,46 +104,26 @@ export default {
     return { t };
   },
   props: {
-    item: {
-      type: Object,
-      required: true
-    },
-    titleField: {
-      type: String,
-      default: 'id'
-    },
-    enabledField: {
-      type: String,
-      default: 'enable'
-    },
-    bglogo: {
-      type: String,
-      default: null
-    },
-    loading: {
-      type: Boolean,
-      default: false
-    },
-    showCopyButton: {
-      type: Boolean,
-      default: false
-    },
-    showEditButton: {
-      type: Boolean,
-      default: true
-    }
+    item: { type: Object, required: true },
+    titleField: { type: String, default: 'id' },
+    enabledField: { type: String, default: 'enable' },
+    bglogo: { type: String, default: null },
+    loading: { type: Boolean, default: false },
+    showCopyButton: { type: Boolean, default: false },
+    hideHeader: { type: Boolean, default: false },
+    noPadding: { type: Boolean, default: false },
+    showSwitch: { type: Boolean, default: true },
+    titleClass: { type: String, default: 'text-h6' },
+    showEditButton: { type: Boolean, default: true },
+    showDeleteButton: { type: Boolean, default: true },
+    wrapActions: { type: Boolean, default: false },
+    pinActions: { type: Boolean, default: true }
   },
   emits: ['toggle-enabled', 'delete', 'edit', 'copy'],
   methods: {
-    getItemTitle() {
-      return this.item[this.titleField];
-    },
-    getItemEnabled() {
-      return this.item[this.enabledField];
-    },
-    toggleEnabled() {
-      this.$emit('toggle-enabled', this.item);
-    }
+    getItemTitle() { return this.item[this.titleField]; },
+    getItemEnabled() { return this.item[this.enabledField]; },
+    toggleEnabled() { this.$emit('toggle-enabled', this.item); }
   }
 }
 </script>
@@ -128,31 +131,27 @@ export default {
 <style scoped>
 .item-card {
   position: relative;
-  border-radius: 18px;
+  border-radius: 16px; 
   transition: all 0.3s ease;
   overflow: hidden;
-  min-height: 220px;
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
+  height: 100%;
+  border: 3px solid rgba(var(--v-theme-border), var(--v-theme-border-opacity, 1));
+  color: rgba(var(--v-theme-primaryText));
+  opacity: 0.8;
+}
+
+.item-card.pin-actions {
   justify-content: space-between;
 }
 
 .hover-elevation:hover {
   transform: translateY(-2px);
-}
-
-.item-status-indicator {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: #ccc;
-  z-index: 10;
-}
-
-.item-status-indicator.active {
-  background-color: #4caf50;
+  box-shadow: 0 12px 20px -8px rgba(var(--v-theme-primary), 0.15);
+  color: rgba(var(--v-theme-primary));
+  opacity: 1;
+  border-color: rgb(var(--v-theme-primary));
 }
 </style>

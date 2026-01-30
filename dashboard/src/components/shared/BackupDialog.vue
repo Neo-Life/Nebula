@@ -36,7 +36,7 @@
                                 </template>
                                 {{ t('features.settings.backup.export.includes') }}
                             </v-alert>
-                            <v-btn color="primary" size="large" @click="startExport" :loading="exportStatus === 'processing'">
+                            <v-btn color="primary" size="large" @click="startExport" :loading="false">
                                 <v-icon class="mr-2">mdi-export</v-icon>
                                 {{ t('features.settings.backup.export.button') }}
                             </v-btn>
@@ -100,7 +100,7 @@
                                     size="large"
                                     @click="uploadAndCheck"
                                     :disabled="!importFile"
-                                    :loading="importStatus === 'uploading'"
+                                    :loading="false"
                                 >
                                     <v-icon class="mr-2">mdi-upload</v-icon>
                                     {{ t('features.settings.backup.import.uploadAndCheck') }}
@@ -366,7 +366,7 @@
     <WaitingForRestart ref="wfr"></WaitingForRestart>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import axios from 'axios'
 import { useI18n } from '@/i18n/composables'
@@ -374,25 +374,60 @@ import WaitingForRestart from './WaitingForRestart.vue'
 
 const { t } = useI18n()
 
+type BackupTab = 'export' | 'import' | 'list'
+type ExportStatus = 'idle' | 'processing' | 'completed' | 'failed'
+type ImportStatus = 'idle' | 'uploading' | 'confirm' | 'processing' | 'completed' | 'failed'
+
+type ProgressState = { current: number; total: number; message: string }
+
+type ExportResult = { filename: string }
+
+type BackupSummary = {
+    tables?: string[]
+    directories?: string[]
+    has_knowledge_bases?: boolean
+    has_config?: boolean
+}
+
+type BackupCheckResult = {
+    valid?: boolean
+    error?: string
+    version_status?: 'major_diff' | 'minor_diff' | 'match' | string
+    backup_version?: string
+    current_version?: string
+    backup_time?: string
+    warnings?: string[]
+    can_import?: boolean
+    backup_summary?: BackupSummary
+}
+
+type BackupListItem = {
+    filename: string
+    type: string
+    size: number
+    created_at: number
+    astrbot_version: string
+}
+
 const isOpen = ref(false)
-const activeTab = ref('export')
-const wfr = ref(null)
+const activeTab = ref<BackupTab>('export')
+const wfr = ref<InstanceType<typeof WaitingForRestart> | null>(null)
 
 // 导出状态
-const exportStatus = ref('idle') // idle, processing, completed, failed
-const exportTaskId = ref(null)
-const exportProgress = ref({ current: 0, total: 100, message: '' })
-const exportResult = ref(null)
+const exportStatus = ref<ExportStatus>('idle')
+const exportTaskId = ref<string | null>(null)
+const exportProgress = ref<ProgressState>({ current: 0, total: 100, message: '' })
+const exportResult = ref<ExportResult | null>(null)
 const exportError = ref('')
 
 // 导入状态
-const importStatus = ref('idle') // idle, uploading, confirm, processing, completed, failed
-const importFile = ref(null)
-const importTaskId = ref(null)
-const importProgress = ref({ current: 0, total: 100, message: '' })
+const importStatus = ref<ImportStatus>('idle')
+const importFile = ref<File | File[] | null>(null)
+const importTaskId = ref<string | null>(null)
+const importProgress = ref<ProgressState>({ current: 0, total: 100, message: '' })
 const importError = ref('')
 const uploadedFilename = ref('')  // 已上传的文件名
-const checkResult = ref(null)     // 预检查结果
+const checkResult = ref<BackupCheckResult | null>(null)     // 预检查结果
 
 // 分片上传状态
 const CONCURRENT_UPLOADS = 5     // 并发上传数
@@ -407,7 +442,7 @@ const uploadProgress = ref({
 
 // 备份列表
 const loadingList = ref(false)
-const backupList = ref([])
+const backupList = ref<BackupListItem[]>([])
 
 // 重命名对话框状态
 const renameDialogOpen = ref(false)
@@ -474,7 +509,21 @@ const loadBackupList = async () => {
     try {
         const response = await axios.get('/api/backup/list')
         if (response.data.status === 'ok') {
-            backupList.value = response.data.data.items || []
+            const rawItems = response.data.data?.items
+            const items: unknown[] = Array.isArray(rawItems) ? rawItems : []
+
+            backupList.value = items
+                .map((item) => {
+                    const it = item as any
+                    return {
+                        filename: String(it?.filename ?? ''),
+                        type: String(it?.type ?? ''),
+                        size: Number(it?.size ?? 0),
+                        created_at: Number(it?.created_at ?? 0),
+                        astrbot_version: String(it?.astrbot_version ?? '')
+                    } satisfies BackupListItem
+                })
+                .filter((b) => b.filename.length > 0)
         }
     } catch (error) {
         console.error('Failed to load backup list:', error)
@@ -497,8 +546,9 @@ const startExport = async () => {
             throw new Error(response.data.message)
         }
     } catch (error) {
+        const err = error as any
         exportStatus.value = 'failed'
-        exportError.value = error.message || 'Export failed'
+        exportError.value = err?.message || 'Export failed'
     }
 }
 
@@ -533,8 +583,9 @@ const pollExportProgress = async () => {
             }
         }
     } catch (error) {
+        const err = error as any
         exportStatus.value = 'failed'
-        exportError.value = error.message || 'Failed to get export progress'
+        exportError.value = err?.message || 'Failed to get export progress'
     }
 }
 
@@ -554,10 +605,15 @@ const resetExport = () => {
  * 后端按分片索引命名文件（如 0.part, 1.part），合并时按顺序读取，
  * 因此分片到达顺序不影响最终结果。
  */
-const uploadChunksInParallel = async (file, totalChunks, currentUploadId, currentChunkSize) => {
+const uploadChunksInParallel = async (
+    file: File,
+    totalChunks: number,
+    currentUploadId: string,
+    currentChunkSize: number
+) => {
     // 跟踪已完成的字节数（使用原子操作避免并发问题）
     let completedBytes = 0
-    const chunkSizes = []
+    const chunkSizes: number[] = []
     
     // 预计算每个分片的大小（使用后端返回的 chunk_size）
     for (let i = 0; i < totalChunks; i++) {
@@ -567,7 +623,7 @@ const uploadChunksInParallel = async (file, totalChunks, currentUploadId, curren
     }
 
     // 上传单个分片的函数
-    const uploadSingleChunk = async (chunkIndex) => {
+    const uploadSingleChunk = async (chunkIndex: number) => {
         const start = chunkIndex * currentChunkSize
         const end = Math.min(start + currentChunkSize, file.size)
         const chunk = file.slice(start, end)
@@ -595,13 +651,14 @@ const uploadChunksInParallel = async (file, totalChunks, currentUploadId, curren
 
     // 创建分片索引队列
     const pendingChunks = Array.from({ length: totalChunks }, (_, i) => i)
-    const activePromises = []
+    const activePromises: Promise<void>[] = []
 
     // 处理队列中的分片
     while (pendingChunks.length > 0 || activePromises.length > 0) {
         // 填充并发槽位
         while (pendingChunks.length > 0 && activePromises.length < CONCURRENT_UPLOADS) {
             const chunkIndex = pendingChunks.shift()
+            if (chunkIndex === undefined) break
             const promise = uploadSingleChunk(chunkIndex).then(() => {
                 // 完成后从活动列表移除
                 const idx = activePromises.indexOf(promise)
@@ -622,7 +679,8 @@ const uploadAndCheck = async () => {
     if (!importFile.value) return
 
     importStatus.value = 'uploading'
-    const file = importFile.value
+    const file = Array.isArray(importFile.value) ? importFile.value[0] : importFile.value
+    if (!file) return
 
     try {
         // 初始化上传进度
@@ -679,7 +737,7 @@ const uploadAndCheck = async () => {
         checkResult.value = checkResponse.data.data
         
         // 检查是否有效
-        if (!checkResult.value.valid) {
+        if (checkResult.value && !checkResult.value.valid) {
             importStatus.value = 'failed'
             importError.value = checkResult.value.error || t('features.settings.backup.import.invalidBackup')
             return
@@ -689,6 +747,7 @@ const uploadAndCheck = async () => {
         importStatus.value = 'confirm'
 
     } catch (error) {
+        const err = error as any
         // 上传失败时尝试清理已上传的分片
         if (uploadId.value) {
             try {
@@ -701,7 +760,7 @@ const uploadAndCheck = async () => {
         }
         
         importStatus.value = 'failed'
-        importError.value = error.response?.data?.message || error.message || 'Upload failed'
+        importError.value = err?.response?.data?.message || err?.message || 'Upload failed'
     }
 }
 
@@ -725,8 +784,9 @@ const confirmImport = async () => {
             throw new Error(response.data.message)
         }
     } catch (error) {
+        const err = error as any
         importStatus.value = 'failed'
-        importError.value = error.response?.data?.message || error.message || 'Import failed'
+        importError.value = err?.response?.data?.message || err?.message || 'Import failed'
     }
 }
 
@@ -759,8 +819,9 @@ const pollImportProgress = async () => {
             }
         }
     } catch (error) {
+        const err = error as any
         importStatus.value = 'failed'
-        importError.value = error.message || 'Failed to get import progress'
+        importError.value = err?.message || 'Failed to get import progress'
     }
 }
 
@@ -790,7 +851,8 @@ const resetImport = async () => {
 }
 
 // 下载备份（使用浏览器原生下载，可显示下载进度）
-const downloadBackup = (filename) => {
+const downloadBackup = (filename?: string | null) => {
+    if (!filename) return
     // 获取 token 用于鉴权（因为浏览器原生下载无法携带 Authorization header）
     const token = localStorage.getItem('token')
     if (!token) {
@@ -812,7 +874,7 @@ const downloadBackup = (filename) => {
 }
 
 // 从列表中恢复备份
-const restoreFromList = async (filename) => {
+const restoreFromList = async (filename: string) => {
     // 切换到导入标签页并设置文件名
     uploadedFilename.value = filename
     
@@ -826,10 +888,11 @@ const restoreFromList = async (filename) => {
             throw new Error(checkResponse.data.message)
         }
 
-        checkResult.value = checkResponse.data.data
-        
-        if (!checkResult.value.valid) {
-            alert(checkResult.value.error || t('features.settings.backup.import.invalidBackup'))
+        const result = (checkResponse.data.data ?? null) as BackupCheckResult | null
+        checkResult.value = result
+
+        if (!result?.valid) {
+            alert(result?.error || t('features.settings.backup.import.invalidBackup'))
             return
         }
 
@@ -838,12 +901,13 @@ const restoreFromList = async (filename) => {
         importStatus.value = 'confirm'
 
     } catch (error) {
-        alert(error.response?.data?.message || error.message || 'Check failed')
+        const err = error as any
+        alert(err?.response?.data?.message || err?.message || 'Check failed')
     }
 }
 
 // 删除备份
-const deleteBackup = async (filename) => {
+const deleteBackup = async (filename: string) => {
     if (!confirm(t('features.settings.backup.list.confirmDelete'))) return
 
     try {
@@ -854,12 +918,13 @@ const deleteBackup = async (filename) => {
             alert(response.data.message || 'Delete failed')
         }
     } catch (error) {
-        alert(error.message || 'Delete failed')
+        const err = error as any
+        alert(err?.message || 'Delete failed')
     }
 }
 
 // 重命名相关函数
-const openRenameDialog = (filename) => {
+const openRenameDialog = (filename: string) => {
     renameOldFilename.value = filename
     // 移除 .zip 后缀，只显示文件名部分
     renameNewName.value = filename.replace(/\.zip$/i, '')
@@ -875,14 +940,15 @@ const closeRenameDialog = () => {
 }
 
 // 文件名验证规则
-const renameValidationRule = (value) => {
-    if (!value) return t('features.settings.backup.list.renameRequired')
+const renameValidationRule = (value: unknown) => {
+    const name = String(value ?? '')
+    if (!name) return t('features.settings.backup.list.renameRequired')
     // 检查是否包含非法字符
-    if (/[\\/:*?"<>|]/.test(value)) {
+    if (/[\\/:*?"<>|]/.test(name)) {
         return t('features.settings.backup.list.renameInvalidChars')
     }
     // 检查是否包含路径遍历字符
-    if (value.includes('..')) {
+    if (name.includes('..')) {
         return t('features.settings.backup.list.renameInvalidChars')
     }
     return true
@@ -914,14 +980,15 @@ const confirmRename = async () => {
             renameError.value = response.data.message || t('features.settings.backup.list.renameFailed')
         }
     } catch (error) {
-        renameError.value = error.response?.data?.message || error.message || t('features.settings.backup.list.renameFailed')
+        const err = error as any
+        renameError.value = err?.response?.data?.message || err?.message || t('features.settings.backup.list.renameFailed')
     } finally {
         renameLoading.value = false
     }
 }
 
 // 格式化文件大小
-const formatFileSize = (bytes) => {
+const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 B'
     const k = 1024
     const sizes = ['B', 'KB', 'MB', 'GB']
@@ -930,12 +997,12 @@ const formatFileSize = (bytes) => {
 }
 
 // 格式化日期（从时间戳）
-const formatDate = (timestamp) => {
+const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleString()
 }
 
 // 格式化 ISO 日期字符串
-const formatISODate = (isoString) => {
+const formatISODate = (isoString: string | null | undefined) => {
     if (!isoString) return ''
     try {
         return new Date(isoString).toLocaleString()
@@ -947,9 +1014,7 @@ const formatISODate = (isoString) => {
 // 重启 AstrBot
 const restartAstrBot = () => {
     axios.post('/api/stat/restart-core').then(() => {
-        if (wfr.value) {
-            wfr.value.check()
-        }
+        wfr.value?.check()
     })
 }
 

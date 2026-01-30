@@ -8,7 +8,7 @@
                 @click="toggleNervousMode" flat variant="text" :color="isNervousMode ? 'primary' : ''" />
         </div>
 
-        <span style="color: gray; padding-left: 16px;">We're developing Astr Live Mode on ChatUI & Desktop right now. Stay tuned!</span>
+        <span class="live-mode-hint">We're developing Astr Live Mode on ChatUI & Desktop right now. Stay tuned!</span>
 
         <div class="live-mode-content">
             <div class="center-circle-container" @click="handleCircleClick">
@@ -555,7 +555,16 @@ onBeforeUnmount(() => {
     flex-direction: column;
     height: 100%;
     width: 100%;
-    background: linear-gradient(135deg, rgba(103, 58, 183, 0.05) 0%, rgba(63, 81, 181, 0.05) 100%);
+    background: linear-gradient(
+        135deg,
+        rgba(var(--v-theme-primary), 0.05) 0%,
+        rgba(var(--v-theme-primary), 0.05) 100%
+    );
+}
+
+.live-mode-hint {
+    color: rgba(var(--v-theme-on-surface), 0.6);
+    padding-left: 16px;
 }
 
 .header-controls {
@@ -617,7 +626,12 @@ onBeforeUnmount(() => {
     height: 150px;
     border-radius: 50%;
     opacity: 0.8;
-    background: radial-gradient(circle, transparent 50%, rgba(125, 80, 201, 0.8) 70%, transparent 100%);
+    background: radial-gradient(
+        circle,
+        transparent 50%,
+        rgba(var(--v-theme-primary), 0.8) 70%,
+        transparent 100%
+    );
     animation: explode 3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     filter: blur(30px);
     z-index: 0;

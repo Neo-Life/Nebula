@@ -20,7 +20,7 @@
 
 </template>
 
-<script>
+<script lang="ts">
 import { useCustomizerStore } from "@/stores/customizer";
 import { useModuleI18n } from '@/i18n/composables';
 
@@ -32,7 +32,7 @@ export default {
     },
     methods: {
         useCustomizerStore,
-        open(url) {
+        open(url: string) {
             window.open(url, '_blank');
         }
     }

@@ -250,10 +250,41 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import axios from 'axios';
 // import * as d3 from "d3"; // npm install d3
 import { useModuleI18n } from '@/i18n/composables';
+
+type NodeRaw = [string, Record<string, any>]
+type EdgeRaw = [string, string, Record<string, any>]
+
+type GraphNode = {
+  id: string
+  label: string
+  color: string
+  originalData: Record<string, any>
+  x?: number
+  y?: number
+  fx?: number | null
+  fy?: number | null
+}
+
+type GraphLink = {
+  source: string | GraphNode
+  target: string | GraphNode
+  color: string
+  originalData: Record<string, any>
+  label: string
+  curvature?: number
+}
+
+type GraphStats = { nodeCount: number; edgeCount: number }
+
+type SearchResultItem = {
+  text: string
+  score: number
+  doc_id: string
+}
 
 export default {
   name: 'LongTermMemory',
@@ -263,50 +294,53 @@ export default {
   },
   data() {
     return {
-      simulation: null,
-      svg: null,
-      zoom: null,
-      node_data: [],
-      edge_data: [],
-      nodes: [],
-      links: [],
-      searchUserId: null,
-      userIdList: [],
-      selectedNode: null,
-      graphStats: null,
+      simulation: null as any,
+      svg: null as any,
+      zoom: null as any,
+      g: null as any,
+      width: 0,
+      height: 0,
+      node_data: [] as NodeRaw[],
+      edge_data: [] as EdgeRaw[],
+      nodes: [] as GraphNode[],
+      links: [] as GraphLink[],
+      searchUserId: null as string | null,
+      userIdList: [] as string[],
+      selectedNode: null as Record<string, any> | null,
+      graphStats: null as GraphStats | null,
       nodeColors: {
         'PhaseNode': '#4CAF50',  // 绿色
         'PassageNode': '#2196F3', // 蓝色
         'FactNode': '#FF9800',    // 橙色
         'default': '#9C27B0'      // 紫色作为默认
-      },
+      } as Record<string, string>,
       edgeColors: {
         '_include_': '#607D8B',
         '_related_': '#9E9E9E',
         'default': '#BDBDBD'
-      },
+      } as Record<string, string>,
       isLoading: false,
       // 添加新的数据属性
       newMemoryText: '',
-      newMemoryUserId: null,
+      newMemoryUserId: null as string | null,
       needSummarize: false,
       isSubmitting: false,
       // 搜索记忆相关属性
-      searchMemoryUserId: null,
+      searchMemoryUserId: null as string | null,
       searchQuery: '',
       isSearching: false,
-      searchResults: [],
+      searchResults: [] as SearchResultItem[],
       hasSearched: false,
 
       // 添加边点击相关数据
-      selectedEdge: null,
-      selectedEdgeFactId: null,
-      selectedEdgeFactData: null,
+      selectedEdge: null as GraphLink | null,
+      selectedEdgeFactId: null as string | null,
+      selectedEdgeFactData: null as Record<string, any> | null,
       showFactDialog: false,
       isLoadingFactData: false,
 
       // 改进元数据展示
-      parsedMetadata: null,
+      parsedMetadata: null as Record<string, unknown> | null,
     }
   },
   mounted() {
@@ -348,7 +382,7 @@ export default {
       this.searchResults = [];
 
       // 构建查询参数
-      const params = {
+      const params: any = {
         query: this.searchQuery
       };
 
@@ -425,7 +459,7 @@ export default {
         });
     },
 
-    ltmGetGraph(userId = null) {
+    ltmGetGraph(userId: string | null = null) {
       this.isLoading = true;
       const params = userId ? { user_id: userId } : {};
 
@@ -433,17 +467,17 @@ export default {
         .then(response => {
           const data = response.data.data || {};
           // 确保数据是数组类型，并且先检查data是否存在
-          let nodesRaw = data && Array.isArray(data.nodes) ? data.nodes : [];
-          let edgesRaw = data && Array.isArray(data.edges) ? data.edges : [];
+          const nodesRaw: NodeRaw[] = data && Array.isArray(data.nodes) ? (data.nodes as NodeRaw[]) : [];
+          const edgesRaw: EdgeRaw[] = data && Array.isArray(data.edges) ? (data.edges as EdgeRaw[]) : [];
 
           this.node_data = nodesRaw;
           this.edge_data = edgesRaw;
 
           // 转换为D3所需的数据格式
-          this.nodes = nodesRaw.map(node => {
+          this.nodes = nodesRaw.map((node) => {
             const nodeId = node[0];
             const nodeData = node[1];
-            const nodeType = nodeData._label || 'default';
+            const nodeType = String(nodeData._label || 'default');
             const color = this.nodeColors[nodeType] || this.nodeColors['default'];
 
             return {
@@ -454,11 +488,11 @@ export default {
             };
           });
 
-          this.links = edgesRaw.map(edge => {
+          this.links = edgesRaw.map((edge) => {
             const sourceId = edge[0];
             const targetId = edge[1];
             const edgeData = edge[2];
-            const relationType = edgeData.relation_type || 'default';
+            const relationType = String(edgeData.relation_type || 'default');
             const color = this.edgeColors[relationType] || this.edgeColors['default'];
 
             return {
@@ -492,7 +526,7 @@ export default {
         .then(response => {
           // 确保返回的数据是数组类型
           const data = response.data.data;
-          this.userIdList = Array.isArray(data) ? data : [];
+          this.userIdList = Array.isArray(data) ? (data as unknown[]).map((x) => String(x)) : [];
         })
         .catch(error => {
           console.error('Error fetching user IDs:', error);
@@ -528,7 +562,7 @@ export default {
     },
 
     // 添加获取Fact详情的方法
-    getFactDetails(factId) {
+    getFactDetails(factId: string | null) {
       if (!factId) return;
       
       this.isLoadingFactData = true;
@@ -540,9 +574,10 @@ export default {
       })
         .then(response => {
           if (response.data.status === 'ok') {
-            this.selectedEdgeFactData = response.data.data;
+            const factData = (response.data.data || null) as Record<string, any> | null;
+            this.selectedEdgeFactData = factData;
             // 解析元数据
-            this.parsedMetadata = this.parseMetadata(this.selectedEdgeFactData.metadata);
+            this.parsedMetadata = this.parseMetadata(factData?.metadata);
             this.showFactDialog = true;
           } else {
             this.$toast.error(this.tm('messages.factDetailsError') + ': ' + response.data.message);
@@ -558,7 +593,7 @@ export default {
     },
 
     // 添加元数据解析方法
-    parseMetadata(metadata) {
+    parseMetadata(metadata: unknown): Record<string, unknown> | null {
       if (!metadata) return null;
       
       try {
@@ -573,7 +608,7 @@ export default {
         
         // 如果已经是对象，直接返回
         if (typeof metadata === 'object') {
-          return metadata;
+          return metadata as Record<string, unknown>;
         }
         
         return { value: String(metadata) };
@@ -584,7 +619,7 @@ export default {
     },
     
     // 格式化元数据值
-    formatMetadataValue(value) {
+    formatMetadataValue(value: unknown) {
       if (value === null || value === undefined) return this.tm('factDialog.noValue');
       
       if (typeof value === 'object') {
@@ -595,10 +630,10 @@ export default {
     },
 
     // 格式化时间戳的辅助方法
-    formatTime(timestamp) {
+    formatTime(timestamp: unknown) {
       if (!timestamp) return this.tm('factDialog.unknown');
       try {
-        return new Date(timestamp).toLocaleString();
+        return new Date(timestamp as any).toLocaleString();
       } catch (e) {
         return timestamp;
       }
@@ -629,13 +664,13 @@ export default {
       const g = svg.append("g");
       const zoom = d3.zoom()
         .scaleExtent([0.1, 10])
-        .on("zoom", (event) => {
+        .on("zoom", (event: any) => {
           g.attr("transform", event.transform);
         });
 
       svg.call(zoom);
       const simulation = d3.forceSimulation()
-        .force("link", d3.forceLink().id(d => d.id).distance(100))
+        .force("link", d3.forceLink().id((d: { id: string }) => d.id).distance(100))
         .force("charge", d3.forceManyBody().strength(-300))
         .force("center", d3.forceCenter(width / 2, height / 2))
         .force("collision", d3.forceCollide().radius(30));
@@ -683,7 +718,7 @@ export default {
         .selectAll("path")
         .data(this.links)
         .join("path")
-        .attr("stroke", d => d.color)
+        .attr("stroke", (d: GraphLink) => d.color)
         .attr("stroke-width", 1.5)
         .attr("fill", "none")
         .attr("marker-end", "url(#arrowhead)")
@@ -694,12 +729,12 @@ export default {
         .selectAll("text")
         .data(this.links)
         .join("text")
-        .text(d => d.label)
+        .text((d: GraphLink) => d.label)
         .attr("font-size", "8px")
         .attr("text-anchor", "middle")
         .attr("fill", "#666")
         .style("cursor", "pointer")
-        .on("click", (event, d) => {
+        .on("click", (event: any, d: GraphLink) => {
           event.stopPropagation();
           
           // 检查边数据中是否有fact_id
@@ -719,7 +754,7 @@ export default {
         .data(this.nodes)
         .join("circle")
         .attr("r", 8)
-        .attr("fill", d => d.color)
+        .attr("fill", (d: GraphNode) => d.color)
         .style("cursor", "pointer")
         .call(this.dragBehavior());
         
@@ -727,13 +762,13 @@ export default {
         .selectAll("text")
         .data(this.nodes)
         .join("text")
-        .text(d => d.label)
+        .text((d: GraphNode) => d.label)
         .attr("font-size", "10px")
         .attr("text-anchor", "middle")
         .attr("fill", "#333")
         .attr("dy", -12);
         
-      node.on("click", (event, d) => {
+      node.on("click", (event: any, d: GraphNode) => {
         event.stopPropagation();
         this.selectedNode = d.originalData;
       });
@@ -747,21 +782,21 @@ export default {
         .nodes(this.nodes)
         .on("tick", () => {
           // 更新边的路径
-          link.attr("d", d => this.generateLinkPath(d));
+          link.attr("d", (d: GraphLink) => this.generateLinkPath(d));
           
           // 更新边标签位置
           edgeLabels
-            .attr("x", d => this.getLinkLabelX(d))
-            .attr("y", d => this.getLinkLabelY(d));
+            .attr("x", (d: GraphLink) => this.getLinkLabelX(d))
+            .attr("y", (d: GraphLink) => this.getLinkLabelY(d));
             
           // 更新节点位置
           node
-            .attr("cx", d => d.x)
-            .attr("cy", d => d.y);
+            .attr("cx", (d: GraphNode) => d.x)
+            .attr("cy", (d: GraphNode) => d.y);
             
           nodeLabels
-            .attr("x", d => d.x)
-            .attr("y", d => d.y);
+            .attr("x", (d: GraphNode) => d.x)
+            .attr("y", (d: GraphNode) => d.y);
         });
 
       this.simulation.force("link")
@@ -771,12 +806,12 @@ export default {
     },
     
     // 识别并标记平行边（连接相同两个节点的多条边）
-    identifyParallelLinks(links) {
+    identifyParallelLinks(links: GraphLink[]) {
       // 创建一个映射来存储连接相同节点对的边
-      const linkMap = new Map();
+      const linkMap = new Map<string, Array<{ link: GraphLink; isForward: boolean }>>();
       
       // 遍历所有边，按照起点和终点进行分组
-      links.forEach(link => {
+      links.forEach((link: GraphLink) => {
         // 创建边的键，确保无论边的方向如何，同一对节点生成的键都相同
         const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
         const targetId = typeof link.target === 'object' ? link.target.id : link.target;
@@ -794,17 +829,17 @@ export default {
         }
         
         // 存储边和其方向
-        linkMap.get(key).push({
+        linkMap.get(key)!.push({
           link,
           isForward: isForwardLink
         });
       });
       
       // 处理每一组平行边，为它们分配曲率
-      linkMap.forEach((parallels, key) => {
+      linkMap.forEach((parallels) => {
         if (parallels.length > 1) {
           // 有多条平行边，分配不同曲率
-          parallels.forEach((item, index) => {
+          parallels.forEach((item: { link: GraphLink; isForward: boolean }, index: number) => {
             // 根据边的数量计算适当的曲率
             const totalLinks = parallels.length;
             // 基础曲率，可根据边数调整
@@ -849,29 +884,34 @@ export default {
     },
     
     // 根据曲率生成边的路径
-    generateLinkPath(d) {
+    generateLinkPath(d: GraphLink) {
       // 确保source和target是对象
-      const source = typeof d.source === 'object' ? d.source : this.nodes.find(n => n.id === d.source);
-      const target = typeof d.target === 'object' ? d.target : this.nodes.find(n => n.id === d.target);
+      const source = typeof d.source === 'object' ? d.source : this.nodes.find((n) => n.id === d.source);
+      const target = typeof d.target === 'object' ? d.target : this.nodes.find((n) => n.id === d.target);
       
       if (!source || !target) return '';
+
+      const sx = source.x ?? 0;
+      const sy = source.y ?? 0;
+      const tx = target.x ?? 0;
+      const ty = target.y ?? 0;
       
       // 如果是直线(无曲率)
       if (!d.curvature || d.curvature === 0) {
-        return `M${source.x},${source.y}L${target.x},${target.y}`;
+        return `M${sx},${sy}L${tx},${ty}`;
       }
       
       // 计算曲线的控制点
-      const dx = target.x - source.x;
-      const dy = target.y - source.y;
+      const dx = tx - sx;
+      const dy = ty - sy;
       const dr = Math.sqrt(dx * dx + dy * dy);
       
       // 控制点偏移距离，由曲率决定
       const offset = dr * d.curvature;
       
       // 计算中点
-      const midX = (source.x + target.x) / 2;
-      const midY = (source.y + target.y) / 2;
+      const midX = (sx + tx) / 2;
+      const midY = (sy + ty) / 2;
       
       // 计算垂直于连线的方向向量
       const nx = -dy / dr;
@@ -882,28 +922,33 @@ export default {
       const cpy = midY + offset * ny;
       
       // 创建二次贝塞尔曲线路径
-      return `M${source.x},${source.y} Q${cpx},${cpy} ${target.x},${target.y}`;
+      return `M${sx},${sy} Q${cpx},${cpy} ${tx},${ty}`;
     },
     
     // 新增方法：计算边标签的X坐标
-    getLinkLabelX(d) {
-      const source = typeof d.source === 'object' ? d.source : this.nodes.find(n => n.id === d.source);
-      const target = typeof d.target === 'object' ? d.target : this.nodes.find(n => n.id === d.target);
+    getLinkLabelX(d: GraphLink) {
+      const source = typeof d.source === 'object' ? d.source : this.nodes.find((n) => n.id === d.source);
+      const target = typeof d.target === 'object' ? d.target : this.nodes.find((n) => n.id === d.target);
       
       if (!source || !target) return 0;
+
+      const sx = source.x ?? 0;
+      const sy = source.y ?? 0;
+      const tx = target.x ?? 0;
+      const ty = target.y ?? 0;
       
       // 如果是直线
       if (!d.curvature || d.curvature === 0) {
-        return (source.x + target.x) / 2;
+        return (sx + tx) / 2;
       }
       
       // 计算曲线上的点
-      const dx = target.x - source.x;
-      const dy = target.y - source.y;
+      const dx = tx - sx;
+      const dy = ty - sy;
       const dr = Math.sqrt(dx * dx + dy * dy);
       
       // 中点
-      const midX = (source.x + target.x) / 2;
+      const midX = (sx + tx) / 2;
       
       // 垂直向量
       const nx = -dy / dr;
@@ -913,24 +958,29 @@ export default {
     },
     
     // 新增方法：计算边标签的Y坐标
-    getLinkLabelY(d) {
-      const source = typeof d.source === 'object' ? d.source : this.nodes.find(n => n.id === d.source);
-      const target = typeof d.target === 'object' ? d.target : this.nodes.find(n => n.id === d.target);
+    getLinkLabelY(d: GraphLink) {
+      const source = typeof d.source === 'object' ? d.source : this.nodes.find((n) => n.id === d.source);
+      const target = typeof d.target === 'object' ? d.target : this.nodes.find((n) => n.id === d.target);
       
       if (!source || !target) return 0;
+
+      const sx = source.x ?? 0;
+      const sy = source.y ?? 0;
+      const tx = target.x ?? 0;
+      const ty = target.y ?? 0;
       
       // 如果是直线
       if (!d.curvature || d.curvature === 0) {
-        return (source.y + target.y) / 2;
+        return (sy + ty) / 2;
       }
       
       // 计算曲线上的点
-      const dx = target.x - source.x;
-      const dy = target.y - source.y;
+      const dx = tx - sx;
+      const dy = ty - sy;
       const dr = Math.sqrt(dx * dx + dy * dy);
       
       // 中点
-      const midY = (source.y + target.y) / 2;
+      const midY = (sy + ty) / 2;
       
       // 垂直向量
       const ny = dx / dr;
@@ -941,17 +991,17 @@ export default {
 
     dragBehavior() {
       return d3.drag()
-        .on("start", (event, d) => {
-          if (!event.active) this.simulation.alphaTarget(0.3).restart();
+        .on("start", (event: any, d: GraphNode) => {
+          if (!event.active) this.simulation?.alphaTarget(0.3)?.restart?.();
           d.fx = d.x;
           d.fy = d.y;
         })
-        .on("drag", (event, d) => {
+        .on("drag", (event: any, d: GraphNode) => {
           d.fx = event.x;
           d.fy = event.y;
         })
-        .on("end", (event, d) => {
-          if (!event.active) this.simulation.alphaTarget(0);
+        .on("end", (event: any, d: GraphNode) => {
+          if (!event.active) this.simulation?.alphaTarget?.(0);
           d.fx = null;
           d.fy = null;
         });

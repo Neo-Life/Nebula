@@ -130,8 +130,13 @@ class SkillManager:
             if not entry.is_dir():
                 continue
             skill_name = entry.name
-            skill_md = entry / "SKILL.md"
-            if not skill_md.exists():
+            skill_md_upper = entry / "SKILL.md"
+            skill_md_lower = entry / "skill.md"
+            if skill_md_upper.exists():
+                skill_md = skill_md_upper
+            elif skill_md_lower.exists():
+                skill_md = skill_md_lower
+            else:
                 continue
             active = skill_configs.get(skill_name, {}).get("active", True)
             if skill_name not in skill_configs:
@@ -146,7 +151,7 @@ class SkillManager:
             except Exception:
                 description = ""
             if runtime == "sandbox" and show_sandbox_path:
-                path_str = f"{SANDBOX_SKILLS_ROOT}/{skill_name}/SKILL.md"
+                path_str = f"{SANDBOX_SKILLS_ROOT}/{skill_name}/{skill_md.name}"
             else:
                 path_str = str(skill_md)
             path_str = path_str.replace("\\", "/")

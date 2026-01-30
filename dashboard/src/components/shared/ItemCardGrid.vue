@@ -68,7 +68,7 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import { useI18n } from '@/i18n/composables';
 
 export default {
@@ -110,13 +110,15 @@ export default {
     }
   },
   methods: {
-    getItemTitle(item) {
-      return item[this.titleField];
+    getItemTitle(item: unknown) {
+      const record = item as Record<string, any>
+      return record[this.titleField as string];
     },
-    getItemEnabled(item) {
-      return item[this.enabledField];
+    getItemEnabled(item: unknown) {
+      const record = item as Record<string, any>
+      return record[this.enabledField as string];
     },
-    toggleEnabled(item) {
+    toggleEnabled(item: unknown) {
       this.$emit('toggle-enabled', item);
     }
   }
