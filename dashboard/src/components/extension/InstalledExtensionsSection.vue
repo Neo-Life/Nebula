@@ -341,6 +341,7 @@
             :metadata="extensionConfig.metadata"
             :iterable="extensionIterable"
             :metadataKey="currNamespace"
+            :pluginName="currNamespace"
           />
           <p v-else>{{ tm('dialogs.config.noConfig') }}</p>
         </v-card-text>

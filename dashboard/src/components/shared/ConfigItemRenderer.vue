@@ -186,6 +186,16 @@
       hide-details
     ></v-switch>
 
+    <FileConfigItem
+      v-else-if="itemMeta?.type === 'file'"
+      :model-value="modelValueArray"
+      :item-meta="itemMeta"
+      :plugin-name="pluginName"
+      :config-key="configKey"
+      @update:model-value="emitUpdate"
+      class="config-field"
+    />
+
     <ListConfigItem
       v-else-if="itemMeta?.type === 'list'"
       :model-value="modelValueArray"
@@ -217,6 +227,7 @@
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 import { computed } from 'vue'
 import ListConfigItem from './ListConfigItem.vue'
+import FileConfigItem from './FileConfigItem.vue'
 import ObjectEditor from './ObjectEditor.vue'
 import ProviderSelector from './ProviderSelector.vue'
 import PersonaSelector from './PersonaSelector.vue'
@@ -233,6 +244,14 @@ const props = defineProps({
   itemMeta: {
     type: Object,
     default: null
+  },
+  pluginName: {
+    type: String,
+    default: ''
+  },
+  configKey: {
+    type: String,
+    default: ''
   },
   loading: {
     type: Boolean,

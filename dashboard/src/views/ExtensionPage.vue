@@ -6,6 +6,7 @@ import { useExtensionPage } from '@/composables/extension/useExtensionPage';
 const InstalledExtensionsSection = defineAsyncComponent(() => import('@/components/extension/InstalledExtensionsSection.vue'));
 const MarketExtensionsSection = defineAsyncComponent(() => import('@/components/extension/MarketExtensionsSection.vue'));
 const McpServersSection = defineAsyncComponent(() => import('@/components/extension/McpServersSection.vue'));
+const SkillsSection = defineAsyncComponent(() => import('@/components/extension/SkillsSection.vue'));
 const ComponentPanel = defineAsyncComponent(() => import('@/components/extension/componentPanel/index.vue'));
 const ConsoleDisplayer = defineAsyncComponent(() => import('@/components/shared/ConsoleDisplayer.vue'));
 const ProxySelector = defineAsyncComponent(() => import('@/components/shared/ProxySelector.vue'));
@@ -115,6 +116,10 @@ const {
                 <v-icon class="mr-2">mdi-server-network</v-icon>
                 {{ tm('tabs.installedMcpServers') }}
               </v-tab>
+              <v-tab value="skills">
+                <v-icon class="mr-2">mdi-lightning-bolt</v-icon>
+                {{ tm('tabs.skills') }}
+              </v-tab>
               <v-tab value="market">
                 <v-icon class="mr-2">mdi-store</v-icon>
                 {{ tm('tabs.market') }}
@@ -191,6 +196,15 @@ const {
             <v-card class="rounded-lg" variant="flat" style="background-color: transparent;">
               <v-card-text class="pa-0">
                 <McpServersSection />
+              </v-card-text>
+            </v-card>
+          </div>
+
+          <!-- Skills 标签页内容 -->
+          <div v-if="activeTab === 'skills'">
+            <v-card class="rounded-lg" variant="flat" style="background-color: transparent;">
+              <v-card-text class="pa-0">
+                <SkillsSection />
               </v-card-text>
             </v-card>
           </div>

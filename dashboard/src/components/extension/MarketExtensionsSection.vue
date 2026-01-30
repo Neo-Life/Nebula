@@ -299,7 +299,7 @@
           >
             <template #item-details>
               <v-chip v-if="plugin?.pinned" color="warning" size="x-small" label style="position: absolute; right: 8px; top: 8px; z-index: 10; height: 20px; font-weight: bold;">
-                🥳 {{ tm('market.recommended') }}
+                {{ tm('market.recommended') }}
               </v-chip>
 
               <div style="padding: 12px; padding-bottom: 8px; display: flex; gap: 12px; width: 100%; height: 100%; overflow: hidden;">

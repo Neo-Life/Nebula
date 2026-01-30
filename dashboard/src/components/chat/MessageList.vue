@@ -1018,8 +1018,8 @@ export default {
             return this.expandedToolCalls.has(`${messageIndex}-${partIndex}-${toolCallIndex}`);
         },
 
-        isIPythonTool(toolCall: any) {
-            return toolCall?.name === 'astrbot_execute_ipython';
+        isIPythonTool(toolCall: { name?: string } | null | undefined) {
+            return toolCall?.name === 'astrbot_execute_ipython' || toolCall?.name === 'astrbot_execute_python';
         },
 
         // Start timer for updating elapsed time

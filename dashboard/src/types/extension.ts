@@ -59,4 +59,4 @@ export type UninstallOptions = {
   deleteData?: boolean
 }
 
-export type ExtensionActiveTab = 'installed' | 'mcp' | 'market' | 'components'
+export type ExtensionActiveTab = 'installed' | 'mcp' | 'skills' | 'market' | 'components'
