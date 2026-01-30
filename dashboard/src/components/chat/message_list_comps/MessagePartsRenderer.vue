@@ -1,4 +1,5 @@
 <template>
+    <div class="message-parts-renderer" :style="themeStyle">
     <template v-for="(renderPart, renderIndex) in getRenderParts(parts)" :key="renderPart.key">
         <!-- Grouped Tool Calls (consecutive tool_call parts) -->
         <div v-if="renderPart.type === 'tool_group'" class="tool-call-compact">
@@ -55,7 +56,7 @@
                 </v-icon>
             </template>
             <template #details>
-                <IPythonToolBlock :tool-call="renderPart.toolCall" :is-dark="isDark" :show-header="false"
+                <IPythonToolBlock :tool-call="toIPythonToolCall(renderPart.toolCall)" :is-dark="isDark" :show-header="false"
                     :force-expanded="true" />
             </template>
         </ToolCallItem>
@@ -64,7 +65,8 @@
         <MarkdownRender
             v-else-if="renderPart.part.type === 'plain' && renderPart.part.text && renderPart.part.text.trim()"
             custom-id="message-list" :custom-html-tags="['ref']" :content="renderPart.part.text" :typewriter="false"
-            class="markdown-content" :is-dark="isDark" :monacoOptions="{ theme: isDark ? 'vs-dark' : 'vs-light' }" />
+            class="markdown-content" :is-dark="isDark || isMarkdownDark" :render-code-blocks-as-pre="!shikiWasmReady"
+            :monacoOptions="{ theme: (isDark || isMarkdownDark) ? 'vs-dark' : 'vs-light' }" />
 
         <!-- Image -->
         <div v-else-if="renderPart.part.type === 'image' && renderPart.part.embedded_url" class="embedded-images">
@@ -86,72 +88,118 @@
         <div v-else-if="renderPart.part.type === 'file' && renderPart.part.embedded_file" class="embedded-files">
             <div class="embedded-file">
                 <a v-if="renderPart.part.embedded_file.url" :href="renderPart.part.embedded_file.url"
-                    :download="renderPart.part.embedded_file.filename" class="file-link" :class="{ 'is-dark': isDark }"
-                    :style="isDark ? {
-                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                        borderColor: 'rgba(255, 255, 255, 0.1)',
-                        color: 'var(--v-theme-secondary)'
-                    } : {}">
-                    <v-icon size="small" class="file-icon"
-                        :style="isDark ? { color: 'var(--v-theme-secondary)' } : {}">mdi-file-document-outline</v-icon>
+                    :download="renderPart.part.embedded_file.filename" class="file-link" :class="{ 'is-dark': isDark }">
+                    <v-icon size="small" class="file-icon">mdi-file-document-outline</v-icon>
                     <span class="file-name">{{ renderPart.part.embedded_file.filename }}</span>
                 </a>
                 <a v-else @click="emitDownloadFile(renderPart.part.embedded_file)" class="file-link file-link-download"
-                    :class="{ 'is-dark': isDark }" :style="isDark ? {
-                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                        borderColor: 'rgba(255, 255, 255, 0.1)',
-                        color: 'var(--v-theme-secondary)'
-                    } : {}">
-                    <v-icon size="small" class="file-icon"
-                        :style="isDark ? { color: 'var(--v-theme-secondary)' } : {}">mdi-file-document-outline</v-icon>
+                    :class="{ 'is-dark': isDark }">
+                    <v-icon size="small" class="file-icon">mdi-file-document-outline</v-icon>
                     <span class="file-name">{{ renderPart.part.embedded_file.filename }}</span>
-                    <v-icon v-if="downloadingFiles?.has(renderPart.part.embedded_file.attachment_id)" size="small"
+                    <v-icon v-if="renderPart.part.embedded_file.attachment_id != null && downloadingFiles?.has(renderPart.part.embedded_file.attachment_id)" size="small"
                         class="download-icon">mdi-loading mdi-spin</v-icon>
                     <v-icon v-else size="small" class="download-icon">mdi-download</v-icon>
                 </a>
             </div>
         </div>
     </template>
+    </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n, useModuleI18n } from '@/i18n/composables';
 import { MarkdownRender } from 'markstream-vue';
+import { useTheme } from 'vuetify'
 import IPythonToolBlock from './IPythonToolBlock.vue';
 import ToolCallItem from './ToolCallItem.vue';
 
-const props = defineProps({
-    parts: {
-        type: Array,
-        required: true
-    },
-    isDark: {
-        type: Boolean,
-        default: false
-    },
-    currentTime: {
-        type: Number,
-        default: 0
-    },
-    downloadingFiles: {
-        type: Object,
-        default: () => new Set()
-    }
-});
+type ToolCall = {
+    id: string
+    name: string
+    args?: unknown
+    result?: unknown
+    ts: number
+    finished_ts?: number | null
+}
 
-const emit = defineEmits(['open-image-preview', 'download-file']);
+type IPythonToolCall = {
+    args?: { code?: string } | null
+    result?: string | null
+}
+
+type MessagePart = {
+    type: string
+    text?: string
+    embedded_url?: string
+    embedded_file?: {
+        attachment_id?: string | number
+        filename?: string
+        url?: string
+    } & Record<string, unknown>
+    tool_calls?: ToolCall[]
+} & Record<string, unknown>
+
+const props = withDefaults(defineProps<{
+    parts: MessagePart[]
+    isDark?: boolean
+    isMarkdownDark?: boolean
+    shikiWasmReady?: boolean
+    currentTime?: number
+    downloadingFiles?: Set<string | number>
+}>(), {
+    isDark: false,
+    isMarkdownDark: false,
+    shikiWasmReady: true,
+    currentTime: 0,
+    downloadingFiles: () => new Set<string | number>(),
+})
+
+const emit = defineEmits<{
+    (e: 'open-image-preview', url: string): void
+    (e: 'download-file', file: any): void
+}>();
 const { t } = useI18n();
 const { tm } = useModuleI18n('features/chat');
 
-const emitOpenImage = (url) => {
+const theme = useTheme()
+
+// Read project theme colors and expose as CSS variables for styling.
+const themeStyle = computed(() => {
+    const colors = theme.global.current.value.colors
+    return {
+        '--mp-primary': colors?.primary ?? '',
+        '--mp-secondary': colors?.secondary ?? '',
+        '--mp-surface': colors?.surface ?? '',
+    } as Record<string, string>
+})
+
+function toIPythonToolCall(toolCall: ToolCall): IPythonToolCall {
+    const args = toolCall.args as IPythonToolCall['args']
+
+    let result: string | null = null
+    if (typeof toolCall.result === 'string') {
+        result = toolCall.result
+    } else if (toolCall.result != null) {
+        try {
+            result = JSON.stringify(toolCall.result)
+        } catch {
+            result = String(toolCall.result)
+        }
+    }
+
+    return { args, result }
+}
+
+const emitOpenImage = (url: string) => {
     emit('open-image-preview', url);
 };
 
-const emitDownloadFile = (file) => {
+const emitDownloadFile = (file: any) => {
     emit('download-file', file);
 };
 
-const formatDuration = (seconds) => {
+const formatDuration = (seconds: number) => {
     if (seconds < 1) {
         return `${Math.round(seconds * 1000)}ms`;
     }
@@ -163,12 +211,12 @@ const formatDuration = (seconds) => {
     return `${minutes}m ${secs}s`;
 };
 
-const getElapsedTime = (startTs) => {
+const getElapsedTime = (startTs: number) => {
     const elapsed = props.currentTime - startTs;
     return formatDuration(elapsed);
 };
 
-const formatToolResult = (result) => {
+const formatToolResult = (result: unknown) => {
     if (!result) return '';
     if (typeof result === 'string') {
         try {
@@ -181,7 +229,7 @@ const formatToolResult = (result) => {
     return JSON.stringify(result, null, 2);
 };
 
-const formatToolArgs = (args) => {
+const formatToolArgs = (args: unknown) => {
     if (!args) return '';
     if (typeof args === 'string') {
         try {
@@ -194,17 +242,22 @@ const formatToolArgs = (args) => {
     return JSON.stringify(args, null, 2);
 };
 
-const isIPythonTool = (toolCall) => {
+const isIPythonTool = (toolCall: ToolCall) => {
     return toolCall.name === 'astrbot_execute_ipython' || toolCall.name === 'astrbot_execute_python';
 };
 
-const getRenderParts = (messageParts) => {
+type RenderPart =
+    | { type: 'tool_group'; toolCalls: ToolCall[]; key: string }
+    | { type: 'ipython'; toolCall: ToolCall; key: string }
+    | { type: 'part'; part: MessagePart; key: string }
+
+const getRenderParts = (messageParts: unknown): RenderPart[] => {
     if (!Array.isArray(messageParts)) return [];
-    const rendered = [];
-    let pendingToolCalls = [];
+    const rendered: RenderPart[] = [];
+    let pendingToolCalls: ToolCall[] = [];
     let groupIndex = 0;
 
-    const flushPending = (endIndex) => {
+    const flushPending = (endIndex: number) => {
         if (!pendingToolCalls.length) return;
         rendered.push({
             type: 'tool_group',
@@ -215,9 +268,9 @@ const getRenderParts = (messageParts) => {
         groupIndex += 1;
     };
 
-    messageParts.forEach((part, idx) => {
+    (messageParts as any[]).forEach((part, idx) => {
         if (part?.type === 'tool_call' && Array.isArray(part.tool_calls) && part.tool_calls.length) {
-            part.tool_calls.forEach((toolCall, tcIndex) => {
+            (part.tool_calls as ToolCall[]).forEach((toolCall: ToolCall, tcIndex: number) => {
                 if (isIPythonTool(toolCall)) {
                     flushPending(idx - 1);
                     rendered.push({
@@ -247,6 +300,120 @@ const getRenderParts = (messageParts) => {
 </script>
 
 <style scoped>
+.message-parts-renderer {
+    max-width: 100%;
+}
+
+/* Images */
+.embedded-images {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.embedded-image {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.bot-embedded-image {
+    max-width: 40%;
+    width: auto;
+    height: auto;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+@media (max-width: 768px) {
+    .bot-embedded-image {
+        max-width: 85%;
+    }
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .bot-embedded-image {
+        max-width: 85%;
+    }
+}
+
+/* Audio */
+.embedded-audio {
+    width: 300px;
+    margin-top: 8px;
+}
+
+.embedded-audio .audio-player {
+    width: 100%;
+    max-width: 300px;
+    height: 36px;
+    border-radius: 18px;
+}
+
+/* Files */
+.embedded-files {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.embedded-file {
+    display: flex;
+    align-items: center;
+}
+
+.file-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background-color: rgba(var(--v-theme-primary), 0.08);
+    border: 1px solid rgba(var(--v-theme-primary), 0.2);
+    border-radius: 8px;
+    color: rgb(var(--v-theme-primary));
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    max-width: 300px;
+}
+
+.file-link-download {
+    cursor: pointer;
+}
+
+.download-icon {
+    margin-left: 4px;
+    opacity: 0.7;
+}
+
+.file-icon {
+    flex-shrink: 0;
+    color: rgb(var(--v-theme-primary));
+}
+
+.file-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-link.is-dark {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--v-theme-secondary);
+}
+
+.file-link.is-dark .file-icon {
+    color: var(--v-theme-secondary);
+}
+
+.file-link.is-dark:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
 .tool-call-compact {
     display: flex;
     flex-direction: column;

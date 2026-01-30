@@ -434,6 +434,7 @@
 import axios from 'axios';
 import ConsoleDisplayer from '@/components/shared/ConsoleDisplayer.vue';
 import { useModuleI18n } from '@/i18n/composables';
+import { getSelectedGitHubProxy as getSelectedGitHubProxyUtil } from '@/utils/githubProxy'
 
 type ProviderConfig = {
     id: string
@@ -631,10 +632,7 @@ export default {
     },
     methods: {
         getSelectedGitHubProxy() {
-            if (typeof window === "undefined" || !window.localStorage) return "";
-            return localStorage.getItem("githubProxyRadioValue") === "1"
-                ? localStorage.getItem("selectedGitHubProxy") || ""
-                : "";
+            return getSelectedGitHubProxyUtil();
         },
         llmModelProps(providerConfig: ProviderConfig) {
             return {

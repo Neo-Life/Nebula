@@ -8,6 +8,7 @@ import { useI18n } from '@/i18n/composables'
 import { useAuthStore } from '@/stores/auth'
 import { useDisplay, useTheme } from 'vuetify'
 import { shikiWasmReady } from '@/composables/shikiWasm'
+import { getSelectedGitHubProxy } from '@/utils/githubProxy'
 
 type UpdateChannel = 'official' | 'nebula'
 
@@ -165,7 +166,7 @@ async function switchVersion(tag: string) {
   try {
     const res = await axios.post('/api/update/do', {
       version: tag,
-      proxy: localStorage.getItem('selectedGitHubProxy') || '',
+      proxy: getSelectedGitHubProxy(),
       channel: sourceUpdateChannel.value
     })
     setUpdateStatusText(res.data.message)
@@ -186,7 +187,7 @@ async function updateToLatestFromChannel() {
   try {
     const res = await axios.post('/api/update/do', {
       version: 'latest',
-      proxy: localStorage.getItem('selectedGitHubProxy') || '',
+      proxy: getSelectedGitHubProxy(),
       channel: sourceUpdateChannel.value
     })
     setUpdateStatusText(res.data.message)
@@ -207,7 +208,7 @@ async function updateDashboard() {
   try {
     const res = await axios.post('/api/update/dashboard', {
       channel: dashboardUpdateChannel.value,
-      proxy: localStorage.getItem('selectedGitHubProxy') || ''
+      proxy: getSelectedGitHubProxy()
     })
     setUpdateStatusText(res.data.message)
     if (res.data.status == 'ok') {

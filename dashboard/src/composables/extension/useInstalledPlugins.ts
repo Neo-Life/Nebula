@@ -10,6 +10,8 @@ import type {
   UninstallOptions
 } from '@/types/extension'
 
+import { getSelectedGitHubProxy } from './utils'
+
 export type ToastFn = (message: unknown, color: ToastColor, timeToClose?: number) => void
 export type Tm = (key: string, ...args: any[]) => string
 
@@ -284,7 +286,7 @@ export function useInstalledPlugins({
     try {
       const res = await axios.post<ApiResponse<InstalledPlugin[]>>('/api/plugin/update', {
         name: extension_name,
-        proxy: localStorage.getItem('selectedGitHubProxy') || ''
+        proxy: getSelectedGitHubProxy()
       })
 
       if (res.data.status === 'error') {
@@ -334,7 +336,7 @@ export function useInstalledPlugins({
     try {
       const res = await axios.post<ApiResponse<{ results?: UpdateAllResult[] }>>('/api/plugin/update-all', {
         names: targets,
-        proxy: localStorage.getItem('selectedGitHubProxy') || ''
+        proxy: getSelectedGitHubProxy()
       })
 
       if (res.data.status === 'error') {

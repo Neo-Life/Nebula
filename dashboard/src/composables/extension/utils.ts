@@ -30,3 +30,5 @@ export function toReadmeUrl(repo?: string | null): string | null {
   }
   return url
 }
+
+export { getSelectedGitHubProxy } from '@/utils/githubProxy'

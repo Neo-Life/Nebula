@@ -3,6 +3,7 @@ import { ref } from 'vue'
 
 import type { ApiResponse } from '@/types/api'
 import type { PluginMarketItem, ToastColor } from '@/types/extension'
+import { getSelectedGitHubProxy } from './utils'
 
 export type ToastFn = (message: unknown, color: ToastColor, timeToClose?: number) => void
 export type Tm = (key: string, ...args: any[]) => string
@@ -61,7 +62,7 @@ export function usePluginInstall({
 
     const res = await axios.post<ApiResponse<InstallResult>>('/api/plugin/install', {
       url: target,
-      proxy: localStorage.getItem('selectedGitHubProxy') || ''
+      proxy: getSelectedGitHubProxy()
     })
 
     if (!silent) {

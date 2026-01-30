@@ -123,6 +123,10 @@ onMounted(async () => {
 .py-3 {
     padding-top: 12px;
     padding-bottom: 12px;
+    overflow: hidden;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-x: auto;
 }
 
 .code-section {
@@ -144,7 +148,8 @@ onMounted(async () => {
     overflow-x: auto;
     font-size: 13px;
     line-height: 1.5;
-    background-color: #f5f5f5;
+    background-color: rgba(var(--v-theme-surface), 0.55);
+    animation: fadeIn 0.2s ease-in-out;
 }
 
 .code-fallback.dark-theme {
@@ -170,7 +175,7 @@ onMounted(async () => {
     overflow-x: auto;
     font-size: 13px;
     line-height: 1.5;
-    background-color: #f5f5f5;
+    background-color: rgba(var(--v-theme-surface), 0.55);
     max-height: 300px;
     overflow-y: auto;
 }

@@ -148,135 +148,17 @@
                                     </div>
                                 </div>
 
-                                <!-- 遍历 message parts (保持顺序) -->
-                                <template v-for="(part, partIndex) in msg.content.message" :key="partIndex">
-                                    <!-- Tool Calls Block -->
-                                    <template v-if="part.type === 'tool_call' && part.tool_calls && part.tool_calls.length > 0">
-                                        <template v-for="(toolCall, tcIndex) in part.tool_calls" :key="toolCall.id">
-                                            <IPythonToolBlock
-                                                v-if="isIPythonTool(toolCall)"
-                                                :tool-call="toolCall"
-                                                :is-dark="isDark"
-                                                :initial-expanded="false"
-                                            />
-                                        </template>
-                                        <div v-if="hasNonIPythonToolCalls(part.tool_calls)"
-                                            class="tool-calls-container">
-                                            <div class="tool-calls-label">{{ tm('actions.toolsUsed') }}</div>
-                                            <div v-for="(toolCall, tcIndex) in getNonIPythonToolCalls(part.tool_calls)" :key="toolCall.id"
-                                                class="tool-call-card" :class="{ 'is-dark': isDark, 'expanded': isToolCallExpanded(index, partIndex, tcIndex) }" :style="isDark ? {
-                                                    backgroundColor: 'rgba(40, 60, 100, 0.4)',
-                                                    borderColor: 'rgba(100, 140, 200, 0.4)'
-                                                } : {}">
-                                                <div class="tool-call-header" :class="{ 'is-dark': isDark }"
-                                                    @click="toggleToolCall(index, partIndex, tcIndex)">
-                                                    <v-icon size="small" class="tool-call-expand-icon">
-                                                        {{ isToolCallExpanded(index, partIndex, tcIndex) ?
-                                                            'mdi-chevron-down' : 'mdi-chevron-right' }}
-                                                    </v-icon>
-                                                    <v-icon size="small" class="tool-call-icon">mdi-wrench-outline</v-icon>
-                                                    <div class="tool-call-info">
-                                                        <span class="tool-call-name">{{ toolCall.name }}</span>
-                                                    </div>
-                                                    <span class="tool-call-status"
-                                                        :class="{ 'status-running': !toolCall.finished_ts, 'status-finished': toolCall.finished_ts }">
-                                                        <template v-if="toolCall.finished_ts">
-                                                            <v-icon size="x-small"
-                                                                class="status-icon">mdi-check-circle</v-icon>
-                                                            {{ formatDuration(toolCall.finished_ts - toolCall.ts) }}
-                                                        </template>
-                                                        <template v-else>
-                                                            <v-icon size="x-small"
-                                                                class="status-icon spinning">mdi-loading</v-icon>
-                                                            {{ getElapsedTime(toolCall.ts) }}
-                                                        </template>
-                                                    </span>
-                                                </div>
-                                                <div v-if="isToolCallExpanded(index, partIndex, tcIndex)"
-                                                    class="tool-call-details" :style="isDark ? {
-                                                        borderTopColor: 'rgba(100, 140, 200, 0.3)',
-                                                        backgroundColor: 'rgba(30, 45, 70, 0.5)'
-                                                    } : {}">
-                                                    <div class="tool-call-detail-row">
-                                                        <span class="detail-label">ID:</span>
-                                                        <code class="detail-value"
-                                                            :style="isDark ? { backgroundColor: 'transparent' } : {}">{{ toolCall.id
-                                                            }}</code>
-                                                    </div>
-                                                    <div class="tool-call-detail-row">
-                                                        <span class="detail-label">Args:</span>
-                                                        <pre class="detail-value detail-json"
-                                                            :style="isDark ? { backgroundColor: 'transparent' } : {}">{{
-                                                                JSON.stringify(toolCall.args, null, 2) }}</pre>
-                                                    </div>
-                                                    <div v-if="toolCall.result" class="tool-call-detail-row">
-                                                        <span class="detail-label">Result:</span>
-                                                        <pre class="detail-value detail-json detail-result"
-                                                            :style="isDark ? { backgroundColor: 'transparent' } : {}">{{ formatToolResult(toolCall.result) }}
-                                                        </pre>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </template>
-                                    <!-- Text (Markdown / Plain multi-line logs) -->
-                                    <template v-else-if="part.type === 'plain' && part.text && part.text.trim()">
-                                        <pre v-if="shouldRenderAsPlainPre(part.text)" class="bot-plain-pre">{{ formatPlainPreText(part.text) }}</pre>
-                                        <MarkdownRender v-else
-                                            :key="shikiWasmReady ? 'shiki' : 'pre'"
-                                            :content="part.text" :typewriter="false"
-                                            :is-dark="isDark || isMarkdownDark"
-                                            :render-code-blocks-as-pre="!shikiWasmReady"
-                                            class="markdown-content" :class="{ dark: isDark }" />
-                                    </template>
-
-                                    <!-- Image -->
-                                    <div v-else-if="part.type === 'image' && part.embedded_url" class="embedded-images">
-                                        <div class="embedded-image">
-                                            <img :src="part.embedded_url" class="bot-embedded-image"
-                                                @click="$emit('openImagePreview', part.embedded_url)" />
-                                        </div>
-                                    </div>
-
-                                    <!-- Audio -->
-                                    <div v-else-if="part.type === 'record' && part.embedded_url" class="embedded-audio">
-                                        <audio controls class="audio-player">
-                                            <source :src="part.embedded_url" type="audio/wav">
-                                            {{ t('messages.errors.browser.audioNotSupported') }}
-                                        </audio>
-                                    </div>
-
-                                    <!-- Files -->
-                                    <div v-else-if="part.type === 'file' && part.embedded_file" class="embedded-files">
-                                        <div class="embedded-file">
-                                            <a v-if="part.embedded_file.url" :href="part.embedded_file.url"
-                                                :download="part.embedded_file.filename" class="file-link"
-                                                :class="{ 'is-dark': isDark }" :style="isDark ? {
-                                                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                                                    color: 'var(--v-theme-secondary)'
-                                                } : {}">
-                                                <v-icon size="small" class="file-icon"
-                                                    :style="isDark ? { color: 'var(--v-theme-secondary)' } : {}">mdi-file-document-outline</v-icon>
-                                                <span class="file-name">{{ part.embedded_file.filename }}</span>
-                                            </a>
-                                            <a v-else @click="downloadFile(part.embedded_file)"
-                                                class="file-link file-link-download" :class="{ 'is-dark': isDark }"
-                                                :style="isDark ? {
-                                                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                                                    color: 'var(--v-theme-secondary)'
-                                                } : {}">
-                                                <v-icon size="small" class="file-icon"
-                                                    :style="isDark ? { color: 'var(--v-theme-secondary)' } : {}">mdi-file-document-outline</v-icon>
-                                                <span class="file-name">{{ part.embedded_file.filename }}</span>
-                                                <v-icon v-if="downloadingFiles.has(part.embedded_file.attachment_id)"
-                                                    size="small" class="download-icon">mdi-loading mdi-spin</v-icon>
-                                                <v-icon v-else size="small" class="download-icon">mdi-download</v-icon>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </template>
+                                <!-- 使用 MessagePartsRenderer 渲染 message parts（含 tool calls 分组），配色跟随主题色 -->
+                                <MessagePartsRenderer
+                                    :parts="msg.content.message"
+                                    :is-dark="isDark"
+                                    :is-markdown-dark="isMarkdownDark"
+                                    :shiki-wasm-ready="shikiWasmReady"
+                                    :current-time="currentTime"
+                                    :downloading-files="downloadingFiles"
+                                    @open-image-preview="$emit('openImagePreview', $event)"
+                                    @download-file="downloadFile"
+                                />
                             </template>
                         </div>
                         <div class="message-actions" v-if="isBotMessageActionable(msg)">
@@ -358,6 +240,7 @@ import 'markstream-vue/index.css';
 import 'katex/dist/katex.min.css';
 import axios from 'axios';
 import IPythonToolBlock from '@/components/chat/message_list_comps/IPythonToolBlock.vue';
+import MessagePartsRenderer from '@/components/chat/message_list_comps/MessagePartsRenderer.vue';
 import RefNode from '@/components/chat/message_list_comps/RefNode.vue';
 import ActionRef from '@/components/chat/message_list_comps/ActionRef.vue';
 import { shikiWasmReady } from '@/composables/shikiWasm';
@@ -371,6 +254,7 @@ export default {
     components: {
         MarkdownRender,
     IPythonToolBlock,
+    MessagePartsRenderer,
     ActionRef
     },
     props: {
@@ -420,7 +304,7 @@ export default {
             scrollThreshold: 1,
             scrollTimer: null as any,
             expandedReasoning: new Set(), // Track which reasoning blocks are expanded
-            downloadingFiles: new Set(), // Track which files are being downloaded
+            downloadingFiles: new Set<string | number>(), // Track which files are being downloaded
             expandedToolCalls: new Set(), // Track which tool call cards are expanded
             elapsedTimeTimer: null as any, // Timer for updating elapsed time
             currentTime: Date.now() / 1000, // Current time for elapsed time calculation

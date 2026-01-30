@@ -36,8 +36,8 @@
                         </div>
                     </template>
                 </v-radio>
-                <v-radio value="-1" :label="tm('network.proxySelector.custom')">
-                    <template v-slot:label v-if="githubProxyRadioControl === '-1'">
+                <v-radio :value="-1" :label="tm('network.proxySelector.custom')">
+                    <template v-slot:label v-if="githubProxyRadioControl === -1">
                         <v-text-field density="compact" v-model="selectedGitHubProxy" variant="outlined"
                             style="width: 100vw;" :placeholder="tm('network.proxySelector.custom')" :hide-details="true">
                         </v-text-field>
@@ -71,7 +71,7 @@ export default {
                 "https://gh-proxy.com/",
                 "https://gh.llkk.cc",
             ],
-            githubProxyRadioControl: "0", // the index of the selected proxy
+            githubProxyRadioControl: 0, // the index of the selected proxy, -1 for custom
             selectedGitHubProxy: "",
             radioValue: "0", // 0: 不使用, 1: 使用
             loadingTestingConnection: false,
@@ -123,9 +123,11 @@ export default {
     mounted() {
         this.selectedGitHubProxy = localStorage.getItem('selectedGitHubProxy') || "";
         this.radioValue = localStorage.getItem('githubProxyRadioValue') || "0";
-        this.githubProxyRadioControl = localStorage.getItem('githubProxyRadioControl') || "0";
+        const storedControl = localStorage.getItem('githubProxyRadioControl') || "0";
+        const parsedControl = Number.parseInt(storedControl, 10);
+        this.githubProxyRadioControl = Number.isFinite(parsedControl) ? parsedControl : 0;
         if (this.radioValue === "1") {
-            if (this.githubProxyRadioControl !== "-1") {
+            if (this.githubProxyRadioControl !== -1) {
                 this.selectedGitHubProxy = this.githubProxies[this.githubProxyRadioControl] || "";
             }
         } else {
@@ -143,19 +145,18 @@ export default {
             localStorage.setItem('githubProxyRadioValue', newVal);
             if (newVal === "0") {
                 this.selectedGitHubProxy = "";
-            } else if (this.githubProxyRadioControl !== "-1") {
+            } else if (this.githubProxyRadioControl !== -1) {
                 this.selectedGitHubProxy = this.githubProxies[this.githubProxyRadioControl] || "";
             }
         },
-        githubProxyRadioControl: function (newVal: string) {
-            localStorage.setItem('githubProxyRadioControl', newVal);
+        githubProxyRadioControl: function (newVal: number) {
+            localStorage.setItem('githubProxyRadioControl', String(newVal));
             if (this.radioValue !== "1") {
                 this.selectedGitHubProxy = "";
                 return;
             }
-            if (newVal !== "-1") {
-                const idx = Number.parseInt(newVal, 10);
-                this.selectedGitHubProxy = Number.isFinite(idx) ? (this.githubProxies[idx] || "") : "";
+            if (newVal !== -1) {
+                this.selectedGitHubProxy = this.githubProxies[newVal] || "";
             } else {
                 this.selectedGitHubProxy = "";
             }
