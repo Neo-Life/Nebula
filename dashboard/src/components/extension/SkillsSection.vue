@@ -26,11 +26,14 @@
           <item-card :item="skill" title-field="name" enabled-field="active" title-class="text-h3" :loading="itemLoading[skill.name] || false"
             :show-edit-button="false" @toggle-enabled="toggleSkill" @delete="confirmDelete">
             <template v-slot:item-details="{ item }">
-              <div class="text-caption text-medium-emphasis mb-2 skill-description">
+              <div
+                class="text-caption text-medium-emphasis mb-2 skill-description"
+                :title="item.description || tm('skills.noDescription')"
+              >
                 <v-icon size="small" class="me-1">mdi-text</v-icon>
                 {{ item.description || tm('skills.noDescription') }}
               </div>
-              <div class="text-caption text-medium-emphasis">
+              <div class="text-caption text-medium-emphasis skill-path" :title="item.path">
                 <v-icon size="small" class="me-1">mdi-file-document</v-icon>
                 {{ tm('skills.path') }}: {{ item.path }}
               </div>
@@ -300,7 +303,18 @@ export default defineComponent({
 <style scoped>
 .skill-description {
   display: -webkit-box;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.skill-path {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>
