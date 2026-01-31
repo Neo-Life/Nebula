@@ -32,65 +32,19 @@
                                 class="collapsible-content"
                                 :class="{ 'is-collapsed': shouldCollapseUserMsg(msg) && !isUserMessageExpanded(index) }"
                             >
-                            <!-- 遍历 message parts -->
-                            <template v-for="(part, partIndex) in msg.content.message" :key="partIndex">
-                            <!-- 引用消息 -->
-                            <div v-if="part.type === 'reply'" class="reply-quote"
-                                @click="scrollToMessage(part.message_id)">
-                                <v-icon size="small" class="reply-quote-icon">mdi-reply</v-icon>
-                                <span class="reply-quote-text">{{ getReplyContent(part.message_id) }}</span>
-                            </div>
-
-                            <!-- 纯文本 -->
-                            <pre v-else-if="part.type === 'plain' && part.text"
-                                style="font-family: inherit; white-space: pre-wrap; word-wrap: break-word;">{{ part.text }}</pre>
-
-                            <!-- 图片附件 -->
-                            <div v-else-if="part.type === 'image' && part.embedded_url" class="image-attachments">
-                                <div class="image-attachment">
-                                    <img :src="part.embedded_url" class="attached-image"
-                                        @click="$emit('openImagePreview', part.embedded_url)" />
-                                </div>
-                            </div>
-
-                            <!-- 音频附件 -->
-                            <div v-else-if="part.type === 'record' && part.embedded_url" class="audio-attachment">
-                                <audio controls class="audio-player">
-                                    <source :src="part.embedded_url" type="audio/wav">
-                                    {{ t('messages.errors.browser.audioNotSupported') }}
-                                </audio>
-                            </div>
-
-                            <!-- 文件附件 -->
-                            <div v-else-if="part.type === 'file' && part.embedded_file" class="file-attachments">
-                                <div class="file-attachment">
-                                    <a v-if="part.embedded_file.url" :href="part.embedded_file.url"
-                                        :download="part.embedded_file.filename" class="file-link"
-                                        :class="{ 'is-dark': isDark }" :style="isDark ? {
-                                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                            borderColor: 'rgba(255, 255, 255, 0.1)',
-                                            color: 'var(--v-theme-secondary)'
-                                        } : {}">
-                                        <v-icon size="small" class="file-icon"
-                                            :style="isDark ? { color: 'var(--v-theme-secondary)' } : {}">mdi-file-document-outline</v-icon>
-                                        <span class="file-name">{{ part.embedded_file.filename }}</span>
-                                    </a>
-                                    <a v-else @click="downloadFile(part.embedded_file)"
-                                        class="file-link file-link-download" :class="{ 'is-dark': isDark }" :style="isDark ? {
-                                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                            borderColor: 'rgba(255, 255, 255, 0.1)',
-                                            color: 'var(--v-theme-secondary)'
-                                        } : {}">
-                                        <v-icon size="small" class="file-icon"
-                                            :style="isDark ? { color: 'var(--v-theme-secondary)' } : {}">mdi-file-document-outline</v-icon>
-                                        <span class="file-name">{{ part.embedded_file.filename }}</span>
-                                        <v-icon v-if="downloadingFiles.has(part.embedded_file.attachment_id)"
-                                            size="small" class="download-icon">mdi-loading mdi-spin</v-icon>
-                                        <v-icon v-else size="small" class="download-icon">mdi-download</v-icon>
-                                    </a>
-                                </div>
-                            </div>
-                            </template>
+                            <MessagePartsRenderer
+                                :parts="msg.content.message"
+                                variant="user"
+                                :is-dark="isDark"
+                                :is-markdown-dark="isMarkdownDark"
+                                :shiki-wasm-ready="shikiWasmReady"
+                                :current-time="currentTime"
+                                :downloading-files="downloadingFiles"
+                                :get-reply-content="getReplyContent"
+                                @open-image-preview="$emit('openImagePreview', $event)"
+                                @download-file="downloadFile"
+                                @scroll-to-message="scrollToMessage"
+                            />
                             </div>
                         </div>
 
@@ -239,7 +193,6 @@ import { MarkdownCodeBlockNode, MarkdownRender, enableKatex, enableMermaid, setC
 import 'markstream-vue/index.css';
 import 'katex/dist/katex.min.css';
 import axios from 'axios';
-import IPythonToolBlock from '@/components/chat/message_list_comps/IPythonToolBlock.vue';
 import MessagePartsRenderer from '@/components/chat/message_list_comps/MessagePartsRenderer.vue';
 import RefNode from '@/components/chat/message_list_comps/RefNode.vue';
 import ActionRef from '@/components/chat/message_list_comps/ActionRef.vue';
@@ -253,9 +206,8 @@ export default {
     name: 'MessageList',
     components: {
         MarkdownRender,
-    IPythonToolBlock,
-    MessagePartsRenderer,
-    ActionRef
+        MessagePartsRenderer,
+        ActionRef
     },
     props: {
         messages: {
@@ -305,7 +257,6 @@ export default {
             scrollTimer: null as any,
             expandedReasoning: new Set(), // Track which reasoning blocks are expanded
             downloadingFiles: new Set<string | number>(), // Track which files are being downloaded
-            expandedToolCalls: new Set(), // Track which tool call cards are expanded
             elapsedTimeTimer: null as any, // Timer for updating elapsed time
             currentTime: Date.now() / 1000, // Current time for elapsed time calculation
             expandedUserMessages: new Set<number>(), // Track which user messages are expanded
@@ -433,14 +384,6 @@ export default {
             });
             
             this.webSearchResults = results;
-        },
-
-        hasNonIPythonToolCalls(toolCalls: unknown) {
-            return Array.isArray(toolCalls) && toolCalls.some((toolCall: any) => !this.isIPythonTool(toolCall));
-        },
-
-        getNonIPythonToolCalls(toolCalls: unknown) {
-            return Array.isArray(toolCalls) ? toolCalls.filter((toolCall: any) => !this.isIPythonTool(toolCall)) : [];
         },
 
         async copyTextToClipboard(text: string): Promise<boolean> {
@@ -886,26 +829,6 @@ export default {
             }
         },
 
-        // Tool call related methods
-        toggleToolCall(messageIndex: string | number, partIndex: string | number, toolCallIndex: string | number) {
-            const key = `${messageIndex}-${partIndex}-${toolCallIndex}`;
-            if (this.expandedToolCalls.has(key)) {
-                this.expandedToolCalls.delete(key);
-            } else {
-                this.expandedToolCalls.add(key);
-            }
-            // Force reactivity
-            this.expandedToolCalls = new Set(this.expandedToolCalls);
-        },
-
-        isToolCallExpanded(messageIndex: string | number, partIndex: string | number, toolCallIndex: string | number) {
-            return this.expandedToolCalls.has(`${messageIndex}-${partIndex}-${toolCallIndex}`);
-        },
-
-        isIPythonTool(toolCall: { name?: string } | null | undefined) {
-            return toolCall?.name === 'astrbot_execute_ipython' || toolCall?.name === 'astrbot_execute_python';
-        },
-
         // Start timer for updating elapsed time
         startElapsedTimeTimer() {
             // Update every 12ms for sub-second precision, then every second after 1s
@@ -948,12 +871,6 @@ export default {
             updateTime();
         },
 
-        // Get elapsed time string for a tool call
-        getElapsedTime(startTs: number) {
-            const elapsed = this.currentTime - startTs;
-            return this.formatDuration(elapsed);
-        },
-
         // Format duration in seconds to human readable string
         formatDuration(seconds: number) {
             if (seconds < 1) {
@@ -964,18 +881,6 @@ export default {
                 const minutes = Math.floor(seconds / 60);
                 const secs = Math.round(seconds % 60);
                 return `${minutes}m ${secs}s`;
-            }
-        },
-
-        // Format tool result for display
-        formatToolResult(result: unknown) {
-            if (!result) return '';
-            // Try to parse as JSON for pretty formatting
-            try {
-                const parsed = JSON.parse(String(result));
-                return JSON.stringify(parsed, null, 2);
-            } catch {
-                return String(result);
             }
         },
 
@@ -1369,37 +1274,6 @@ export default {
     background-color: rgba(var(--v-theme-secondary), 0.1);
 }
 
-/* 引用消息显示样式 */
-.reply-quote {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
-    margin-bottom: 8px;
-    background-color: rgba(var(--v-theme-secondary), 0.08);
-    border-left: 3px solid var(--v-theme-secondary);
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.reply-quote:hover {
-    background-color: rgba(var(--v-theme-secondary), 0.15);
-}
-
-.reply-quote-icon {
-    color: var(--v-theme-secondary);
-    flex-shrink: 0;
-}
-
-.reply-quote-text {
-    font-size: 13px;
-    color: var(--v-theme-secondaryText);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 /* 消息高亮动画 */
 .highlight-message {
     animation: highlightPulse 2s ease-out;
@@ -1536,180 +1410,9 @@ export default {
     margin-top: 12px;
 }
 
-/* 附件样式 */
-.image-attachments {
-    display: flex;
-    gap: 8px;
-    margin-top: 8px;
-    flex-wrap: wrap;
-}
-
-.image-attachment {
-    position: relative;
-    display: inline-block;
-}
-
-.attached-image {
-    width: 120px;
-    height: 120px;
-    object-fit: cover;
-    border-radius: 12px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s ease;
-}
-
-@media (max-width: 768px) {
-    .image-attachments {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .image-attachment {
-        max-width: 100%;
-    }
-
-    .attached-image {
-        width: 100%;
-        max-width: 72vw;
-        height: auto;
-        max-height: 45vh;
-        object-fit: contain;
-    }
-
-}
-
-@media (hover: none) and (pointer: coarse) {
-    .image-attachments {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .image-attachment {
-        max-width: 100%;
-    }
-
-    .attached-image {
-        width: 100%;
-        max-width: 72vw;
-        height: auto;
-        max-height: 45vh;
-        object-fit: contain;
-    }
-
-}
-
-.audio-attachment {
-    margin-top: 8px;
-    min-width: 250px;
-}
-
 /* 包含音频的消息气泡最小宽度 */
 .message-bubble.has-audio {
     min-width: 280px;
-}
-
-.audio-player {
-    width: 100%;
-    height: 36px;
-    border-radius: 18px;
-}
-
-.embedded-images {
-    margin-top: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.embedded-image {
-    display: flex;
-    justify-content: flex-start;
-}
-
-.bot-embedded-image {
-    max-width: 40%;
-    width: auto;
-    height: auto;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: transform 0.2s ease;
-}
-
-@media (max-width: 768px) {
-    .bot-embedded-image {
-        max-width: 85%;
-    }
-}
-
-@media (hover: none) and (pointer: coarse) {
-    .bot-embedded-image {
-        max-width: 85%;
-    }
-}
-
-.embedded-audio {
-    width: 300px;
-    margin-top: 8px;
-}
-
-.embedded-audio .audio-player {
-    width: 100%;
-    max-width: 300px;
-}
-
-/* 文件附件样式 */
-.file-attachments,
-.embedded-files {
-    margin-top: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.file-attachment,
-.embedded-file {
-    display: flex;
-    align-items: center;
-}
-
-.file-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
-    background-color: rgba(var(--v-theme-primary), 0.08);
-    border: 1px solid rgba(var(--v-theme-primary), 0.2);
-    border-radius: 8px;
-    color: rgb(var(--v-theme-primary));
-    text-decoration: none;
-    font-size: 14px;
-    transition: all 0.2s ease;
-    max-width: 300px;
-}
-
-.file-link-download {
-    cursor: pointer;
-}
-
-.download-icon {
-    margin-left: 4px;
-    opacity: 0.7;
-}
-
-.file-icon {
-    flex-shrink: 0;
-    color: rgb(var(--v-theme-primary));
-}
-
-.file-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.file-link.is-dark:hover {
-    background-color: rgba(255, 255, 255, 0.1) !important;
-    border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
 /* 动画类 */
@@ -1780,110 +1483,6 @@ export default {
     color: var(--v-theme-secondaryText);
 }
 
-/* Tool Call Card Styles */
-.tool-calls-container {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 12px;
-    margin-top: 6px;
-}
-
-.tool-calls-label {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--v-theme-secondaryText);
-    opacity: 0.7;
-    margin-bottom: 4px;
-}
-
-.tool-call-card {
-    border-radius: 8px;
-    overflow: hidden;
-    background-color: #eff3f6;
-    margin: 8px 0px;
-    max-width: 300px;
-    transition: max-width 0.1s ease;
-}
-
-.tool-call-card.expanded {
-    max-width: 100%;
-}
-
-.tool-call-header {
-    display: flex;
-    align-items: center;
-    padding: 10px 12px;
-    cursor: pointer;
-    user-select: none;
-    transition: background-color 0.2s ease;
-    gap: 8px;
-}
-
-.tool-call-header:hover {
-    background-color: rgba(169, 194, 219, 0.15);
-}
-
-.tool-call-header.is-dark:hover {
-    background-color: rgba(100, 150, 200, 0.2);
-}
-
-.tool-call-expand-icon {
-    color: var(--v-theme-secondary);
-    transition: transform 0.2s ease;
-    flex-shrink: 0;
-}
-
-.tool-call-icon {
-    color: var(--v-theme-secondary);
-    flex-shrink: 0;
-}
-
-.tool-call-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    flex: 1;
-    min-width: 0;
-}
-
-.tool-call-name {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--v-theme-secondary);
-}
-
-.tool-call-id {
-    font-size: 11px;
-    color: var(--v-theme-secondaryText);
-    opacity: 0.7;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.tool-call-status {
-    margin-left: 8px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
-    font-weight: 500;
-    flex-shrink: 0;
-}
-
-.tool-call-status.status-running {
-    color: #ff9800;
-}
-
-.tool-call-status.status-finished {
-    color: #4caf50;
-}
-
-.tool-call-status .status-icon {
-    font-size: 14px;
-}
-
 /* 浮动引用按钮样式 */
 .selection-quote-button {
     position: fixed;
@@ -1912,74 +1511,6 @@ export default {
 .quote-btn.dark-mode {
     background-color: #2d2d2d !important;
     color: #ffffff !important;
-}
-
-.tool-call-status .status-icon.spinning {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-.tool-call-details {
-    padding: 12px;
-    background-color: rgba(255, 255, 255, 0.5);
-    animation: fadeIn 0.2s ease-in-out;
-}
-
-.tool-call-detail-row {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 8px;
-}
-
-.tool-call-detail-row:last-child {
-    margin-bottom: 0;
-}
-
-.detail-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--v-theme-secondaryText);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 4px;
-}
-
-.detail-value {
-    font-size: 12px;
-    color: var(--v-theme-primaryText);
-    background-color: transparent;
-    padding: 4px 8px;
-    border-radius: 4px;
-    word-break: break-all;
-}
-
-.detail-json {
-    font-family: 'Fira Code', 'Consolas', monospace;
-    white-space: pre-wrap;
-    max-height: 200px;
-    overflow-y: auto;
-    margin: 0;
-}
-
-.bot-plain-pre {
-    margin: 0;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    font-family: inherit;
-}
-
-.detail-result {
-    max-height: 300px;
-    background-color: transparent;
 }
 </style>
 

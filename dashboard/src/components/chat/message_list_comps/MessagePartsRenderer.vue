@@ -61,6 +61,22 @@
             </template>
         </ToolCallItem>
 
+        <!-- Reply -->
+        <div
+            v-else-if="renderPart.part.type === 'reply' && renderPart.part.message_id != null"
+            class="reply-quote"
+            @click="emitScrollToMessage(renderPart.part.message_id)"
+        >
+            <v-icon size="small" class="reply-quote-icon">mdi-reply</v-icon>
+            <span class="reply-quote-text">{{ getReplyContentText(renderPart.part.message_id) }}</span>
+        </div>
+
+        <!-- Text (User) -->
+        <pre
+            v-else-if="isUserVariant && renderPart.part.type === 'plain' && renderPart.part.text"
+            class="user-plain-pre"
+        >{{ renderPart.part.text }}</pre>
+
         <!-- Text (Markdown) -->
         <MarkdownRender
             v-else-if="renderPart.part.type === 'plain' && renderPart.part.text && renderPart.part.text.trim()"
@@ -69,15 +85,29 @@
             :monacoOptions="{ theme: (isDark || isMarkdownDark) ? 'vs-dark' : 'vs-light' }" />
 
         <!-- Image -->
-        <div v-else-if="renderPart.part.type === 'image' && renderPart.part.embedded_url" class="embedded-images">
+        <div v-else-if="!isUserVariant && renderPart.part.type === 'image' && renderPart.part.embedded_url" class="embedded-images">
             <div class="embedded-image">
                 <img :src="renderPart.part.embedded_url" class="bot-embedded-image"
                     @click="emitOpenImage(renderPart.part.embedded_url)" />
             </div>
         </div>
 
+        <div v-else-if="isUserVariant && renderPart.part.type === 'image' && renderPart.part.embedded_url" class="image-attachments">
+            <div class="image-attachment">
+                <img :src="renderPart.part.embedded_url" class="attached-image"
+                    @click="emitOpenImage(renderPart.part.embedded_url)" />
+            </div>
+        </div>
+
         <!-- Audio -->
-        <div v-else-if="renderPart.part.type === 'record' && renderPart.part.embedded_url" class="embedded-audio">
+        <div v-else-if="!isUserVariant && renderPart.part.type === 'record' && renderPart.part.embedded_url" class="embedded-audio">
+            <audio controls class="audio-player">
+                <source :src="renderPart.part.embedded_url" type="audio/wav">
+                {{ t('messages.errors.browser.audioNotSupported') }}
+            </audio>
+        </div>
+
+        <div v-else-if="isUserVariant && renderPart.part.type === 'record' && renderPart.part.embedded_url" class="audio-attachment">
             <audio controls class="audio-player">
                 <source :src="renderPart.part.embedded_url" type="audio/wav">
                 {{ t('messages.errors.browser.audioNotSupported') }}
@@ -85,8 +115,26 @@
         </div>
 
         <!-- Files -->
-        <div v-else-if="renderPart.part.type === 'file' && renderPart.part.embedded_file" class="embedded-files">
+        <div v-else-if="!isUserVariant && renderPart.part.type === 'file' && renderPart.part.embedded_file" class="embedded-files">
             <div class="embedded-file">
+                <a v-if="renderPart.part.embedded_file.url" :href="renderPart.part.embedded_file.url"
+                    :download="renderPart.part.embedded_file.filename" class="file-link" :class="{ 'is-dark': isDark }">
+                    <v-icon size="small" class="file-icon">mdi-file-document-outline</v-icon>
+                    <span class="file-name">{{ renderPart.part.embedded_file.filename }}</span>
+                </a>
+                <a v-else @click="emitDownloadFile(renderPart.part.embedded_file)" class="file-link file-link-download"
+                    :class="{ 'is-dark': isDark }">
+                    <v-icon size="small" class="file-icon">mdi-file-document-outline</v-icon>
+                    <span class="file-name">{{ renderPart.part.embedded_file.filename }}</span>
+                    <v-icon v-if="renderPart.part.embedded_file.attachment_id != null && downloadingFiles?.has(renderPart.part.embedded_file.attachment_id)" size="small"
+                        class="download-icon">mdi-loading mdi-spin</v-icon>
+                    <v-icon v-else size="small" class="download-icon">mdi-download</v-icon>
+                </a>
+            </div>
+        </div>
+
+        <div v-else-if="isUserVariant && renderPart.part.type === 'file' && renderPart.part.embedded_file" class="file-attachments">
+            <div class="file-attachment">
                 <a v-if="renderPart.part.embedded_file.url" :href="renderPart.part.embedded_file.url"
                     :download="renderPart.part.embedded_file.filename" class="file-link" :class="{ 'is-dark': isDark }">
                     <v-icon size="small" class="file-icon">mdi-file-document-outline</v-icon>
@@ -131,6 +179,7 @@ type IPythonToolCall = {
 type MessagePart = {
     type: string
     text?: string
+    message_id?: string | number
     embedded_url?: string
     embedded_file?: {
         attachment_id?: string | number
@@ -147,17 +196,21 @@ const props = withDefaults(defineProps<{
     shikiWasmReady?: boolean
     currentTime?: number
     downloadingFiles?: Set<string | number>
+    variant?: 'bot' | 'user'
+    getReplyContent?: (messageId: string | number) => string
 }>(), {
     isDark: false,
     isMarkdownDark: false,
     shikiWasmReady: true,
     currentTime: 0,
     downloadingFiles: () => new Set<string | number>(),
+    variant: 'bot',
 })
 
 const emit = defineEmits<{
     (e: 'open-image-preview', url: string): void
     (e: 'download-file', file: any): void
+    (e: 'scroll-to-message', messageId: string | number): void
 }>();
 const { t } = useI18n();
 const { tm } = useModuleI18n('features/chat');
@@ -198,6 +251,19 @@ const emitOpenImage = (url: string) => {
 const emitDownloadFile = (file: any) => {
     emit('download-file', file);
 };
+
+const emitScrollToMessage = (messageId: string | number) => {
+    emit('scroll-to-message', messageId)
+}
+
+const isUserVariant = computed(() => props.variant === 'user')
+
+const getReplyContentText = (messageId: string | number) => {
+    if (typeof props.getReplyContent === 'function') {
+        return props.getReplyContent(messageId)
+    }
+    return '[媒体内容]'
+}
 
 const formatDuration = (seconds: number) => {
     if (seconds < 1) {
@@ -302,6 +368,134 @@ const getRenderParts = (messageParts: unknown): RenderPart[] => {
 <style scoped>
 .message-parts-renderer {
     max-width: 100%;
+    min-width: 0;
+}
+
+/* Reply Quote */
+.reply-quote {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    margin-bottom: 8px;
+    background-color: rgba(var(--v-theme-secondary), 0.08);
+    border-left: 3px solid var(--v-theme-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.reply-quote:hover {
+    background-color: rgba(var(--v-theme-secondary), 0.15);
+}
+
+.reply-quote-icon {
+    color: var(--v-theme-secondary);
+    flex-shrink: 0;
+}
+
+.reply-quote-text {
+    font-size: 13px;
+    color: var(--v-theme-secondaryText);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* User plain text */
+.user-plain-pre {
+    margin: 0;
+    font-family: inherit;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* User image attachments */
+.image-attachments {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.image-attachment {
+    position: relative;
+    display: inline-block;
+}
+
+.attached-image {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+}
+
+@media (max-width: 768px) {
+    .image-attachments {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .image-attachment {
+        max-width: 100%;
+    }
+
+    .attached-image {
+        width: 100%;
+        max-width: 72vw;
+        height: auto;
+        max-height: 45vh;
+        object-fit: contain;
+    }
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .image-attachments {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .image-attachment {
+        max-width: 100%;
+    }
+
+    .attached-image {
+        width: 100%;
+        max-width: 72vw;
+        height: auto;
+        max-height: 45vh;
+        object-fit: contain;
+    }
+}
+
+/* User audio attachment */
+.audio-attachment {
+    margin-top: 8px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.audio-player {
+    width: 100%;
+    height: 36px;
+    border-radius: 18px;
+}
+
+/* User files */
+.file-attachments {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.file-attachment {
+    display: flex;
+    align-items: center;
 }
 
 /* Images */
@@ -340,7 +534,8 @@ const getRenderParts = (messageParts: unknown): RenderPart[] => {
 
 /* Audio */
 .embedded-audio {
-    width: 300px;
+    width: 100%;
+    max-width: 300px;
     margin-top: 8px;
 }
 
@@ -376,7 +571,8 @@ const getRenderParts = (messageParts: unknown): RenderPart[] => {
     text-decoration: none;
     font-size: 14px;
     transition: all 0.2s ease;
-    max-width: 300px;
+    max-width: min(300px, 100%);
+    min-width: 0;
 }
 
 .file-link-download {
@@ -397,6 +593,7 @@ const getRenderParts = (messageParts: unknown): RenderPart[] => {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    min-width: 0;
 }
 
 .file-link.is-dark {
