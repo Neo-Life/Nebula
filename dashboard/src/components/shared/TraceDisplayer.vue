@@ -86,6 +86,11 @@ export default defineComponent({
     window.removeEventListener("resize", this.updateTableHeight);
   },
   methods: {
+    toTitle(text: unknown, maxLen = 2000): string {
+      const value = String(text ?? "");
+      if (value.length <= maxLen) return value;
+      return `${value.slice(0, maxLen)}…`;
+    },
     updateTableHeight() {
       this.$nextTick(() => {
         const el = this.$refs.scrollEl as HTMLElement | undefined;
@@ -330,7 +335,7 @@ export default defineComponent({
               {{ shortSpan(event.span_id) }}
             </div>
           </div>
-          <div class="trace-cell umo" data-label="UMO">{{ event.umo }}</div>
+          <div class="trace-cell umo" data-label="UMO" :title="event.umo || ''">{{ event.umo }}</div>
           <!-- <div class="trace-cell count">
             <div class="event-meta">{{ event.records.length }}</div>
           </div> -->
@@ -338,14 +343,13 @@ export default defineComponent({
             <div class="event-meta">{{ formatTime(event.last_time) }}</div>
           </div> -->
           <div class="trace-cell sender" data-label="Sender">
-            <div class="event-sub" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{
-              event.sender_name || '-' }}</div>
+            <div class="event-sub sender-text" :title="event.sender_name || '-'">{{ event.sender_name || '-' }}</div>
           </div>
           <div class="trace-cell outline" data-label="Outline">
-            <div class="event-sub outline">{{ event.message_outline || '-' }}</div>
+            <div class="event-sub outline" :title="event.message_outline || '-'">{{ event.message_outline || '-' }}</div>
           </div>
           <div class="trace-cell fields event-controls" data-label="Controls">
-            <v-btn size="x-small" variant="text" color="primary" @click="toggleEvent(event.span_id)">
+            <v-btn class="toggle-btn" size="x-small" variant="text" color="primary" @click="toggleEvent(event.span_id)">
               {{ event.collapsed ? 'Expand' : 'Collapse' }}
               <span v-if="event.hasAgentPrepare" class="agent-dot" />
             </v-btn>
@@ -354,8 +358,8 @@ export default defineComponent({
         <div class="trace-records" v-if="!event.collapsed">
           <div class="trace-record" v-for="record in getVisibleRecords(event)" :key="record.key">
             <div class="trace-record-time">{{ record.timeLabel }}</div>
-            <div class="trace-record-action">{{ record.action }}</div>
-            <pre class="trace-record-fields">{{ record.fieldsText }}</pre>
+            <div class="trace-record-action" :title="toTitle(record.action)">{{ record.action }}</div>
+            <pre class="trace-record-fields" :title="toTitle(record.fieldsText)">{{ record.fieldsText }}</pre>
           </div>
           <div class="event-more" v-if="event.visibleCount < event.records.length">
             <v-btn size="x-small" variant="tonal" color="primary" @click="showMore(event.span_id)">
@@ -381,24 +385,25 @@ export default defineComponent({
   padding: 0;
   height: 100%;
   overflow-y: auto;
-  color: #2b3340;
+  overflow-x: hidden;
+  color: rgb(var(--v-theme-on-surface));
   font-family: 'Fira Code', monospace;
 }
 
 .trace-row {
   display: grid;
-  grid-template-columns: 200px 100px 300px 90px 180px 140px 200px 1fr;
+  grid-template-columns: 200px 100px 260px 180px 1fr 140px;
   gap: 12px;
 }
 
 .trace-group {
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.12);
   background: transparent;
   padding: 8px 0;
 }
 
 .trace-group.highlight {
-  background: rgba(59, 130, 246, 0.08);
+  background: rgba(var(--v-theme-primary), 0.12);
   transition: background 0.6s ease;
 }
 
@@ -408,8 +413,8 @@ export default defineComponent({
 
 .trace-header {
   font-weight: 600;
-  color: #6b7280;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.12);
+  color: rgba(var(--v-theme-on-surface), 0.7);
+  border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.16);
   padding-bottom: 10px;
 }
 
@@ -421,30 +426,38 @@ export default defineComponent({
 
 .event-title {
   font-weight: 600;
-  color: #1f2937;
+  color: rgb(var(--v-theme-on-surface));
 }
 
 .event-meta {
   font-size: 12px;
-  color: #6b7280;
+  color: rgba(var(--v-theme-on-surface), 0.7);
   margin-top: 4px;
 }
 
 .event-sub {
   font-size: 12px;
-  color: #4b5563;
+  color: rgba(var(--v-theme-on-surface), 0.8);
   margin-top: 2px;
   word-break: break-word;
 }
 
 .event-sub.outline {
-  color: #6b7280;
+  color: rgba(var(--v-theme-on-surface), 0.7);
+}
+
+.sender-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .event-controls {
   display: flex;
   justify-content: flex-end;
 }
+
+
 
 .agent-dot {
   display: inline-block;
@@ -460,18 +473,19 @@ export default defineComponent({
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
-  color: #4b5563;
+  overflow-wrap: anywhere;
+  color: rgba(var(--v-theme-on-surface), 0.8);
 }
 
 .trace-empty {
   padding: 24px;
   text-align: center;
-  color: #6b7280;
+  color: rgba(var(--v-theme-on-surface), 0.7);
 }
 
 @media (max-width: 1200px) {
   .trace-row {
-    grid-template-columns: 140px 160px 300px 70px 140px 180px 1fr;
+    grid-template-columns: 160px 90px 200px 140px 1fr 120px;
   }
 
   .trace-cell.fields {
@@ -491,12 +505,12 @@ export default defineComponent({
 }
 
 .trace-record-time {
-  color: #6b7280;
+  color: rgba(var(--v-theme-on-surface), 0.7);
   font-size: 11px;
 }
 
 .trace-record-action {
-  color: #1f2937;
+  color: rgb(var(--v-theme-on-surface));
   font-weight: 600;
   font-size: 11px;
 }
@@ -505,7 +519,8 @@ export default defineComponent({
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
-  color: #4b5563;
+  overflow-wrap: anywhere;
+  color: rgba(var(--v-theme-on-surface), 0.8);
   font-size: 10px;
 }
 
@@ -519,7 +534,7 @@ export default defineComponent({
   padding: 4px 0 2px 0;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 960px) {
   .trace-row.trace-header {
     display: none;
   }
@@ -535,7 +550,7 @@ export default defineComponent({
 
   .trace-cell {
     display: flex;
-    align-items: flex-start;
+    align-items: baseline;
     gap: 10px;
     overflow: visible;
     text-overflow: unset;
@@ -544,7 +559,7 @@ export default defineComponent({
   .trace-cell::before {
     content: attr(data-label);
     flex: 0 0 90px;
-    color: #6b7280;
+    color: rgba(var(--v-theme-on-surface), 0.7);
     font-weight: 600;
     font-size: 12px;
     line-height: 1.4;
@@ -554,8 +569,36 @@ export default defineComponent({
     min-width: 0;
   }
 
+  .trace-cell .event-sub {
+    flex: 1 1 auto;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .sender-text {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    overflow-wrap: anywhere;
+  }
+
   .event-controls {
     justify-content: flex-start;
+    align-items: baseline;
+  }
+
+  .toggle-btn {
+    /* Keep height close to label text line-height */
+    --v-btn-height: 18px;
+    height: 18px;
+    padding-inline: 0px;
+    padding-block: 0px;
+    min-width: 0;
+    font-size: 12px;
+  }
+
+  .toggle-btn :deep(.v-btn__content) {
+    line-height: 1.4;
   }
 
   .trace-record {
