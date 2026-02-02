@@ -20,7 +20,7 @@
   <!-- 创建人格对话框 -->
   <PersonaForm
     v-model="showCreateDialog"
-    :editing-persona="undefined"
+    :editing-persona="null"
     :current-folder-id="currentFolderId ?? undefined"
     :current-folder-name="currentFolderName ?? undefined"
     @saved="handlePersonaCreated"
@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, type PropType } from 'vue'
 import axios from 'axios'
 import BaseFolderItemSelector from '@/components/folder/BaseFolderItemSelector.vue'
 import PersonaForm from './PersonaForm.vue'
@@ -44,11 +44,11 @@ interface Persona {
 
 const props = defineProps({
   modelValue: {
-    type: String,
+    type: String as PropType<string>,
     default: ''
   },
   buttonText: {
-    type: String,
+    type: String as PropType<string>,
     default: ''
   }
 })
@@ -57,7 +57,6 @@ const emit = defineEmits(['update:modelValue'])
 const { t } = useI18n()
 const { tm } = useModuleI18n('core.shared')
 
-// 状态
 const folderTree = ref<FolderTreeNode[]>([])
 const currentPersonas = ref<Persona[]>([])
 const treeLoading = ref(false)
@@ -90,7 +89,7 @@ function findFolderName(nodes: FolderTreeNode[], folderId: string): string | nul
 // 当前文件夹名称
 const currentFolderName = computed(() => {
   if (!currentFolderId.value) {
-    return null // 根目录，PersonaForm 会使用 tm('form.rootFolder')
+    return null
   }
   return findFolderName(folderTree.value, currentFolderId.value)
 })
@@ -110,7 +109,6 @@ const labels = computed(() => ({
   emptyFolder: tm('personaSelector.emptyFolder') || '此文件夹为空'
 }))
 
-// 格式化显示值
 function formatDisplayValue(value: string): string {
   if (value === 'default') {
     return tm('personaSelector.defaultPersona')
@@ -118,12 +116,10 @@ function formatDisplayValue(value: string): string {
   return value
 }
 
-// 处理值更新
 function handleUpdate(value: string) {
   emit('update:modelValue', value)
 }
 
-// 加载文件夹树
 async function loadFolderTree() {
   treeLoading.value = true
   try {
@@ -139,16 +135,13 @@ async function loadFolderTree() {
   }
 }
 
-// 加载指定文件夹的人格
 async function loadPersonasInFolder(folderId: string | null) {
   itemsLoading.value = true
   try {
-    // 使用 /api/persona/list 端点，通过 folder_id 参数筛选
     const params = new URLSearchParams()
     if (folderId !== null) {
       params.set('folder_id', folderId)
     } else {
-      // 根目录：folder_id 为空字符串表示获取根目录下的人格
       params.set('folder_id', '')
     }
     const response = await axios.get(`/api/persona/list?${params.toString()}`)
@@ -163,33 +156,28 @@ async function loadPersonasInFolder(folderId: string | null) {
   }
 }
 
-// 处理文件夹导航
 async function handleNavigate(folderId: string | null) {
   currentFolderId.value = folderId
   await loadPersonasInFolder(folderId)
 }
 
-// 打开创建人格对话框
 function openCreatePersona() {
   showCreateDialog.value = true
 }
 
-// 人格创建成功
-async function handlePersonaCreated(message: string) {
+async function handlePersonaCreated(message: unknown) {
   console.log('人格创建成功:', message)
   showCreateDialog.value = false
-  // 刷新当前文件夹的人格列表
   await loadPersonasInFolder(currentFolderId.value)
 }
 
-// 错误处理
-function handleError(error: string) {
+function handleError(error: unknown) {
   console.error('创建人格失败:', error)
 }
 
-// 初始化加载文件夹树
 onMounted(() => {
   loadFolderTree()
+  loadPersonasInFolder(null)
 })
 </script>
 

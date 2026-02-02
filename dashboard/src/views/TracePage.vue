@@ -1,8 +1,13 @@
-<script setup>
-import TraceDisplayer from '@/components/shared/TraceDisplayer.vue';
-import { useModuleI18n } from '@/i18n/composables';
+<script lang="ts">
+import { defineComponent } from "vue";
+import TraceDisplayer from "@/components/shared/TraceDisplayer.vue";
 
-const { tm } = useModuleI18n('features/trace');
+export default defineComponent({
+  name: "TracePage",
+  components: {
+    TraceDisplayer,
+  },
+});
 </script>
 
 <template>
@@ -10,12 +15,3 @@ const { tm } = useModuleI18n('features/trace');
     <TraceDisplayer />
   </div>
 </template>
-
-<script>
-export default {
-  name: 'TracePage',
-  components: {
-    TraceDisplayer
-  }
-};
-</script>

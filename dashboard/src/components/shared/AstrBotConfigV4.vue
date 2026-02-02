@@ -1,10 +1,11 @@
-<script setup>
+<script setup lang="ts">
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 import { ref, computed } from 'vue'
 import ConfigItemRenderer from './ConfigItemRenderer.vue'
 import TemplateListEditor from './TemplateListEditor.vue'
 import { useI18n, useModuleI18n } from '@/i18n/composables'
 
+type AnyRecord = Record<string, any>
 
 const props = defineProps({
   metadata: {
@@ -25,13 +26,13 @@ const { t } = useI18n()
 const { tm, getRaw } = useModuleI18n('features/config-metadata')
 
 // 翻译器函数 - 如果是国际化键则翻译，否则原样返回
-const translateIfKey = (value) => {
+const translateIfKey = (value: unknown): unknown => {
   if (!value || typeof value !== 'string') return value
   return tm(value)
 }
 
 // 处理labels翻译 - labels可以是数组或国际化键
-const getTranslatedLabels = (itemMeta) => {
+const getTranslatedLabels = (itemMeta: AnyRecord | null | undefined): unknown[] | null => {
   if (!itemMeta?.labels) return null
   
   // 如果labels是字符串（国际化键）
@@ -55,14 +56,14 @@ const dialog = ref(false)
 const currentEditingKey = ref('')
 const currentEditingLanguage = ref('json')
 const currentEditingTheme = ref('vs-light')
-let currentEditingKeyIterable = null
+let currentEditingKeyIterable: AnyRecord = {}
 
-function getValueBySelector(obj, selector) {
+function getValueBySelector(obj: unknown, selector: string): unknown {
   const keys = selector.split('.')
-  let current = obj
+  let current: unknown = obj
   for (const key of keys) {
-    if (current && typeof current === 'object' && key in current) {
-      current = current[key]
+    if (current && typeof current === 'object' && key in (current as AnyRecord)) {
+      current = (current as AnyRecord)[key]
     } else {
       return undefined
     }
@@ -70,9 +71,9 @@ function getValueBySelector(obj, selector) {
   return current
 }
 
-function setValueBySelector(obj, selector, value) {
+function setValueBySelector(obj: AnyRecord, selector: string, value: unknown) {
   const keys = selector.split('.')
-  let current = obj
+  let current: AnyRecord = obj
 
   // 创建嵌套对象路径
   for (let i = 0; i < keys.length - 1; i++) {
@@ -88,22 +89,22 @@ function setValueBySelector(obj, selector, value) {
 }
 
 // 创建一个计算属性来处理 JSON selector 的获取和设置
-function createSelectorModel(selector) {
-  return computed({
+function createSelectorModel(selector: string) {
+  return computed<any>({
     get() {
       return getValueBySelector(props.iterable, selector)
     },
     set(value) {
-      setValueBySelector(props.iterable, selector, value)
+      setValueBySelector(props.iterable as AnyRecord, selector, value)
     }
   })
 }
 
-function openEditorDialog(key, value, theme, language) {
+function openEditorDialog(key: string, value: unknown, theme?: string, language?: string) {
   currentEditingKey.value = key
   currentEditingLanguage.value = language || 'json'
   currentEditingTheme.value = theme || 'vs-light'
-  currentEditingKeyIterable = value
+  currentEditingKeyIterable = value && typeof value === 'object' ? (value as AnyRecord) : {}
   dialog.value = true
 }
 
@@ -111,11 +112,12 @@ function saveEditedContent() {
   dialog.value = false
 }
 
-function shouldShowItem(itemMeta, itemKey) {
-  if (!itemMeta?.condition) {
+function shouldShowItem(itemMeta: unknown, itemKey: string) {
+  const meta = itemMeta as AnyRecord | null | undefined
+  if (!meta?.condition) {
     return true
   }
-  for (const [conditionKey, expectedValue] of Object.entries(itemMeta.condition)) {
+  for (const [conditionKey, expectedValue] of Object.entries(meta.condition)) {
     const actualValue = getValueBySelector(props.iterable, conditionKey)
     if (actualValue !== expectedValue) {
       return false
@@ -139,7 +141,7 @@ function shouldShowSection() {
   return true
 }
 
-function hasVisibleItemsAfter(items, currentIndex) {
+function hasVisibleItemsAfter(items: Record<string, unknown>, currentIndex: number) {
   const itemEntries = Object.entries(items)
 
   // 检查当前索引之后是否还有可见的配置项
@@ -153,7 +155,7 @@ function hasVisibleItemsAfter(items, currentIndex) {
   return false
 }
 
-function parseSpecialValue(value) {
+function parseSpecialValue(value: unknown) {
   if (!value || typeof value !== 'string') {
     return { name: '', subtype: '' }
   }
@@ -164,19 +166,18 @@ function parseSpecialValue(value) {
   }
 }
 
-function getSpecialName(value) {
+function getSpecialName(value: unknown) {
   return parseSpecialValue(value).name
 }
 
-function getSpecialSubtype(value) {
+function getSpecialSubtype(value: unknown) {
   return parseSpecialValue(value).subtype
 }
 
 </script>
 
 <template>
-
-
+  <div class="astrbot-config-v4">
   <v-card v-if="shouldShowSection()" style="margin-bottom: 16px; padding-bottom: 8px; background-color: rgb(var(--v-theme-background));"
     rounded="md" variant="outlined">
     <v-card-text class="config-section" v-if="metadata[metadataKey]?.type === 'object'" style="padding-bottom: 8px;">
@@ -191,7 +192,7 @@ function getSpecialSubtype(value) {
 
     <!-- Object Type Configuration with JSON Selector Support -->
     <div v-if="metadata[metadataKey]?.type === 'object'" class="object-config">
-      <div v-for="(itemMeta, itemKey, index) in metadata[metadataKey].items" :key="itemKey" class="config-item">
+      <div v-for="(itemMeta, itemKey, index) in (metadata[metadataKey].items as Record<string, any>)" :key="itemKey" class="config-item">
         <!-- Check if itemKey is a JSON selector -->
         <template v-if="shouldShowItem(itemMeta, itemKey)">
           <!-- JSON Selector Property -->
@@ -272,11 +273,16 @@ function getSpecialSubtype(value) {
       </v-card-text>
     </v-card>
   </v-dialog>
+  </div>
 </template>
 
 
 
 <style scoped>
+.astrbot-config-v4 {
+  display: contents;
+}
+
 .config-section {
   margin-bottom: 4px;
 }

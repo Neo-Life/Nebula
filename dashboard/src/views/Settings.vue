@@ -41,7 +41,7 @@
 
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
 import axios from 'axios';
 import WaitingForRestart from '@/components/shared/WaitingForRestart.vue';
@@ -53,32 +53,31 @@ import { useModuleI18n } from '@/i18n/composables';
 
 const { tm } = useModuleI18n('features/settings');
 
-const wfr = ref(null);
-const migrationDialog = ref(null);
-const backupDialog = ref(null);
+const wfr = ref<InstanceType<typeof WaitingForRestart> | null>(null);
+const migrationDialog = ref<InstanceType<typeof MigrationDialog> | null>(null);
+const backupDialog = ref<InstanceType<typeof BackupDialog> | null>(null);
 
 const restartAstrBot = () => {
     axios.post('/api/stat/restart-core').then(() => {
-        wfr.value.check();
+        wfr.value?.check();
     })
 }
 
 const startMigration = async () => {
-    if (migrationDialog.value) {
-        try {
-            const result = await migrationDialog.value.open();
-            if (result.success) {
-                console.log('Migration completed successfully:', result.message);
-            }
-        } catch (error) {
-            console.error('Migration dialog error:', error);
+    const dialog = migrationDialog.value;
+    if (!dialog) return;
+
+    try {
+        const result = await (dialog.open() as Promise<{ success?: boolean; message?: string }>);
+        if (result.success) {
+            console.log('Migration completed successfully:', result.message);
         }
+    } catch (error) {
+        console.error('Migration dialog error:', error);
     }
 }
 
 const openBackupDialog = () => {
-    if (backupDialog.value) {
-        backupDialog.value.open();
-    }
+    backupDialog.value?.open();
 }
 </script>

@@ -59,7 +59,7 @@ interface DefaultLabels {
 const defaultLabels: DefaultLabels = {
     open: '打开',
     rename: '重命名',
-    moveTo: '移动到...',
+    moveTo: '移动',
     delete: '删除'
 };
 

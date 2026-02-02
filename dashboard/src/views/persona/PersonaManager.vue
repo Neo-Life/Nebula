@@ -39,24 +39,32 @@
                     </div>
                 </div>
 
-                <!-- 加载状态 - 只有加载超过阈值才显示骨架屏 -->
-                <v-fade-transition>
-                    <div v-if="showSkeleton" class="loading-container">
-                        <v-row>
-                            <v-col v-for="n in 6" :key="n" cols="12" sm="6" lg="4" xl="3">
-                                <v-skeleton-loader type="card" rounded="lg" />
-                            </v-col>
-                        </v-row>
-                    </div>
-                </v-fade-transition>
+                <div class="content-area">
+                    <!-- 占位式骨架屏：使用 out-in，确保骨架退出后才进入内容，避免位置跳变 -->
+                    <v-fade-transition mode="out-in">
+                        <div v-if="showSkeleton" key="skeleton" class="loading-container">
+                            <v-row>
+                                <v-col v-for="n in 6" :key="n" cols="12" sm="6" lg="4" xl="3">
+                                    <v-skeleton-loader type="card" rounded="lg" />
+                                </v-col>
+                            </v-row>
+                        </div>
 
-                <!-- 内容区域 -->
-                <div v-if="!loading">
-                    <!-- 子文件夹区域 -->
-                    <div v-if="currentFolders.length > 0" class="folders-section mb-6">
-                        <h3 class="text-subtitle-1 font-weight-medium mb-3">
+                        <div v-else-if="!loading" key="content">
+                            <!-- 子文件夹区域 -->
+                            <div v-if="currentFolders.length > 0" class="folders-section mb-6">
+                        <h3 class="text-subtitle-1 font-weight-medium mb-3 d-flex align-center ga-2">
                             <v-icon size="small" class="mr-1">mdi-folder</v-icon>
-                            {{ tm('folder.foldersTitle') }} ({{ currentFolders.length }})
+                            <span>{{ tm('folder.foldersTitle') }}</span>
+                            <v-chip
+                                size="small"
+                                variant="flat"
+                                color="primary"
+                                rounded="pill"
+                                class="count-chip"
+                            >
+                                {{ currentFolders.length }}
+                            </v-chip>
                         </h3>
                         <v-row>
                             <v-col v-for="folder in currentFolders" :key="folder.folder_id" cols="12" sm="6" lg="4"
@@ -71,9 +79,18 @@
 
                     <!-- Persona 区域 -->
                     <div v-if="currentPersonas.length > 0" class="personas-section">
-                        <h3 class="text-subtitle-1 font-weight-medium mb-3">
+                        <h3 class="text-subtitle-1 font-weight-medium mb-3 d-flex align-center ga-2">
                             <v-icon size="small" class="mr-1">mdi-account-heart</v-icon>
-                            {{ tm('persona.personasTitle') }} ({{ currentPersonas.length }})
+                            <span>{{ tm('persona.personasTitle') }}</span>
+                            <v-chip
+                                size="small"
+                                variant="flat"
+                                color="primary"
+                                rounded="pill"
+                                class="count-chip"
+                            >
+                                {{ currentPersonas.length }}
+                            </v-chip>
                         </h3>
                         <v-row>
                             <v-col v-for="persona in currentPersonas" :key="persona.persona_id" cols="12" sm="6" lg="4"
@@ -103,6 +120,10 @@
                             </div>
                         </v-card>
                     </div>
+                        </div>
+
+                        <div v-else key="empty"></div>
+                    </v-fade-transition>
                 </div>
             </div>
         </div>
@@ -114,13 +135,13 @@
 
         <!-- 查看 Persona 详情对话框 -->
         <v-dialog v-model="showViewDialog" max-width="700px">
-            <v-card v-if="viewingPersona">
-                <v-card-title class="d-flex justify-space-between align-center">
+            <v-card v-if="viewingPersona" class="persona-view-card">
+                <v-card-title class="v-card-title--sticky d-flex justify-space-between align-center">
                     <span class="text-h5">{{ viewingPersona.persona_id }}</span>
                     <v-btn icon="mdi-close" variant="text" @click="showViewDialog = false" />
                 </v-card-title>
 
-                <v-card-text>
+                <v-card-text class="persona-view-body">
                     <div class="mb-4">
                         <h4 class="text-h6 mb-2">{{ tm('form.systemPrompt') }}</h4>
                         <pre class="system-prompt-content">{{ viewingPersona.system_prompt }}</pre>
@@ -325,7 +346,8 @@ export default defineComponent({
 
             // 骨架屏延迟显示控制
             showSkeleton: false,
-            skeletonTimer: null as ReturnType<typeof setTimeout> | null
+            skeletonTimer: null as ReturnType<typeof setTimeout> | null,
+            
         };
     },
     computed: {
@@ -355,8 +377,6 @@ export default defineComponent({
         loading: {
             handler(newVal: boolean) {
                 if (newVal) {
-                    // 加载开始时，延迟 150ms 后才显示骨架屏
-                    // 如果加载在 150ms 内完成，则不显示骨架屏，避免闪烁
                     this.skeletonTimer = setTimeout(() => {
                         if (this.loading) {
                             this.showSkeleton = true;
@@ -542,6 +562,47 @@ export default defineComponent({
     min-width: 0;
 }
 
+.persona-view-card {
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.persona-view-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.v-card-title--sticky {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: rgb(var(--v-theme-surface));
+}
+
+
+
+.count-chip {
+    min-width: 2.5em;
+    padding: 0 0.75em;
+    height: 1.6em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: rgb(var(--v-theme-surface)) !important;
+}
+
+.count-chip :deep(.v-chip__content) {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    color: rgb(var(--v-theme-surface)) !important;
+}
+
 .system-prompt-content {
     max-height: 400px;
     overflow: auto;
@@ -551,11 +612,11 @@ export default defineComponent({
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
-    background: rgba(var(--v-theme-surface-variant), 0.3);
+    background: rgba(var(--v-theme-surface-variant), 0.08);
 }
 
 .dialog-content {
-    background-color: rgba(var(--v-theme-surface-variant), 0.3);
+    background-color: rgba(var(--v-theme-surface-variant), 0.08);
     padding: 8px 12px;
     border-radius: 8px;
     font-size: 14px;

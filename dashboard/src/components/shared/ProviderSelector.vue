@@ -113,27 +113,35 @@
   </v-overlay>
 </template>
 
-<script setup>
-import { computed, ref, watch } from 'vue'
+<script setup lang="ts">
+import { computed, ref, watch, type PropType } from 'vue'
 import axios from 'axios'
 import { useModuleI18n } from '@/i18n/composables'
 import ProviderPage from '@/views/ProviderPage.vue'
 
+type ProviderMeta = {
+  id: string
+  type?: string
+  provider_type?: string
+  provider?: string
+  model?: string
+}
+
 const props = defineProps({
   modelValue: {
-    type: String,
+    type: String as PropType<string>,
     default: ''
   },
   providerType: {
-    type: String,
+    type: String as PropType<string>,
     default: 'chat_completion'
   },
   providerSubtype: {
-    type: String,
+    type: String as PropType<string>,
     default: ''
   },
   buttonText: {
-    type: String,
+    type: String as PropType<string>,
     default: ''
   }
 })
@@ -142,7 +150,7 @@ const emit = defineEmits(['update:modelValue'])
 const { tm } = useModuleI18n('core.shared')
 
 const dialog = ref(false)
-const providerList = ref([])
+const providerList = ref<ProviderMeta[]>([])
 const loading = ref(false)
 const selectedProvider = ref('')
 const providerDrawer = ref(false)
@@ -180,7 +188,20 @@ async function loadProviders() {
       }
     })
     if (response.data.status === 'ok') {
-      const providers = response.data.data || []
+      const raw = (response.data.data || []) as unknown[]
+      const providers: ProviderMeta[] = raw
+        .map((p) => {
+          const maybe = p as Record<string, unknown>
+          const id = typeof maybe.id === 'string' ? maybe.id : ''
+          return {
+            id,
+            type: typeof maybe.type === 'string' ? maybe.type : undefined,
+            provider_type: typeof maybe.provider_type === 'string' ? maybe.provider_type : undefined,
+            provider: typeof maybe.provider === 'string' ? maybe.provider : undefined,
+            model: typeof maybe.model === 'string' ? maybe.model : undefined
+          }
+        })
+        .filter((p) => p.id.length > 0)
       providerList.value = props.providerSubtype
         ? providers.filter((provider) => matchesProviderSubtype(provider, props.providerSubtype))
         : providers
@@ -193,7 +214,7 @@ async function loadProviders() {
   }
 }
 
-function matchesProviderSubtype(provider, subtype) {
+function matchesProviderSubtype(provider: ProviderMeta, subtype: string) {
   if (!subtype) {
     return true
   }
@@ -204,7 +225,7 @@ function matchesProviderSubtype(provider, subtype) {
   return candidates.includes(normalized)
 }
 
-function selectProvider(provider) {
+function selectProvider(provider: Pick<ProviderMeta, 'id'>) {
   selectedProvider.value = provider.id
 }
 

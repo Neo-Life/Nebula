@@ -4,7 +4,7 @@ import { getProviderIcon } from '@/utils/providerUtils'
 
 export interface UseProviderSourcesOptions {
   defaultTab?: string
-  tm: (key: string, params?: Record<string, unknown>) => string
+  tm: (key: string, params?: Record<string, string | number>) => string
   showMessage: (message: string, color?: string) => void
 }
 

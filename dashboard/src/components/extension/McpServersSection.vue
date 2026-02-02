@@ -4,6 +4,8 @@
       <!-- 页面标题 -->
       <v-row class="d-flex justify-space-between align-center px-4 py-3 pb-8">
         <div>
+        </div>
+        <div>
           <v-btn color="success" prepend-icon="mdi-plus" class="me-2" variant="tonal"
             @click="showMcpServerDialog = true" >
             {{ tm('mcpServers.buttons.add') }}
@@ -23,7 +25,7 @@
 
       <v-row v-else>
         <v-col v-for="(server, index) in mcpServers || []" :key="index" cols="12" md="6" lg="4" xl="3">
-          <item-card style="background-color: rgb(var(--v-theme-mcpCardBg));" :item="server" title-field="name"
+          <item-card :item="server" title-field="name" title-class="text-h3"
             enabled-field="active" @toggle-enabled="updateServerStatus" @delete="deleteServer" @edit="editServer">
             <template v-slot:item-details="{ item }">
               <div class="d-flex align-center mb-2">
@@ -91,7 +93,7 @@
         <v-card-text class="py-4">
           <v-form @submit.prevent="saveServer" ref="form">
             <v-text-field v-model="currentServer.name" :label="tm('dialogs.addServer.fields.name')" variant="outlined"
-              :rules="[v => !!v || tm('dialogs.addServer.fields.nameRequired')]" required class="mb-3"></v-text-field>
+              :rules="nameRulesComputed" required class="mb-3"></v-text-field>
 
             <div class="mb-2 d-flex align-center">
               <span class="text-subtitle-1">{{ tm('dialogs.addServer.fields.config') }}</span>
@@ -213,11 +215,24 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import axios from 'axios';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import ItemCard from '@/components/shared/ItemCard.vue';
 import { useI18n, useModuleI18n } from '@/i18n/composables';
+
+type AnyRecord = Record<string, any>;
+
+type McpServer = AnyRecord & {
+  name: string;
+  active: boolean;
+  tools?: string[];
+  command?: string;
+  args?: unknown[];
+  errlogs?: unknown;
+};
+
+type McpServerConfig = AnyRecord;
 
 export default {
   name: 'McpServersSection',
@@ -232,8 +247,8 @@ export default {
   },
   data() {
     return {
-      refreshInterval: null,
-      mcpServers: [],
+      refreshInterval: null as ReturnType<typeof setInterval> | null,
+      mcpServers: [] as McpServer[],
       showMcpServerDialog: false,
       selectedMcpServerProvider: 'modelscope',
       mcpServerProviderList: ['modelscope'],
@@ -242,29 +257,33 @@ export default {
       addServerDialogMessage: '',
       loading: false,
       loadingGettingServers: false,
-      mcpServerUpdateLoaders: {},
+      mcpServerUpdateLoaders: {} as Record<string, boolean>,
       isEditMode: false,
       serverConfigJson: '',
-      jsonError: null,
+      jsonError: null as string | null,
       currentServer: {
         name: '',
         active: true,
-        tools: []
+        tools: [] as string[]
       },
       originalServerName: '',
       save_message_snack: false,
       save_message: '',
-      save_message_success: 'success'
+      save_message_success: 'success',
+      nameRules: [(v: string) => !!v || (this as any).tm('dialogs.addServer.fields.nameRequired')]
     };
   },
   computed: {
     isServerFormValid() {
       return !!this.currentServer.name && !this.jsonError;
     },
+    nameRulesComputed(): Array<(v: string) => true | string> {
+      return [(v: string) => !!v || this.tm('dialogs.addServer.fields.nameRequired')];
+    },
     getServerConfigSummary() {
-      return (server) => {
+      return (server: McpServer) => {
         if (server.command) {
-          return `${server.command} ${(server.args || []).join(' ')}`;
+          return `${server.command} ${((server.args || []) as unknown[]).join(' ')}`;
         }
         const configKeys = Object.keys(server).filter(key =>
           !['name', 'active', 'tools'].includes(key)
@@ -288,22 +307,25 @@ export default {
     }
   },
   methods: {
-    openurl(url) {
+    openurl(url: string) {
       window.open(url, '_blank');
     },
     getServers() {
       this.loadingGettingServers = true;
       axios.get('/api/tools/mcp/servers')
         .then(response => {
-          this.mcpServers = response.data.data || [];
-          this.mcpServers.forEach(server => {
+          this.mcpServers = (response.data.data || []) as McpServer[];
+          for (const server of this.mcpServers) {
             if (!this.mcpServerUpdateLoaders[server.name]) {
               this.mcpServerUpdateLoaders[server.name] = false;
             }
-          });
+          }
         })
         .catch(error => {
-          this.showError(this.tm('messages.getServersError', { error: error.message }));
+          const message = axios.isAxiosError(error)
+            ? error.response?.data?.message || error.message
+            : (error instanceof Error ? error.message : 'Unknown error');
+          this.showError(this.tm('messages.getServersError', { error: message }));
         }).finally(() => {
           this.loadingGettingServers = false;
         });
@@ -318,12 +340,13 @@ export default {
         this.jsonError = null;
         return true;
       } catch (e) {
-        this.jsonError = this.tm('dialogs.addServer.errors.jsonFormat', { error: e.message });
+        const message = e instanceof Error ? e.message : String(e);
+        this.jsonError = this.tm('dialogs.addServer.errors.jsonFormat', { error: message });
         return false;
       }
     },
     setConfigTemplate(type = 'stdio') {
-      let template = {};
+      let template: McpServerConfig = {};
       if (type === 'streamable_http') {
         template = {
           transport: 'streamable_http',
@@ -354,8 +377,8 @@ export default {
       }
       this.loading = true;
       try {
-        const configObj = JSON.parse(this.serverConfigJson);
-        const serverData = {
+        const configObj = JSON.parse(this.serverConfigJson) as McpServerConfig;
+        const serverData: McpServer = {
           name: this.currentServer.name,
           active: this.currentServer.active,
           ...configObj
@@ -375,15 +398,19 @@ export default {
           })
           .catch(error => {
             this.loading = false;
-            this.showError(this.tm('messages.saveError', { error: error.response?.data?.message || error.message }));
+            const message = axios.isAxiosError(error)
+              ? error.response?.data?.message || error.message
+              : (error instanceof Error ? error.message : 'Unknown error');
+            this.showError(this.tm('messages.saveError', { error: message }));
           });
       } catch (e) {
         this.loading = false;
-        this.showError(this.tm('dialogs.addServer.errors.jsonParse', { error: e.message }));
+        const message = e instanceof Error ? e.message : String(e);
+        this.showError(this.tm('dialogs.addServer.errors.jsonParse', { error: message }));
       }
     },
-    deleteServer(server) {
-      const serverName = server.name || server;
+    deleteServer(server: McpServer | string) {
+      const serverName = typeof server === 'string' ? server : server.name;
       if (confirm(this.tm('dialogs.confirmDelete', { name: serverName }))) {
         axios.post('/api/tools/mcp/delete', { name: serverName })
           .then(response => {
@@ -391,12 +418,15 @@ export default {
             this.showSuccess(response.data.message || this.tm('messages.deleteSuccess'));
           })
           .catch(error => {
-            this.showError(this.tm('messages.deleteError', { error: error.response?.data?.message || error.message }));
+            const message = axios.isAxiosError(error)
+              ? error.response?.data?.message || error.message
+              : (error instanceof Error ? error.message : 'Unknown error');
+            this.showError(this.tm('messages.deleteError', { error: message }));
           });
       }
     },
-    editServer(server) {
-      const configCopy = { ...server };
+    editServer(server: McpServer) {
+      const configCopy: McpServerConfig = { ...server };
       delete configCopy.name;
       delete configCopy.active;
       delete configCopy.tools;
@@ -411,7 +441,7 @@ export default {
       this.isEditMode = true;
       this.showMcpServerDialog = true;
     },
-    updateServerStatus(server) {
+    updateServerStatus(server: McpServer) {
       this.mcpServerUpdateLoaders[server.name] = true;
       server.active = !server.active;
       axios.post('/api/tools/mcp/update', server)
@@ -420,7 +450,10 @@ export default {
           this.showSuccess(response.data.message || this.tm('messages.updateSuccess'));
         })
         .catch(error => {
-          this.showError(this.tm('messages.updateError', { error: error.response?.data?.message || error.message }));
+          const message = axios.isAxiosError(error)
+            ? error.response?.data?.message || error.message
+            : (error instanceof Error ? error.message : 'Unknown error');
+          this.showError(this.tm('messages.updateError', { error: message }));
           server.active = !server.active;
         })
         .finally(() => {
@@ -437,12 +470,13 @@ export default {
         return;
       }
       this.loading = true;
-      let configObj;
+      let configObj: McpServerConfig;
       try {
-        configObj = JSON.parse(this.serverConfigJson);
+        configObj = JSON.parse(this.serverConfigJson) as McpServerConfig;
       } catch (e) {
         this.loading = false;
-        this.showError(this.tm('dialogs.addServer.errors.jsonParse', { error: e.message }));
+        const message = e instanceof Error ? e.message : String(e);
+        this.showError(this.tm('dialogs.addServer.errors.jsonParse', { error: message }));
         return;
       }
       axios.post('/api/tools/mcp/test', {
@@ -454,7 +488,10 @@ export default {
         })
         .catch(error => {
           this.loading = false;
-          this.showError(this.tm('messages.testError', { error: error.response?.data?.message || error.message }));
+          const message = axios.isAxiosError(error)
+            ? error.response?.data?.message || error.message
+            : (error instanceof Error ? error.message : 'Unknown error');
+          this.showError(this.tm('messages.testError', { error: message }));
         });
     },
     resetForm() {
@@ -468,12 +505,12 @@ export default {
       this.isEditMode = false;
       this.originalServerName = '';
     },
-    showSuccess(message) {
+    showSuccess(message: string) {
       this.save_message = message;
       this.save_message_success = 'success';
       this.save_message_snack = true;
     },
-    showError(message) {
+    showError(message: string) {
       this.save_message = message;
       this.save_message_success = 'error';
       this.save_message_snack = true;
@@ -485,7 +522,7 @@ export default {
       }
       this.loading = true;
       try {
-        const requestData = {
+        const requestData: any = {
           name: this.selectedMcpServerProvider
         };
         if (this.selectedMcpServerProvider === 'modelscope') {
@@ -506,9 +543,10 @@ export default {
           this.showError(response.data.message || this.tm('syncProvider.messages.syncError', { error: 'Unknown error' }));
         }
       } catch (error) {
-        this.showError(this.tm('syncProvider.messages.syncError', {
-          error: error.response?.data?.message || error.message || '网络连接或访问令牌问题'
-        }));
+        const message = axios.isAxiosError(error)
+          ? error.response?.data?.message || error.message
+          : (error instanceof Error ? error.message : '网络连接或访问令牌问题');
+        this.showError(this.tm('syncProvider.messages.syncError', { error: message }));
       } finally {
         this.loading = false;
       }

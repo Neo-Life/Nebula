@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import ConsoleDisplayer from '@/components/shared/ConsoleDisplayer.vue';
 import { useModuleI18n } from '@/i18n/composables';
 import axios from 'axios';
@@ -33,7 +33,7 @@ const { tm } = useModuleI18n('features/console');
               <v-text-field v-model="pipInstallPayload.mirror" :label="tm('pipInstall.mirrorLabel')" variant="outlined"></v-text-field>
               <small>{{ tm('pipInstall.mirrorHint') }}</small>
               <div>
-                <small>{{ status }}</small>
+                <small>{{ pipStatus }}</small>
               </div>
               
             </v-card-text>
@@ -50,7 +50,7 @@ const { tm } = useModuleI18n('features/console');
     <ConsoleDisplayer ref="consoleDisplayer" style="height: calc(100vh - 220px); " />
   </div>
 </template>
-<script>
+<script lang="ts">
 export default {
   name: 'ConsolePage',
   components: {
@@ -65,13 +65,13 @@ export default {
         mirror: ''
       },
       loading: false,
-      status: ''
+      pipStatus: ''
     }
   },
   watch: {
     autoScrollEnabled(val) {
       if (this.$refs.consoleDisplayer) {
-        this.$refs.consoleDisplayer.autoScroll = val;
+        (this.$refs.consoleDisplayer as any).autoScroll = val;
       }
     }
   },
@@ -79,16 +79,16 @@ export default {
     pipInstall() {
       this.loading = true;
       axios.post('/api/update/pip-install', this.pipInstallPayload)
-        .then(res => {
-          this.status = res.data.message;
+          .then(res => {
+          this.pipStatus = res.data.message;
           setTimeout(() => {
-            this.status = '';
+            this.pipStatus = '';
             this.pipDialog = false;
           }, 2000);
-        })
-        .catch(err => {
-          this.status = err.response.data.message;
-        }).finally(() => {
+          })
+          .catch(err => {
+          this.pipStatus = err.response.data.message;
+          }).finally(() => {
           this.loading = false;
         });
     }

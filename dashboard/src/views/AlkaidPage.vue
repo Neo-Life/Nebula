@@ -36,7 +36,7 @@
   </v-card>
 </template>
 
-<script>
+<script lang="ts">
 import { useModuleI18n } from '@/i18n/composables';
 
 export default {
@@ -50,7 +50,7 @@ export default {
     return {}
   },
   methods: {
-    navigateTo(tab) {
+    navigateTo(tab: string) {
       try {
         if (this.$router && typeof this.$router.push === 'function') {
           this.$router.push(`/alkaid/${tab}`);
@@ -59,7 +59,7 @@ export default {
         console.warn('Navigation error:', error);
       }
     },
-    isActive(tab) {
+    isActive(tab: string) {
       try {
         return this.$route && this.$route.path.includes(`/alkaid/${tab}`);
       } catch (error) {

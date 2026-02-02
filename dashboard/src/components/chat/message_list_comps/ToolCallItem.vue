@@ -14,15 +14,17 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
 
-const props = defineProps({
-    isDark: {
-        type: Boolean,
-        default: false
-    }
-});
+defineSlots<{
+    label(props: { expanded: boolean }): any
+    details(): any
+}>()
+
+defineProps<{
+    isDark?: boolean
+}>()
 
 const isExpanded = ref(false);
 

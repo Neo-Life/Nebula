@@ -111,7 +111,7 @@ const defaultLabels: DefaultLabels = {
     contextMenu: {
         open: '打开',
         rename: '重命名',
-        moveTo: '移动到...',
+        moveTo: '移动',
         delete: '删除'
     }
 };
@@ -257,6 +257,8 @@ export default defineComponent({
 .tree-list {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
+    border-radius: 12px;
 }
 
 .root-item {

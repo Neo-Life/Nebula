@@ -7,7 +7,7 @@
                 <!-- Nervous Mode > -->
                 <div v-if="nervousMode" class="nervous-eye-content">
                     <svg viewBox="0 0 30 60" width="100%" height="100%">
-                        <path d="M 0 10 L 30 30 L 0 50" fill="none" stroke="#7d80e4" stroke-width="8" />
+                        <path d="M 0 10 L 30 30 L 0 50" fill="none" stroke="rgba(var(--v-theme-primary), 0.85)" stroke-width="8" />
                     </svg>
                 </div>
 
@@ -24,7 +24,7 @@
                 <!-- Nervous Mode < -->
                 <div v-if="nervousMode" class="nervous-eye-content">
                     <svg viewBox="0 0 30 60" width="100%" height="100%">
-                        <path d="M 30 10 L 0 30 L 30 50" fill="none" stroke="#7d80e4" stroke-width="8" />
+                        <path d="M 30 10 L 0 30 L 30 50" fill="none" stroke="rgba(var(--v-theme-primary), 0.85)" stroke-width="8" />
                     </svg>
                 </div>
 
@@ -43,7 +43,7 @@
         <div class="accessory-star">
             <svg viewBox="0 0 24 24" width="100%" height="100%">
                 <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z"
-                    fill="rgba(125, 128, 228, 0.4)" stroke="rgba(180, 182, 255, 0.6)" stroke-width="3"
+                    fill="rgba(var(--v-theme-primary), 0.35)" stroke="rgba(var(--v-theme-primary), 0.55)" stroke-width="3"
                     stroke-linejoin="round" />
             </svg>
         </div>
@@ -77,24 +77,24 @@ let blinkTimeoutId: any;
 // 颜色配置
 const colorConfigs = {
     idle: {
-        c1: "rgba(100, 100, 255, 0.6)", // 柔和蓝
-        c2: "rgba(200, 100, 255, 0.6)", // 柔和紫
-        c3: "rgba(100, 200, 255, 0.6)", // 柔和青
+        c1: "rgba(var(--v-theme-primary), 0.5)",
+        c2: "rgba(var(--v-theme-secondary), 0.5)",
+        c3: "rgba(100, 200, 255, 0.5)",
     },
-    listening: { // 用户说话 - 活跃的蓝色系
-        c1: "rgba(60, 130, 246, 0.8)",  // 亮蓝
-        c2: "rgba(34, 211, 238, 0.8)",  // 青色
-        c3: "rgba(147, 51, 234, 0.8)",  // 紫色
+    listening: { // 用户说话
+        c1: "rgba(var(--v-theme-primary), 0.4)",
+        c2: "rgba(var(--v-theme-info), 0.4)",
+        c3: "rgba(125, 51, 234, 0.4)",
     },
-    speaking: { // Bot 说话 - 活跃的紫红色系
-        c1: "rgba(236, 72, 153, 0.8)",  // 粉红
-        c2: "rgba(168, 85, 247, 0.8)",  // 紫色
-        c3: "rgba(244, 63, 94, 0.8)",   // 玫瑰红
+    speaking: { // Bot 说话
+        c1: "rgba(var(--v-theme-secondary), 0.5)",
+        c2: "rgba(236, 72, 153, 0.5)",
+        c3: "rgba(144, 63, 94, 0.5)",
     },
-    processing: { // 处理中 - 优雅的青/白/紫流转
-        c1: "rgba(255, 255, 255, 0.6)", // 纯净白
-        c2: "rgba(168, 85, 247, 0.6)",  // 神秘紫
-        c3: "rgba(34, 211, 238, 0.6)",  // 智慧青
+    processing: { // 处理中
+        c1: "rgba(255, 255, 255, 0.5)",
+        c2: "rgba(var(--v-theme-secondary), 0.5)",
+        c3: "rgba(var(--v-theme-info), 0.5)",
     }
 };
 
@@ -390,7 +390,7 @@ const styleVars = computed(() => {
 .eye {
     width: 28px;
     height: 60px;
-    background-color: #7d80e4;
+    background-color: rgb(var(--v-theme-primary));
     border-radius: 20px;
     opacity: 0.8;
     transition: transform 0.1s ease-in-out;
@@ -433,14 +433,14 @@ const styleVars = computed(() => {
 .code-column {
     position: absolute;
     top: 0;
-    color: rgba(180, 255, 255, 0.9);
+    color: rgba(var(--v-theme-info), 0.9);
     font-family: 'Courier New', monospace;
     font-weight: bold;
     line-height: 1.2;
     white-space: pre;
     text-align: center;
     animation: scrollUp linear infinite;
-    text-shadow: 0 0 5px rgba(100, 200, 255, 0.8);
+    text-shadow: 0 0 5px rgba(var(--v-theme-info), 0.8);
 }
 
 @keyframes scrollUp {
@@ -472,7 +472,7 @@ const styleVars = computed(() => {
     transform: rotate(5deg);
     z-index: -100;
     opacity: 0.8;
-    filter: drop-shadow(0 0 5px rgba(180, 182, 255, 0.4));
+    filter: drop-shadow(0 0 5px rgba(var(--v-theme-primary), 0.4));
     animation: starFloat 4s ease-in-out infinite;
     pointer-events: none;
     mix-blend-mode: screen;

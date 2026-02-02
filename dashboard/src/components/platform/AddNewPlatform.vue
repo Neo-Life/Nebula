@@ -1,9 +1,10 @@
 <template>
   <v-dialog v-model="showDialog" max-width="800px" height="90%" @after-enter="prepareData">
     <v-card
-      :title="updatingMode ? `${tm('dialog.edit')} ${updatingPlatformConfig.id} ${tm('dialog.adapter')}` : tm('dialog.addPlatform')">
-  <v-card-text ref="dialogScrollContainer" class="pa-4 ml-2" style="overflow-y: auto;">
-        <div class="d-flex align-start" style="width: 100%;">
+      class="add-platform-card"
+      :title="updatingMode ? `${tm('dialog.edit')} ${updatingPlatformConfig?.id ?? ''} ${tm('dialog.adapter')}` : tm('dialog.addPlatform')">
+  <v-card-text ref="dialogScrollContainer" class="pa-4 ml-2 add-platform-body" style="overflow-y: auto;">
+        <div class="d-flex align-start flex-wrap" style="width: 100%;">
           <div>
             <v-icon icon="mdi-numeric-1-circle" class="mr-3"></v-icon>
           </div>
@@ -16,8 +17,7 @@
 
               <div v-if="!updatingMode">
                 <v-select v-model="selectedPlatformType" :items="Object.keys(platformTemplates)" item-title="name"
-                  item-value="name" label="消息平台类别" variant="outlined" rounded="md" dense hide-details class="mt-6"
-                  style="max-width: 30%; min-width: 300px;">
+                  item-value="name" label="消息平台类别" variant="outlined" rounded="md" dense hide-details class="mt-6 platform-type-field">
 
                   <template v-slot:item="{ props: itemProps, item }">
                     <v-list-item v-bind="itemProps">
@@ -42,11 +42,11 @@
               </div>
               <div v-else>
                 <v-text-field label="消息平台类别" variant="outlined" rounded="md" dense hide-details class="mt-6"
-                  style="max-width: 30%; min-width: 300px;" v-model="updatingPlatformConfig.type"
+                  :model-value="updatingPlatformConfig?.type ?? ''"
                   disabled></v-text-field>
                 <div class="mt-3">
                   <div class="mt-2">
-                    <AstrBotConfig :iterable="updatingPlatformConfig" :metadata="metadata['platform_group']?.metadata"
+                    <AstrBotConfig :iterable="updatingPlatformConfig ?? {}" :metadata="metadata['platform_group']?.metadata"
                       metadataKey="platform" />
                   </div>
                 </div>
@@ -56,7 +56,7 @@
           </div>
         </div>
 
-        <div class="d-flex align-start mt-6">
+        <div class="d-flex align-start mt-6 flex-wrap">
           <div>
             <v-icon icon="mdi-numeric-2-circle" class="mr-3"></v-icon>
           </div>
@@ -83,7 +83,7 @@
 
             <div v-if="showConfigSection">
               <div v-if="!updatingMode">
-                <v-radio-group class="mt-2" v-model="aBConfigRadioVal" hide-details="true">
+                <v-radio-group class="mt-2" v-model="aBConfigRadioVal" :hide-details="true">
                   <v-radio value="0">
                     <template v-slot:label>
                       <span>使用现有配置文件</span>
@@ -92,7 +92,7 @@
                   <div class="d-flex align-center ml-10 my-2" v-if="aBConfigRadioVal === '0'">
                     <v-select v-model="selectedAbConfId" :items="configInfoList" item-title="name"
                       item-value="id" label="选择配置文件" variant="outlined" rounded="md" dense hide-details
-                      style="max-width: 30%; min-width: 200px;">
+                      class="abconf-select-field">
                     </v-select>
                     <v-btn icon variant="text" density="comfortable" class="ml-2"
                       :disabled="!selectedAbConfId" @click="openConfigDrawer(selectedAbConfId)">
@@ -103,7 +103,7 @@
                   </v-radio>
                   <div class="d-flex align-center" v-if="aBConfigRadioVal === '1'">
                     <v-text-field v-model="selectedAbConfId" label="新配置文件名称" variant="outlined" rounded="md" dense
-                      hide-details style="max-width: 30%; min-width: 200px;" class="ml-10 my-2">
+                      hide-details class="ml-10 my-2 abconf-select-field">
                     </v-text-field>
                   </div>
 
@@ -162,10 +162,10 @@
                   variant="outlined">
 
                   <template v-slot:item.source="{ item }">
-                    <div class="d-flex align-center" style="min-width: 250px;">
+                    <div class="d-flex align-center flex-wrap route-source-cell">
                       <v-select v-if="isEditingRoutes" v-model="item.messageType" :items="messageTypeOptions"
                         item-title="label" item-value="value" variant="outlined" density="compact" hide-details
-                        style="max-width: 140px;">
+                        class="route-message-type-field">
                       </v-select>
                       <small v-else>{{ getMessageTypeLabel(item.messageType) }}</small>
                       <small class="mx-1">:</small>
@@ -180,7 +180,7 @@
                     <div class="d-flex align-center">
                       <v-select v-if="isEditingRoutes" v-model="item.configId" :items="configInfoList"
                         item-title="name" item-value="id" variant="outlined" density="compact"
-                        style="min-width: 200px;" hide-details>
+                        class="route-config-field" hide-details>
                       </v-select>
                       <div v-else>
                         <small>{{ getConfigName(item.configId) }}</small>
@@ -224,7 +224,7 @@
 
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn text @click="closeDialog">{{ tm('dialog.cancel') }}</v-btn>
+        <v-btn variant="text" @click="closeDialog">{{ tm('dialog.cancel') }}</v-btn>
         <v-btn :disabled="!canSave" color="primary" v-if="!updatingMode" @click="newPlatform" :loading="loading">{{
           tm('dialog.save') }}</v-btn>
         <v-btn :disabled="!selectedAbConfId" color="primary" v-else @click="newPlatform" :loading="loading">{{
@@ -304,15 +304,43 @@
 </template>
 
 
-<script>
+<script lang="ts">
 import axios from 'axios';
+import { defineComponent, type PropType } from 'vue';
 import { useModuleI18n } from '@/i18n/composables';
 import { getPlatformIcon, getPlatformDescription, getTutorialLink } from '@/utils/platformUtils';
 import AstrBotConfig from '@/components/shared/AstrBotConfig.vue';
 import AstrBotCoreConfigWrapper from '@/components/config/AstrBotCoreConfigWrapper.vue';
 import ConfigPage from '@/views/ConfigPage.vue';
 
-export default {
+type PlatformConfig = {
+  id?: string
+  type?: string
+  ws_reverse_token?: string
+  [key: string]: unknown
+}
+
+type ConfigInfo = {
+  id: string
+  name: string
+}
+
+type PlatformRouteRow = {
+  umop: string | null
+  originalUmop: string | null
+  messageType: string
+  sessionId: string
+  configId: string | null
+}
+
+type PlatformTemplates = Record<string, PlatformConfig>
+
+type DashboardConfigData = {
+  platform?: PlatformConfig[]
+  [key: string]: unknown
+}
+
+export default defineComponent({
   name: 'AddNewPlatform',
   components: { AstrBotConfig, AstrBotCoreConfigWrapper, ConfigPage },
   emits: ['update:show', 'show-toast', 'refresh-config'],
@@ -322,11 +350,11 @@ export default {
       default: false
     },
     metadata: {
-      type: Object,
+      type: Object as PropType<Record<string, any>>,
       default: () => ({})
     },
     config_data: {
-      type: Object,
+      type: Object as PropType<DashboardConfigData>,
       default: () => ({})
     },
     updatingMode: {
@@ -334,43 +362,43 @@ export default {
       default: false
     },
     updatingPlatformConfig: {
-      type: Object,
+      type: Object as PropType<PlatformConfig | null>,
       default: null
     }
   },
   data() {
     return {
-      selectedPlatformType: null,
-      selectedPlatformConfig: null,
+      selectedPlatformType: null as string | null,
+      selectedPlatformConfig: null as PlatformConfig | null,
 
       aBConfigRadioVal: '0',
-      selectedAbConfId: 'default',
-      configInfoList: [],
+      selectedAbConfId: 'default' as string | null,
+      configInfoList: [] as ConfigInfo[],
 
       // 选中的配置文件预览数据
-      selectedConfigData: null,
-      selectedConfigMetadata: null,
+      selectedConfigData: null as unknown | null,
+      selectedConfigMetadata: null as unknown | null,
       configPreviewLoading: false,
 
       // 新配置文件相关数据
-      newConfigData: null,
-      newConfigMetadata: null,
+      newConfigData: null as unknown | null,
+      newConfigMetadata: null as unknown | null,
       newConfigLoading: false,
 
       // 平台配置文件表格（已弃用，改用 platformRoutes）
-      platformConfigs: [],
+      platformConfigs: [] as Array<Record<string, unknown>>,
       configTableHeaders: [
         { title: '与此实例关联的配置文件 ID', key: 'name', sortable: false },
         { title: '在此实例下的应用范围', key: 'scope', sortable: false },
       ],
 
       // 平台路由表
-      platformRoutes: [],
+      platformRoutes: [] as PlatformRouteRow[],
       routeTableHeaders: [
         { title: '消息会话来源(消息类型:会话 ID)', key: 'source', sortable: false, width: '60%' },
         { title: '使用配置文件', key: 'configId', sortable: false, width: '20%' },
         { title: '操作', key: 'actions', sortable: false, align: 'center', width: '20%' },
-      ],
+      ] as any,
       messageTypeOptions: [
         { label: '全部消息', value: '*' },
         { label: '群组消息(GroupMessage)', value: 'GroupMessage' },
@@ -381,11 +409,11 @@ export default {
       // ID冲突确认对话框
       showIdConflictDialog: false,
       conflictId: '',
-      idConflictResolve: null,
+      idConflictResolve: null as ((confirmed: boolean) => void) | null,
 
       // OneBot Empty Token Warning #2639
       showOneBotEmptyTokenWarnDialog: false,
-      oneBotEmptyTokenWarningResolve: null,
+      oneBotEmptyTokenWarningResolve: null as ((continueWithWarning: boolean) => void) | null,
 
       loading: false,
 
@@ -393,10 +421,10 @@ export default {
 
       // 配置抽屉
       showConfigDrawer: false,
-      configDrawerTargetId: null,
+      configDrawerTargetId: null as string | null,
 
       // 保存更新前的平台 ID，防止用户修改 ID 后丢失原始定位
-      originalUpdatingPlatformId: null,
+      originalUpdatingPlatformId: null as string | null,
     };
   },
   setup() {
@@ -408,12 +436,12 @@ export default {
       get() {
         return this.show;
       },
-      set(value) {
+      set(value: boolean) {
         this.$emit('update:show', value);
       }
     },
     platformTemplates() {
-      return this.metadata['platform_group']?.metadata?.platform?.config_template || {};
+      return (this.metadata as any)?.['platform_group']?.metadata?.platform?.config_template || ({} as PlatformTemplates);
     },
     canSave() {
       // 基本条件：必须选择平台类型
@@ -440,14 +468,14 @@ export default {
     }
   },
   watch: {
-    selectedPlatformType(newType) {
+    selectedPlatformType(newType: string | null) {
       if (newType && this.platformTemplates[newType]) {
         this.selectedPlatformConfig = JSON.parse(JSON.stringify(this.platformTemplates[newType]));
       } else {
         this.selectedPlatformConfig = null;
       }
     },
-    selectedAbConfId(newConfigId) {
+    selectedAbConfId(newConfigId: string | null) {
       // 当选择配置文件改变时，获取配置文件数据用于预览
       if (!this.updatingMode && this.aBConfigRadioVal === '0' && newConfigId) {
         this.getConfigForPreview(newConfigId);
@@ -456,7 +484,7 @@ export default {
         this.selectedConfigMetadata = null;
       }
     },
-    aBConfigRadioVal(newVal) {
+    aBConfigRadioVal(newVal: string) {
       // 当切换到创建新配置文件时，获取默认配置模板
       if (newVal === '1') {
         this.selectedConfigData = null;
@@ -472,13 +500,13 @@ export default {
         }
       }
     },
-    showIdConflictDialog(newValue) {
+    showIdConflictDialog(newValue: boolean) {
       if (!newValue && this.idConflictResolve) {
         this.idConflictResolve(false);
         this.idConflictResolve = null;
       }
     },
-    showOneBotEmptyTokenWarnDialog(newValue) {
+    showOneBotEmptyTokenWarnDialog(newValue: boolean) {
       if (!newValue && this.oneBotEmptyTokenWarningResolve) {
         this.oneBotEmptyTokenWarningResolve(true);
         this.oneBotEmptyTokenWarningResolve = null;
@@ -486,7 +514,7 @@ export default {
     },
     // 监听更新模式变化，获取相关配置文件
     updatingPlatformConfig: {
-      handler(newConfig) {
+      handler(newConfig: PlatformConfig | null) {
         if (this.updatingMode && newConfig && newConfig.id) {
           this.originalUpdatingPlatformId = newConfig.id;
           this.getPlatformConfigs(newConfig.id);
@@ -494,7 +522,7 @@ export default {
       },
       immediate: true
     },
-    showConfigSection(newValue) {
+    showConfigSection(newValue: boolean) {
       if (newValue && !this.updatingMode && this.aBConfigRadioVal === '0') {
         this.getConfigForPreview(this.selectedAbConfId);
       }
@@ -506,7 +534,7 @@ export default {
     },
     // 监听编辑模式变化，自动展开配置文件部分
     updatingMode: {
-      handler(newValue) {
+      handler(newValue: boolean) {
         if (newValue) {
           this.showConfigSection = true;
           // 编辑模式下默认不开启路由编辑模式，用户需要手动点击
@@ -551,12 +579,12 @@ export default {
     },
     async getConfigInfoList() {
       await axios.get('/api/config/abconfs').then((res) => {
-        this.configInfoList = res.data.data.info_list;
+        this.configInfoList = (res.data?.data?.info_list || []) as ConfigInfo[];
       })
     },
 
     // 获取配置文件数据用于预览
-    async getConfigForPreview(configId) {
+    async getConfigForPreview(configId: string | null) {
       if (!configId) {
         this.selectedConfigData = null;
         this.selectedConfigMetadata = null;
@@ -596,10 +624,12 @@ export default {
       }
     },
     openTutorial() {
-      const tutorialUrl = getTutorialLink(this.selectedPlatformConfig.type);
+      const adapterType = this.selectedPlatformConfig?.type;
+      if (!adapterType) return;
+      const tutorialUrl = getTutorialLink(adapterType);
       window.open(tutorialUrl, '_blank');
     },
-    openConfigDrawer(configId) {
+    openConfigDrawer(configId: string | null) {
       const targetId = configId || 'default';
 
       if (configId && this.configInfoList.findIndex(c => c.id === configId) === -1) {
@@ -615,8 +645,13 @@ export default {
     newPlatform() {
       this.loading = true;
       if (this.updatingMode) {
-        if (this.updatingPlatformConfig.type === 'aiocqhttp') {
-          const token = this.updatingPlatformConfig.ws_reverse_token;
+        const updatingConfig = this.updatingPlatformConfig;
+        if (!updatingConfig) {
+          this.loading = false;
+          return;
+        }
+        if (updatingConfig.type === 'aiocqhttp') {
+          const token = updatingConfig.ws_reverse_token;
           if (!token || token.trim() === '') {
             this.showOneBotEmptyTokenWarning().then((continueWithWarning) => {
               if (continueWithWarning) {
@@ -634,7 +669,14 @@ export default {
       }
     },
     async updatePlatform() {
-      const id = this.originalUpdatingPlatformId || this.updatingPlatformConfig.id;
+      const updatingConfig = this.updatingPlatformConfig;
+      if (!updatingConfig) {
+        this.loading = false;
+        this.showError('更新失败，缺少平台配置。');
+        return;
+      }
+
+      const id = this.originalUpdatingPlatformId || updatingConfig.id;
       if (!id) {
         this.loading = false;
         this.showError('更新失败，缺少平台 ID。');
@@ -649,9 +691,9 @@ export default {
 
       try {
         // 更新平台配置
-        let resp = await axios.post('/api/config/platform/update', {
+        const resp = await axios.post('/api/config/platform/update', {
           id: id,
-          config: this.updatingPlatformConfig
+          config: updatingConfig
         })
 
         if (resp.data.status === 'error') {
@@ -668,20 +710,22 @@ export default {
         this.showSuccess('更新成功');
       } catch (err) {
         this.loading = false;
-        this.showError(err.response?.data?.message || err.message);
+        const error = err as any;
+        this.showError(error?.response?.data?.message || error?.message || String(error));
       }
     },
     async savePlatform() {
-      if (!this.isPlatformIdValid(this.selectedPlatformConfig?.id)) {
+      const selectedPlatformConfig = this.selectedPlatformConfig;
+      if (!selectedPlatformConfig?.id || !this.isPlatformIdValid(selectedPlatformConfig.id)) {
         this.loading = false;
         this.showError(this.tm('dialog.invalidPlatformId'));
         return;
       }
 
       // 检查 ID 是否已存在
-      const existingPlatform = this.config_data.platform?.find(p => p.id === this.selectedPlatformConfig.id);
-      if (existingPlatform || this.selectedPlatformConfig.id === 'webchat') {
-        const confirmed = await this.confirmIdConflict(this.selectedPlatformConfig.id);
+      const existingPlatform = this.config_data.platform?.find(p => p.id === selectedPlatformConfig.id);
+      if (existingPlatform || selectedPlatformConfig.id === 'webchat') {
+        const confirmed = await this.confirmIdConflict(selectedPlatformConfig.id);
         if (!confirmed) {
           this.loading = false;
           return; // 如果用户取消，则中止保存
@@ -689,8 +733,8 @@ export default {
       }
 
       // 检查 aiocqhttp 适配器的安全设置
-      if (this.selectedPlatformConfig.type === 'aiocqhttp') {
-        const token = this.selectedPlatformConfig.ws_reverse_token;
+      if (selectedPlatformConfig.type === 'aiocqhttp') {
+        const token = selectedPlatformConfig.ws_reverse_token;
         if (!token || token.trim() === '') {
           const continueWithWarning = await this.showOneBotEmptyTokenWarning();
           if (!continueWithWarning) {
@@ -701,7 +745,7 @@ export default {
 
       try {
         // 先保存平台配置
-        const res = await axios.post('/api/config/platform/new', this.selectedPlatformConfig);
+        const res = await axios.post('/api/config/platform/new', selectedPlatformConfig);
 
         // 平台保存成功后，处理配置文件
         await this.handleConfigFile();
@@ -713,13 +757,18 @@ export default {
         this.showSuccess(res.data.message || '平台添加成功，配置文件已更新');
       } catch (err) {
         this.loading = false;
-        this.showError(err.response?.data?.message || err.message);
+        const error = err as any;
+        this.showError(error?.response?.data?.message || error?.message || String(error));
       }
     },
 
     async handleConfigFile() {
       if (!this.selectedAbConfId) {
         return;
+      }
+
+      if (!this.selectedPlatformConfig?.id) {
+        throw new Error('无法获取平台 ID');
       }
 
       const platformId = this.selectedPlatformConfig.id;
@@ -745,7 +794,7 @@ export default {
       await this.updateRoutingTable(newUmop, configId);
     },
 
-    async updateRoutingTable(umop, configId) {
+    async updateRoutingTable(umop: string, configId: string) {
       try {
         await axios.post('/api/config/umo_abconf_route/update', {
           umo: umop,
@@ -755,11 +804,12 @@ export default {
         console.log(`成功更新路由表: ${umop} -> ${configId}`);
       } catch (err) {
         console.error('更新路由表失败:', err);
-        throw new Error(`更新路由表失败: ${err.response?.data?.message || err.message}`);
+        const error = err as any;
+        throw new Error(`更新路由表失败: ${error?.response?.data?.message || error?.message || String(error)}`);
       }
     },
 
-    async createNewConfigFile(configName) {
+    async createNewConfigFile(configName: string) {
       try {
         // 准备配置数据，如果是创建模式且有新配置数据，使用用户填写的配置
         const configData = this.aBConfigRadioVal === '1' && this.newConfigData
@@ -778,33 +828,34 @@ export default {
         return newConfigId;
       } catch (err) {
         console.error('创建新配置文件失败:', err);
-        throw new Error(`创建新配置文件失败: ${err.response?.data?.message || err.message}`);
+        const error = err as any;
+        throw new Error(`创建新配置文件失败: ${error?.response?.data?.message || error?.message || String(error)}`);
       }
     },
 
-    confirmIdConflict(id) {
+    confirmIdConflict(id: string): Promise<boolean> {
       this.conflictId = id;
       this.showIdConflictDialog = true;
-      return new Promise((resolve) => {
+      return new Promise<boolean>((resolve) => {
         this.idConflictResolve = resolve;
       });
     },
 
-    handleIdConflictConfirm(confirmed) {
+    handleIdConflictConfirm(confirmed: boolean) {
       if (this.idConflictResolve) {
         this.idConflictResolve(confirmed);
       }
       this.showIdConflictDialog = false;
     },
 
-    showOneBotEmptyTokenWarning() {
+    showOneBotEmptyTokenWarning(): Promise<boolean> {
       this.showOneBotEmptyTokenWarnDialog = true;
-      return new Promise((resolve) => {
+      return new Promise<boolean>((resolve) => {
         this.oneBotEmptyTokenWarningResolve = resolve;
       });
     },
 
-    handleOneBotEmptyTokenWarningDismiss(continueWithWarning) {
+    handleOneBotEmptyTokenWarningDismiss(continueWithWarning: boolean) {
       this.showOneBotEmptyTokenWarnDialog = false;
       if (this.oneBotEmptyTokenWarningResolve) {
         this.oneBotEmptyTokenWarningResolve(continueWithWarning);
@@ -816,15 +867,15 @@ export default {
       }
     },
 
-    showSuccess(message) {
+    showSuccess(message: string) {
       this.$emit('show-toast', { message: message, type: 'success' });
     },
 
-    showError(message) {
+    showError(message: string) {
       this.$emit('show-toast', { message: message, type: 'error' });
     },
 
-    isPlatformIdValid(id) {
+    isPlatformIdValid(id: string | null | undefined) {
       if (!id) {
         return false;
       }
@@ -832,7 +883,7 @@ export default {
     },
 
     // 获取该平台适配器使用的所有配置文件（新版本：直接操作路由表）
-    async getPlatformConfigs(platformId) {
+    async getPlatformConfigs(platformId: string | null | undefined) {
       if (!platformId) {
         this.platformRoutes = [];
         return;
@@ -841,10 +892,10 @@ export default {
       try {
         // 获取路由表 (UMOP -> conf_id)
         const routesRes = await axios.get('/api/config/umo_abconf_routes');
-        const routingTable = routesRes.data.data.routing;
+        const routingTable = (routesRes.data?.data?.routing || {}) as Record<string, string>;
 
         // 过滤出属于该平台的路由，并保持顺序
-        const routes = [];
+        const routes: PlatformRouteRow[] = [];
         for (const [umop, confId] of Object.entries(routingTable)) {
           if (this.isUmopMatchPlatform(umop, platformId)) {
             const parts = umop.split(':');
@@ -854,7 +905,7 @@ export default {
                 originalUmop: umop, // 保存原始 UMOP 用于更新时查找
                 messageType: parts[1] === '' || parts[1] === '*' ? '*' : parts[1],
                 sessionId: parts[2] === '' || parts[2] === '*' ? '*' : parts[2],
-                configId: confId
+                configId: confId ?? null
               });
             }
           }
@@ -890,12 +941,12 @@ export default {
     },
 
     // 删除路由
-    deleteRoute(index) {
+    deleteRoute(index: number) {
       this.platformRoutes.splice(index, 1);
     },
 
     // 上移路由
-    moveRouteUp(index) {
+    moveRouteUp(index: number) {
       if (index > 0) {
         const temp = this.platformRoutes[index];
         this.platformRoutes[index] = this.platformRoutes[index - 1];
@@ -906,7 +957,7 @@ export default {
     },
 
     // 下移路由
-    moveRouteDown(index) {
+    moveRouteDown(index: number) {
       if (index < this.platformRoutes.length - 1) {
         const temp = this.platformRoutes[index];
         this.platformRoutes[index] = this.platformRoutes[index + 1];
@@ -928,7 +979,7 @@ export default {
       try {
         // 获取完整的路由表
         const routesRes = await axios.get('/api/config/umo_abconf_routes');
-        const fullRoutingTable = routesRes.data.data.routing;
+        const fullRoutingTable = (routesRes.data?.data?.routing || {}) as Record<string, string>;
 
         // 删除该平台的所有旧路由
         for (const umop in fullRoutingTable) {
@@ -958,7 +1009,8 @@ export default {
         });
       } catch (err) {
         console.error('保存路由表失败:', err);
-        throw new Error(`保存路由表失败: ${err.response?.data?.message || err.message}`);
+        const error = err as any;
+        throw new Error(`保存路由表失败: ${error?.response?.data?.message || error?.message || String(error)}`);
       }
     },
 
@@ -971,12 +1023,12 @@ export default {
     },
 
     // 根据配置文件ID获取名称
-    getConfigName(configId) {
+    getConfigName(configId: string | null) {
       const config = this.configInfoList.find(c => c.id === configId);
       return config ? config.name : configId;
     },
 
-    isUmopMatchPlatform(umop, platformId) {
+    isUmopMatchPlatform(umop: string, platformId: string) {
       if (!umop) return false;
       const parts = umop.split(':');
       if (parts.length !== 3) return false;
@@ -985,8 +1037,8 @@ export default {
     },
 
     // 获取消息类型标签
-    getMessageTypeLabel(messageType) {
-      const typeMap = {
+    getMessageTypeLabel(messageType: string) {
+      const typeMap: Record<string, string> = {
         '*': '全部消息',
         '': '全部消息',
         'GroupMessage': '群组消息',
@@ -1009,7 +1061,7 @@ export default {
     },
     scrollDialogToBottom() {
       const containerRef = this.$refs.dialogScrollContainer;
-      const el = containerRef?.$el || containerRef;
+      const el = (containerRef as any)?.$el || containerRef;
       if (!el) {
         return;
       }
@@ -1022,12 +1074,69 @@ export default {
     }
 
   },
-}
+})
 </script>
 
 <style>
 .v-select__selection-text {
   font-size: 12px;
+}
+
+.add-platform-body {
+  overflow-x: hidden;
+}
+
+.add-platform-card :deep(.v-table__wrapper) {
+  overflow-x: hidden;
+}
+
+.add-platform-card :deep(table) {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.add-platform-card :deep(th),
+.add-platform-card :deep(td) {
+  white-space: normal;
+  word-break: break-word;
+}
+
+.platform-type-field,
+.abconf-select-field {
+  width: 100%;
+  max-width: 30%;
+  min-width: 300px;
+}
+
+.route-source-cell {
+  min-width: 0;
+  gap: 8px;
+}
+
+.route-message-type-field {
+  width: 100%;
+  max-width: 140px;
+}
+
+.route-config-field {
+  width: 100%;
+  min-width: 200px;
+}
+
+@media (max-width: 600px) {
+  .platform-type-field,
+  .abconf-select-field {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .route-message-type-field {
+    max-width: 100%;
+  }
+
+  .route-config-field {
+    min-width: 0;
+  }
 }
 
 .config-drawer-overlay {

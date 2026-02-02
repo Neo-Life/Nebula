@@ -1,4 +1,10 @@
-<script setup>
+/*
+ * 该组件已弃用
+ * 无论上游如何修改
+ * 也不会维护这个组件
+/*
+<script setup lang="ts">
+// @ts-nocheck
 import { ref, watch, computed, onUnmounted } from "vue";
 import MarkdownIt from "markdown-it";
 import hljs from "highlight.js";
@@ -72,9 +78,6 @@ const renderedHtml = computed(() => {
 
     return `<div class="code-block-wrapper">
       ${lang ? `<span class="code-lang-label">${lang}</span>` : ""}
-      <button class="copy-code-btn" title="${t("core.common.copy")}">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-      </button>
       <pre class="hljs"><code class="language-${lang}">${highlighted}</code></pre>
     </div>`;
   };
@@ -213,19 +216,7 @@ watch(
 );
 
 function handleContainerClick(event) {
-  const btn = event.target.closest(".copy-code-btn");
-  if (!btn) return;
-  const code = btn.closest(".code-block-wrapper")?.querySelector("code");
-  if (code) {
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard
-        .writeText(code.textContent)
-        .then(() => showCopyFeedback(btn, true))
-        .catch(() => tryFallbackCopy(code.textContent, btn));
-    } else {
-      tryFallbackCopy(code.textContent, btn);
-    }
-  }
+  // Copy button removed by design.
 }
 
 function tryFallbackCopy(text, btn) {
@@ -427,29 +418,6 @@ function openExternalLink(url) {
   z-index: 1;
 }
 
-:deep(.markdown-body .copy-code-btn) {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: rgba(110, 118, 129, 0.4);
-  border: none;
-  border-radius: 6px;
-  padding: 6px;
-  cursor: pointer;
-  color: #c9d1d9;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition:
-    background-color 0.2s,
-    color 0.2s;
-  z-index: 1;
-}
-
-:deep(.markdown-body .copy-code-btn:hover) {
-  background: rgba(110, 118, 129, 0.6);
-  color: #fff;
-}
 
 :deep(.markdown-body code) {
   padding: 0.2em 0.4em;

@@ -23,7 +23,7 @@
                             <v-select v-model="messageTypeFilter" :label="tm('filters.type')" :items="messageTypeItems"
                                 chips multiple clearable variant="solo-filled" density="compact" hide-details flat>
                                 <template v-slot:selection="{ item }">
-                                    <v-chip size="small" variant="solo-filled" label>
+                                    <v-chip size="small" variant="tonal" label>
                                         {{ item.title }}
                                     </v-chip>
                                 </template>
@@ -325,7 +325,7 @@
     </div>
 </template>
 
-<script>
+<script lang="ts">
 import axios from 'axios';
 import { debounce } from 'lodash';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
@@ -333,6 +333,25 @@ import { useCommonStore } from '@/stores/common';
 import { useCustomizerStore } from '@/stores/customizer';
 import { useI18n, useModuleI18n } from '@/i18n/composables';
 import MessageList from '@/components/chat/MessageList.vue';
+
+type SessionInfo = { platform: string; messageType: string; sessionId: string };
+type ConversationItem = {
+    user_id: string;
+    cid: string;
+    title?: string;
+    created_at?: number | string;
+    updated_at?: number | string;
+    sessionInfo: SessionInfo;
+    [key: string]: any;
+};
+
+type PlatformFilterItem = string | { title?: string; value: string };
+
+type HistoryMessage = {
+    role?: string;
+    content?: unknown;
+    [key: string]: any;
+};
 
 export default {
     name: 'ConversationPage',
@@ -357,14 +376,14 @@ export default {
     data() {
         return {
             // 表格数据
-            conversations: [],
+            conversations: [] as ConversationItem[],
             search: '',
             headers: [],
-            selectedItems: [], // 批量选择的项目
+            selectedItems: [] as ConversationItem[], // 批量选择的项目
 
             // 筛选条件
-            platformFilter: [],
-            messageTypeFilter: [],
+            platformFilter: [] as any[],
+            messageTypeFilter: [] as string[],
             lastAppliedFilters: null, // 记录上次应用的筛选条件
 
             // 分页数据
@@ -383,8 +402,8 @@ export default {
             dialogBatchDelete: false, // 批量删除对话框
 
             // 选中的对话
-            selectedConversation: null,
-            conversationHistory: [],
+            selectedConversation: null as ConversationItem | null,
+            conversationHistory: [] as HistoryMessage[],
 
             // 编辑表单
             editedItem: {
@@ -406,9 +425,11 @@ export default {
             isEditingHistory: false,
             editedHistory: '',
             savingHistory: false,
-            monacoEditor: null,
+            monacoEditor: null as any,
 
-            commonStore: useCommonStore()
+            commonStore: useCommonStore(),
+
+            debouncedApplyFilters: null as any
         }
     },
 
@@ -451,14 +472,14 @@ export default {
                 { title: this.tm('table.headers.createdAt'), key: 'created_at', sortable: true, width: '180px' },
                 { title: this.tm('table.headers.updatedAt'), key: 'updated_at', sortable: true, width: '180px' },
                 { title: this.tm('table.headers.actions'), key: 'actions', sortable: false, align: 'center' }
-            ];
+            ] as any;
         },
 
         // 可用平台列表
         availablePlatforms() {
             const platforms = []
             // 解析 tutorial_map
-            const tutorialMap = this.commonStore.tutorial_map;
+            const tutorialMap = (this.commonStore as any).tutorial_map || {};
             for (const platform in tutorialMap) {
                 if (tutorialMap.hasOwnProperty(platform)) {
                     platforms.push({
@@ -480,8 +501,8 @@ export default {
 
         // 当前的筛选条件对象
         currentFilters() {
-            const platforms = this.platformFilter.map(item =>
-                typeof item === 'object' ? item.value : item
+            const platforms = (this.platformFilter as any[]).map((item: any) =>
+                typeof item === 'object' && item !== null ? item.value : item
             );
             return {
                 platforms: platforms,
@@ -498,7 +519,7 @@ export default {
 
         // 将对话历史转换为 MessageList 组件期望的格式
         formattedMessages() {
-            return this.conversationHistory.map(msg => {
+            return this.conversationHistory.map((msg: HistoryMessage) => {
                 console.log('处理消息:', msg.role, msg.content);
                 
                 // 将消息内容转换为 MessagePart[] 格式
@@ -529,7 +550,7 @@ export default {
 
     methods: {
         // Monaco编辑器挂载后的回调
-        onMonacoMounted(editor) {
+        onMonacoMounted(editor: any) {
             this.monacoEditor = editor;
             // 添加JSON格式校验
             editor.onDidChangeModelContent(() => {
@@ -544,7 +565,7 @@ export default {
         },
 
         // 处理表格选项变更（页面大小等）
-        handleTableOptions(options) {
+        handleTableOptions(options: any) {
             // 处理页面大小变更
             if (options.itemsPerPage !== this.pagination.page_size) {
                 this.pagination.page_size = options.itemsPerPage;
@@ -554,7 +575,7 @@ export default {
         },
 
         // 从会话ID解析平台和消息类型信息
-        parseSessionId(userId) {
+        parseSessionId(userId: string) {
             if (!userId) return { platform: 'default', messageType: 'default', sessionId: '' };
 
             // 使用冒号进行分割，格式: platform:messageType:sessionId
@@ -572,21 +593,21 @@ export default {
         },
 
         // 获取消息类型的显示文本
-        getMessageTypeDisplay(messageType) {
+        getMessageTypeDisplay(messageType: string) {
             const typeMap = {
                 'GroupMessage': this.tm('messageTypes.group'),
                 'FriendMessage': this.tm('messageTypes.friend'),
                 'default': this.tm('messageTypes.unknown')
             };
 
-            return typeMap[messageType] || typeMap.default;
+            return (messageType in typeMap ? (typeMap as any)[messageType] : typeMap.default) || typeMap.default;
         },
 
         // 获取对话列表
         fetchConversations: (() => {
             let controller = new AbortController();
 
-            return async function () {
+            return async function (this: any) {
                 // 新请求前停止之前的请求
                 controller?.abort()
                 controller = new AbortController();
@@ -594,14 +615,14 @@ export default {
                 this.loading = true;
                 try {
                     // 准备请求参数，包含分页和筛选条件
-                    const params = {
+                    const params: any = {
                         page: this.pagination.page,
                         page_size: this.pagination.page_size
                     };
 
                     // 添加筛选条件 - 处理combobox的混合数据格式
                     if (this.platformFilter.length > 0) {
-                        const platforms = this.platformFilter.map(item =>
+                        const platforms = (this.platformFilter as any[]).map((item: any) =>
                             typeof item === 'object' ? item.value : item
                         );
                         params.platforms = platforms.join(',');
@@ -636,10 +657,15 @@ export default {
                         }
 
                         // 处理会话数据，解析sessionId
-                        this.conversations = (data.conversations || []).map(conv => {
-                            // 为每个会话添加会话信息
-                            conv.sessionInfo = this.parseSessionId(conv.user_id);
-                            return conv;
+                        this.conversations = (data.conversations || []).map((conv: any) => {
+                            const userId = String(conv.user_id ?? '');
+                            const sessionInfo = this.parseSessionId(userId);
+                            return {
+                                ...conv,
+                                user_id: userId,
+                                cid: String(conv.cid ?? ''),
+                                sessionInfo
+                            } as ConversationItem;
                         });
 
                         // 更新分页信息
@@ -672,7 +698,7 @@ export default {
         })(),
 
         // 查看对话详情
-        async viewConversation(item) {
+        async viewConversation(item: ConversationItem) {
             this.selectedConversation = item;
             this.loading = true;
             this.isEditingHistory = false;
@@ -687,10 +713,10 @@ export default {
                 if (response.data.status === "ok") {
                     try {
                         const historyData = response.data.data.history || '[]';
-                        this.conversationHistory = JSON.parse(historyData);
+                        this.conversationHistory = JSON.parse(historyData) as HistoryMessage[];
                         this.editedHistory = JSON.stringify(this.conversationHistory, null, 2);
                     } catch (e) {
-                        this.conversationHistory = [];
+                        this.conversationHistory = [] as HistoryMessage[];
                         this.editedHistory = '[]';
                         console.error('解析对话历史失败:', e);
                     }
@@ -755,15 +781,19 @@ export default {
         },
 
         // 编辑对话
-        editConversation(item) {
+        editConversation(item: ConversationItem) {
             this.selectedConversation = item;
-            this.editedItem = Object.assign({}, item);
+            this.editedItem = {
+                user_id: item.user_id,
+                cid: item.cid,
+                title: String(item.title ?? '')
+            };
             this.dialogEdit = true;
         },
 
         // 保存编辑后的对话
         async saveConversation() {
-            if (!this.$refs.form.validate()) return;
+            if (!(this.$refs.form as any)?.validate?.()) return;
 
             this.loading = true;
             try {
@@ -798,22 +828,25 @@ export default {
         },
 
         // 确认删除对话
-        confirmDeleteConversation(item) {
+        confirmDeleteConversation(item: ConversationItem) {
             this.selectedConversation = item;
             this.dialogDelete = true;
         },
 
         // 删除对话
         async deleteConversation() {
+            const selected = this.selectedConversation;
+            if (!selected) return;
+
             this.loading = true;
             try {
                 const response = await axios.post('/api/conversation/delete', {
-                    user_id: this.selectedConversation.user_id,
-                    cid: this.selectedConversation.cid
+                    user_id: selected.user_id,
+                    cid: selected.cid
                 });
 
                 if (response.data.status === "ok") {
-                    const index = this.conversations.findIndex(item => item.user_id === this.selectedConversation.user_id && item.cid === this.selectedConversation.cid
+                    const index = this.conversations.findIndex(item => item.user_id === selected.user_id && item.cid === selected.cid
                     );
 
                     if (index !== -1) {
@@ -830,7 +863,7 @@ export default {
             } finally {
                 this.loading = false;
                 this.selectedItems = this.selectedItems.filter(item =>
-                    !(item.user_id === this.selectedConversation.user_id && item.cid === this.selectedConversation.cid)
+                    !(item.user_id === selected.user_id && item.cid === selected.cid)
                 );
                 this.selectedConversation = null;
             }
@@ -852,7 +885,7 @@ export default {
         },
 
         // 从选择中移除项目
-        removeFromSelection(item) {
+        removeFromSelection(item: ConversationItem) {
             const index = this.selectedItems.findIndex(selected =>
                 selected.user_id === item.user_id && selected.cid === item.cid
             );
@@ -962,10 +995,13 @@ export default {
         },
 
         // 格式化时间戳
-        formatTimestamp(timestamp) {
+        formatTimestamp(timestamp?: number | string | null) {
             if (!timestamp) return this.tm('status.unknown');
 
-            const date = new Date(timestamp * 1000);
+            const seconds = typeof timestamp === 'number' ? timestamp : Number(timestamp);
+            if (!Number.isFinite(seconds)) return this.tm('status.unknown');
+
+            const date = new Date(seconds * 1000);
             const locale = this.locale || 'zh-CN';
             return new Intl.DateTimeFormat(locale, {
                 year: 'numeric',
@@ -979,22 +1015,22 @@ export default {
         },
 
         // 显示成功消息
-        showSuccessMessage(message) {
+        showSuccessMessage(message: string) {
             this.message = message;
             this.messageType = 'success';
             this.showMessage = true;
         },
 
         // 显示错误消息
-        showErrorMessage(message) {
+        showErrorMessage(message: string) {
             this.message = message;
             this.messageType = 'error';
             this.showMessage = true;
         },
 
         // 将消息内容转换为 MessagePart[] 格式
-        convertContentToMessageParts(content) {
-            const parts = [];
+        convertContentToMessageParts(content: unknown) {
+            const parts: any[] = [];
             
             if (typeof content === 'string') {
                 // 纯文本内容
@@ -1006,7 +1042,7 @@ export default {
                 }
             } else if (Array.isArray(content)) {
                 // 数组格式（OpenAI 格式）
-                content.forEach(item => {
+                content.forEach((item: any) => {
                     if (item.type === 'text' && item.text) {
                         parts.push({
                             type: 'plain',
@@ -1021,7 +1057,7 @@ export default {
                 });
             } else if (typeof content === 'object' && content !== null) {
                 // 对象格式，尝试提取文本和图片
-                const textParts = [];
+                const textParts: string[] = [];
                 for (const [key, value] of Object.entries(content)) {
                     if (typeof value === 'string' && value.trim()) {
                         textParts.push(value);
@@ -1047,25 +1083,25 @@ export default {
         },
 
         // 从内容中提取文本（保留用于其他用途）
-        extractTextFromContent(content) {
+        extractTextFromContent(content: unknown) {
             if (typeof content === 'string') {
                 return content;
             } else if (Array.isArray(content)) {
-                return content.filter(item => item.type === 'text')
-                    .map(item => item.text)
+                return content.filter((item: any) => item.type === 'text')
+                    .map((item: any) => item.text)
                     .join('\n');
             } else if (typeof content === 'object') {
-                return Object.values(content).filter(val => typeof val === 'string').join('');
+                return Object.values(content as Record<string, unknown>).filter(val => typeof val === 'string').join('');
             }
             return '';
         },
 
         // 从内容中提取图片URL（保留用于其他用途）
-        extractImagesFromContent(content) {
+        extractImagesFromContent(content: unknown) {
             if (Array.isArray(content)) {
-                return content.filter(item => item.type === 'image_url')
-                    .map(item => item.image_url?.url)
-                    .filter(url => url);
+                return content.filter((item: any) => item.type === 'image_url')
+                    .map((item: any) => item.image_url?.url)
+                    .filter((url: any) => url);
             }
             return [];
         }
@@ -1073,7 +1109,7 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
 .actions-wrapper {
     display: flex;
     justify-content: flex-end;

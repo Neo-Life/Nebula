@@ -305,6 +305,8 @@ export default defineComponent({
 .tree-list {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
+    border-radius: 12px;
 }
 
 .root-item {

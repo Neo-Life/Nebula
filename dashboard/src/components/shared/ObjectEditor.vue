@@ -218,46 +218,65 @@
   </v-dialog>
 </template>
 
-<script setup>
-import { ref, computed, watch } from 'vue'
-import { useI18n } from '@/i18n/composables'
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue'
 
-const { t } = useI18n()
+type SliderSpec = {
+  min: number
+  max: number
+  step: number
+}
 
-const props = defineProps({
-  modelValue: {
-    type: Object,
-    required: true
-  },
-  itemMeta: {
-    type: Object,
-    default: null
-  },
-  buttonText: {
-    type: String,
-    default: '修改'
-  },
-  dialogTitle: {
-    type: String,
-    default: '修改键值对'
-  },
-  maxDisplayItems: {
-    type: Number,
-    default: 1
-  }
+type TemplateSchemaItem = {
+  name?: string
+  description?: string
+  hint?: string
+  type?: string
+  default?: unknown
+  slider?: SliderSpec
+}
+
+type ItemMeta = {
+  template_schema?: Record<string, TemplateSchemaItem>
+} | null
+
+type ValueType = 'string' | 'number' | 'int' | 'float' | 'boolean' | 'bool' | 'json'
+
+type KeyValuePair = {
+  key: string
+  value: string | number | boolean | null
+  type: ValueType
+  slider?: SliderSpec
+  template?: TemplateSchemaItem
+  jsonError?: string
+}
+
+type Props = {
+  modelValue: Record<string, unknown> | null
+  itemMeta?: ItemMeta
+  buttonText?: string
+  dialogTitle?: string
+  maxDisplayItems?: number
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  itemMeta: null,
+  buttonText: '修改',
+  dialogTitle: '修改键值对',
+  maxDisplayItems: 1
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits<{ (e: 'update:modelValue', value: Record<string, unknown>): void }>()
 
 const dialog = ref(false)
-const localKeyValuePairs = ref([])
-const originalKeyValuePairs = ref([])
+const localKeyValuePairs = ref<KeyValuePair[]>([])
+const originalKeyValuePairs = ref<KeyValuePair[]>([])
 const newKey = ref('')
-const newValueType = ref('string')
+const newValueType = ref<ValueType>('string')
 
 // Template schema support
-const templateSchema = computed(() => {
-  return props.itemMeta?.template_schema || {}
+const templateSchema = computed<Record<string, TemplateSchemaItem>>(() => {
+  return props.itemMeta?.template_schema ?? {}
 })
 
 const hasTemplateSchema = computed(() => {
@@ -266,42 +285,53 @@ const hasTemplateSchema = computed(() => {
 
 // 计算要显示的键名
 const displayKeys = computed(() => {
-  return Object.keys(props.modelValue).slice(0, props.maxDisplayItems)
+  return Object.keys(props.modelValue ?? {}).slice(0, props.maxDisplayItems)
 })
 
 // 分离模板字段和普通字段
 const nonTemplatePairs = computed(() => {
-  return localKeyValuePairs.value.filter(pair => !templateSchema.value[pair.key])
+  return localKeyValuePairs.value.filter((pair) => !templateSchema.value[pair.key])
 })
 
 // 监听 modelValue 变化，主要用于初始化
-watch(() => props.modelValue, (newValue) => {
+watch(
+  () => props.modelValue,
+  () => {
   // This watch is primarily for initialization or external changes
   // The dialog-based editing handles internal updates
-}, { immediate: true })
+  },
+  { immediate: true }
+)
 
 function initializeLocalKeyValuePairs() {
   localKeyValuePairs.value = []
-  for (const [key, value] of Object.entries(props.modelValue)) {
-    let _type = (typeof value) === 'object' ? 'json':(typeof value)
-    let _value = _type === 'json'?JSON.stringify(value):value
+  const modelValue = props.modelValue ?? {}
+
+  for (const [key, value] of Object.entries(modelValue)) {
+    const inferredType: ValueType = typeof value === 'object' ? 'json' : (typeof value as ValueType)
+    let valueType: ValueType = inferredType
+
+    const inferredValue: string | number | boolean | null =
+      valueType === 'json' ? JSON.stringify(value) : ((value ?? null) as string | number | boolean | null)
+
+    let pairValue: string | number | boolean | null = inferredValue
     
     // Check if this key has a template schema
     const template = templateSchema.value[key]
     if (template) {
       // Use template type if available
-      _type = template.type || _type
+      valueType = (template.type as ValueType | undefined) ?? valueType
       // Use template default if value is missing
-      if (_value === undefined || _value === null) {
-        _value = template.default !== undefined ? template.default : _value
+      if (pairValue === undefined || pairValue === null) {
+        pairValue = (template.default as string | number | boolean | null | undefined) ?? pairValue
       }
     }
     
     localKeyValuePairs.value.push({
       key: key,
-      value: _value,
-      type: _type,
-      slider: template?.slider,
+      value: pairValue,
+      type: valueType,
+      slider: template?.slider as SliderSpec | undefined,
       template: template
     })
   }
@@ -324,7 +354,7 @@ function addKeyValuePair() {
       return
     }
 
-    let defaultValue
+    let defaultValue: string | number | boolean
     switch (newValueType.value) {
       case 'number':
         defaultValue = 0
@@ -333,10 +363,10 @@ function addKeyValuePair() {
         defaultValue = false
         break
       case 'json':
-        defaultValue = "{}"
+        defaultValue = '{}'
         break
       default: // string
-        defaultValue = ""
+        defaultValue = ''
         break
     }
 
@@ -349,23 +379,23 @@ function addKeyValuePair() {
   }
 }
 
-function updateJSON(index, newValue) {
+function updateJSON(index: number, newValue: string | number | boolean | null) {
   try {
-    JSON.parse(newValue)
+    JSON.parse(String(newValue ?? ''))
     localKeyValuePairs.value[index].jsonError = ''
   } catch (e) {
     localKeyValuePairs.value[index].jsonError = 'JSON 格式错误'
   }
 }
 
-function removeKeyValuePairByKey(key) {
+function removeKeyValuePairByKey(key: string) {
   const index = localKeyValuePairs.value.findIndex(pair => pair.key === key)
   if (index >= 0) {
     localKeyValuePairs.value.splice(index, 1)
   }
 }
 
-function updateKey(index, newKey) {
+function updateKey(index: number, newKey: string) {
   const originalKey = localKeyValuePairs.value[index].key
   // 如果键名没有改变，则不执行任何操作
   if (originalKey === newKey) return
@@ -384,11 +414,12 @@ function updateKey(index, newKey) {
   const template = templateSchema.value[newKey]
   if (template) {
     // 更新类型和默认值
-    localKeyValuePairs.value[index].type = template.type || localKeyValuePairs.value[index].type
+    localKeyValuePairs.value[index].type = (template.type as ValueType | undefined) ?? localKeyValuePairs.value[index].type
     if (localKeyValuePairs.value[index].value === undefined || localKeyValuePairs.value[index].value === null || localKeyValuePairs.value[index].value === '') {
-      localKeyValuePairs.value[index].value = template.default !== undefined ? template.default : localKeyValuePairs.value[index].value
+      localKeyValuePairs.value[index].value =
+        (template.default as string | number | boolean | null | undefined) ?? localKeyValuePairs.value[index].value
     }
-    localKeyValuePairs.value[index].slider = template.slider
+    localKeyValuePairs.value[index].slider = template.slider as SliderSpec | undefined
     localKeyValuePairs.value[index].template = template
   } else {
     // 清除模板信息
@@ -400,20 +431,20 @@ function updateKey(index, newKey) {
   localKeyValuePairs.value[index].key = newKey
 }
 
-function isTemplateKeyAdded(templateKey) {
+function isTemplateKeyAdded(templateKey: string) {
   return localKeyValuePairs.value.some(pair => pair.key === templateKey)
 }
 
-function getTemplateValue(templateKey) {
+function getTemplateValue(templateKey: string): string | number | boolean | null {
   const pair = localKeyValuePairs.value.find(pair => pair.key === templateKey)
   if (pair) {
     return pair.value
   }
   const template = templateSchema.value[templateKey]
-  return template?.default !== undefined ? template.default : getDefaultValueForType(template?.type || 'string')
+  return (template?.default as string | number | boolean | null | undefined) ?? getDefaultValueForType((template?.type as ValueType | undefined) ?? 'string')
 }
 
-function updateTemplateValue(templateKey, newValue) {
+function updateTemplateValue(templateKey: string, newValue: string | number | boolean | null) {
   const existingIndex = localKeyValuePairs.value.findIndex(pair => pair.key === templateKey)
   const template = templateSchema.value[templateKey]
   
@@ -422,25 +453,25 @@ function updateTemplateValue(templateKey, newValue) {
     localKeyValuePairs.value[existingIndex].value = newValue
   } else {
     // 添加新字段
-    let valueType = template?.type || 'string'
+    const valueType: ValueType = (template?.type as ValueType | undefined) ?? 'string'
     localKeyValuePairs.value.push({
       key: templateKey,
       value: newValue,
       type: valueType,
-      slider: template?.slider,
+      slider: template?.slider as SliderSpec | undefined,
       template: template
     })
   }
 }
 
-function removeTemplateKey(templateKey) {
+function removeTemplateKey(templateKey: string) {
   const index = localKeyValuePairs.value.findIndex(pair => pair.key === templateKey)
   if (index >= 0) {
     localKeyValuePairs.value.splice(index, 1)
   }
 }
 
-function getDefaultValueForType(type) {
+function getDefaultValueForType(type: ValueType): string | number | boolean {
   switch (type) {
     case 'int':
     case 'float':
@@ -450,22 +481,22 @@ function getDefaultValueForType(type) {
     case 'boolean':
       return false
     case 'json':
-      return "{}"
+      return '{}'
     case 'string':
     default:
-      return ""
+      return ''
   }
 }
 
 function confirmDialog() {
-  const updatedValue = {}
+  const updatedValue: Record<string, unknown> = {}
   for (const pair of localKeyValuePairs.value) {
     if (pair.type === 'json' && pair.jsonError) return
     let convertedValue = pair.value
     // 根据声明的类型进行转换
     switch (pair.type) {
       case 'int':
-        convertedValue = parseInt(pair.value) || 0
+        convertedValue = parseInt(String(pair.value ?? ''), 10) || 0
         break
       case 'float':
       case 'number':
@@ -482,7 +513,7 @@ function confirmDialog() {
         // convertedValue = Boolean(pair.value)
         break
       case 'json':
-        convertedValue = JSON.parse(pair.value)
+        convertedValue = JSON.parse(String(pair.value ?? ''))
         break
       case 'string':
       default:

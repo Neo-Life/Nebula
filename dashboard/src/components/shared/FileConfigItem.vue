@@ -72,11 +72,18 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import axios from 'axios'
 import { useToast } from '@/utils/toast'
 import { useModuleI18n } from '@/i18n/composables'
+
+type FileStatus = 'ok' | 'missing' | 'unconfigured'
+
+type FileItem = {
+  path: string
+  status: FileStatus
+}
 
 const props = defineProps({
   modelValue: {
@@ -103,22 +110,22 @@ const toast = useToast()
 
 const dialog = ref(false)
 const isDragging = ref(false)
-const fileInput = ref(null)
+const fileInput = ref<HTMLInputElement | null>(null)
 const uploading = ref(false)
 const loadingFiles = ref(false)
 const MAX_FILE_BYTES = 500 * 1024 * 1024
 const MAX_FILE_MB = 500
-const directoryFiles = ref([])
+const directoryFiles = ref<string[]>([])
 
 const fileList = computed({
-  get: () => (Array.isArray(props.modelValue) ? props.modelValue : []),
-  set: (val) => emit('update:modelValue', val)
+  get: () => (Array.isArray(props.modelValue) ? (props.modelValue as string[]) : []),
+  set: (val: string[]) => emit('update:modelValue', val)
 })
 
 const mergedFileItems = computed(() => {
   const configured = new Set(fileList.value)
   const existing = new Set(directoryFiles.value)
-  const items = []
+  const items: FileItem[] = []
 
   for (const path of fileList.value) {
     items.push({
@@ -161,21 +168,23 @@ const fileCountText = computed(() => {
   return tm('fileUpload.fileCount', { count: fileList.value.length })
 })
 
-const getStatusText = (status) => {
-  if (status === 'missing') {
+const getStatusText = (status: FileStatus) => {
+  const s = status
+  if (s === 'missing') {
     return tm('fileUpload.statusMissing')
   }
-  if (status === 'unconfigured') {
+  if (s === 'unconfigured') {
     return tm('fileUpload.statusUnconfigured')
   }
   return ''
 }
 
-const getStatusColor = (status) => {
-  if (status === 'missing') {
+const getStatusColor = (status: FileStatus) => {
+  const s = status
+  if (s === 'missing') {
     return 'error'
   }
-  if (status === 'unconfigured') {
+  if (s === 'unconfigured') {
     return 'warning'
   }
   return 'primary'
@@ -211,8 +220,8 @@ const loadDirectoryFiles = async () => {
   }
 }
 
-const handleFileSelect = (event) => {
-  const target = event.target
+const handleFileSelect = (event: Event) => {
+  const target = event.target as HTMLInputElement | null
   if (target?.files && target.files.length > 0) {
     uploadFiles(Array.from(target.files))
   }
@@ -221,14 +230,14 @@ const handleFileSelect = (event) => {
   }
 }
 
-const handleDrop = (event) => {
+const handleDrop = (event: DragEvent) => {
   isDragging.value = false
   if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
     uploadFiles(Array.from(event.dataTransfer.files))
   }
 }
 
-const uploadFiles = async (files) => {
+const uploadFiles = async (files: File[]) => {
   if (!props.pluginName || !props.configKey) {
     toast.warning('Missing plugin config info')
     return
@@ -266,8 +275,8 @@ const uploadFiles = async (files) => {
     )
 
     if (response.data.status === 'ok') {
-      const uploaded = response.data.data?.uploaded || []
-      const errors = response.data.data?.errors || []
+      const uploaded = (response.data.data?.uploaded || []) as string[]
+      const errors = (response.data.data?.errors || []) as string[]
 
       if (uploaded.length > 0) {
         const merged = [...fileList.value]
@@ -297,14 +306,14 @@ const uploadFiles = async (files) => {
   }
 }
 
-const addToConfig = (filePath) => {
+const addToConfig = (filePath: string) => {
   if (!fileList.value.includes(filePath)) {
     fileList.value = [...fileList.value, filePath]
     toast.success(tm('fileUpload.addToConfig'))
   }
 }
 
-const deleteFile = (filePath) => {
+const deleteFile = (filePath: string) => {
   fileList.value = fileList.value.filter((item) => item !== filePath)
   directoryFiles.value = directoryFiles.value.filter((item) => item !== filePath)
 
@@ -316,7 +325,7 @@ const deleteFile = (filePath) => {
         )}`,
         { path: filePath }
       )
-      .catch((error) => {
+      .catch((error: unknown) => {
         console.warn('Staged file delete failed:', error)
         toast.warning(tm('fileUpload.deleteFailed'))
       })
@@ -325,7 +334,7 @@ const deleteFile = (filePath) => {
   toast.success(tm('fileUpload.deleteSuccess'))
 }
 
-const deletePhysicalFile = (filePath) => {
+const deletePhysicalFile = (filePath: string) => {
   directoryFiles.value = directoryFiles.value.filter((item) => item !== filePath)
 
   if (props.pluginName) {
@@ -336,7 +345,7 @@ const deletePhysicalFile = (filePath) => {
         )}`,
         { path: filePath }
       )
-      .catch((error) => {
+      .catch((error: unknown) => {
         console.warn('File delete failed:', error)
         toast.warning(tm('fileUpload.deleteFailed'))
       })
@@ -345,7 +354,7 @@ const deletePhysicalFile = (filePath) => {
   toast.success(tm('fileUpload.deleteSuccess'))
 }
 
-const getDisplayName = (path) => {
+const getDisplayName = (path: string) => {
   if (!path) return ''
   const parts = String(path).split('/')
   return parts[parts.length - 1] || path

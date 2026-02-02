@@ -33,6 +33,7 @@
     "save": "Save",
     "saveAndClose": "Save and Close",
     "cancel": "Cancel",
+    "confirm": "Confirm",
     "actions": "Actions",
     "back": "Back",
     "selectFile": "Select File",
@@ -84,6 +85,7 @@
     "showFullName": "Full Name",
     "devDocs": "Extension Development Docs",
     "submitRepo": "Submit Extension Repository",
+    "repo": "Repository",
     "customSource": "Custom Extension Source",
     "source": "Source",
     "availableSources": "Available Sources",
@@ -103,7 +105,21 @@
     "sourceUpdated": "Source updated successfully",
     "defaultOfficialSource": "Default Official Source",
     "sourceExists": "This source already exists",
-    "installPlugin": "Install Plugin"
+    "installPlugin": "Install Plugin",
+    "cart": {
+      "title": "Cart",
+      "add": "Add to cart",
+      "remove": "Remove from cart",
+      "viewReadme": "Open README",
+      "clear": "Clear",
+      "installSelected": "Install selected",
+      "empty": "Cart is empty",
+      "batchProgress": "Batch installing ({done}/{total})",
+      "batchProgressDetail": "Batch installing ({done}/{total}) · success {success} · failed {failed}",
+      "batchInstalling": "Batch installing ({count})",
+      "batchSuccess": "Batch install completed (success {success} / total {total})",
+      "batchPartial": "Batch install completed (success {success} / failed {failed} / total {total})"
+    }
   },
   "sort": {
     "default": "Default",

@@ -2,8 +2,9 @@
 import { ref, useCssModule } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { Form } from 'vee-validate';
-import md5 from 'js-md5';
+import * as md5 from 'js-md5';
 import { useModuleI18n } from '@/i18n/composables';
+import { useRoute, useRouter } from 'vue-router';
 
 const { tm: t } = useModuleI18n('features/auth');
 
@@ -12,26 +13,33 @@ const show1 = ref(false);
 const password = ref('');
 const username = ref('');
 const loading = ref(false);
+const route = useRoute();
+const router = useRouter();
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-async function validate(values: any, { setErrors }: any) {
+type LoginFormValues = {
+  username?: string;
+  password?: string;
+};
+
+type LoginFormErrors = {
+  apiError?: string;
+};
+
+async function validate(_values: LoginFormValues, { setErrors }: { setErrors: (errors: LoginFormErrors) => void }) {
   loading.value = true;
 
   // md5加密
-  let password_ = password.value;
-  if (password.value != '') {
-    // @ts-ignore
-    password_ = md5(password.value);
-  }
+  const password_ = password.value !== '' ? md5.md5(password.value) : password.value;
 
   const authStore = useAuthStore();
-  // @ts-ignore
-  authStore.returnUrl = new URLSearchParams(window.location.search).get('redirect');
-  return authStore.login(username.value, password_).then((res) => {
-    console.log(res);
+  const redirect = route.query.redirect;
+  authStore.returnUrl = typeof redirect === 'string' ? redirect : null;
+  return authStore.login(username.value, password_).then(async () => {
+    await router.push(authStore.returnUrl || '/');
     loading.value = false;
-  }).catch((err) => {
-    setErrors({ apiError: err });
+  }).catch((err: unknown) => {
+    const message = err instanceof Error ? err.message : String(err);
+    setErrors({ apiError: message });
     loading.value = false;
   });
 }

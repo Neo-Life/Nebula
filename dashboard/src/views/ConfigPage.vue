@@ -39,26 +39,40 @@
 
           <v-tooltip :text="tm('actions.save')" location="left">
             <template v-slot:activator="{ props }">
-              <v-btn v-bind="props" icon="mdi-content-save" size="x-large" style="position: fixed; right: 52px; bottom: 52px;"
-                color="darkprimary" @click="updateConfig">
-              </v-btn>
+              <v-btn
+                v-bind="props"
+                class="config-floating-btn config-floating-btn--save"
+                variant="flat"
+                icon="mdi-content-save"
+                size="x-large"
+                @click="updateConfig"
+              ></v-btn>
             </template>
           </v-tooltip>
 
           <v-tooltip :text="tm('codeEditor.title')" location="left">
             <template v-slot:activator="{ props }">
-              <v-btn v-bind="props" icon="mdi-code-json" size="x-large" style="position: fixed; right: 52px; bottom: 124px;" color="primary"
-                @click="configToString(); codeEditorDialog = true">
-              </v-btn>
+              <v-btn
+                v-bind="props"
+                class="config-floating-btn config-floating-btn--editor"
+                variant="flat"
+                icon="mdi-code-json"
+                size="x-large"
+                @click="configToString(); codeEditorDialog = true"
+              ></v-btn>
             </template>
           </v-tooltip>
 
           <v-tooltip text="测试当前配置" location="left" v-if="!isSystemConfig">
             <template v-slot:activator="{ props }">
-              <v-btn v-bind="props" icon="mdi-chat-processing" size="x-large" 
-                style="position: fixed; right: 52px; bottom: 196px;" color="secondary"
-                @click="openTestChat">
-              </v-btn>
+              <v-btn
+                v-bind="props"
+                class="config-floating-btn config-floating-btn--test"
+                variant="flat"
+                icon="mdi-chat-processing"
+                size="x-large"
+                @click="openTestChat"
+              ></v-btn>
             </template>
           </v-tooltip>
 
@@ -79,11 +93,50 @@
         <v-toolbar-title>{{ tm('codeEditor.title') }}</v-toolbar-title>
         <v-spacer></v-spacer>
         <v-toolbar-items style="display: flex; align-items: center;">
-          <v-btn style="margin-left: 16px;" size="small" @click="configToString()">{{
-            tm('editor.revertCode') }}</v-btn>
-          <v-btn v-if="config_data_has_changed" style="margin-left: 16px;" size="small" @click="applyStrConfig()">{{
-            tm('editor.applyConfig') }}</v-btn>
-          <small style="margin-left: 16px;">💡 {{ tm('editor.applyTip') }}</small>
+          <v-tooltip :text="tm('editor.revertCode')" location="bottom">
+            <template #activator="{ props }">
+              <v-btn
+                v-bind="props"
+                prepend-icon="mdi-history"
+                variant="text"
+                size="small"
+                style="margin-left: 16px;"
+                :aria-label="tm('editor.revertCode')"
+                @click="configToString()"
+              >
+                {{ tm('editor.revertShort') }}
+              </v-btn>
+            </template>
+          </v-tooltip>
+          <v-tooltip v-if="config_data_has_changed" :text="tm('editor.applyConfig')" location="bottom">
+            <template #activator="{ props }">
+              <v-btn
+                v-bind="props"
+                prepend-icon="mdi-check-circle-outline"
+                variant="text"
+                size="small"
+                style="margin-left: 16px;"
+                :aria-label="tm('editor.applyConfig')"
+                @click="applyStrConfig()"
+              >
+                {{ tm('editor.applyShort') }}
+              </v-btn>
+            </template>
+          </v-tooltip>
+          <v-tooltip :text="tm('editor.applyTip')" location="bottom">
+            <template #activator="{ props }">
+              <v-btn
+                v-bind="props"
+                prepend-icon="mdi-information-outline"
+                variant="text"
+                size="small"
+                style="margin-left: 16px;"
+                :aria-label="tm('editor.applyTip')"
+              >
+                {{ tm('editor.tipShort') }}
+              </v-btn>
+            </template>
+          </v-tooltip>
         </v-toolbar-items>
       </v-toolbar>
       <v-card-text class="pa-0">
@@ -183,13 +236,22 @@
 </template>
 
 
-<script>
+<script lang="ts">
 import axios from 'axios';
+import type { PropType } from 'vue'
 import AstrBotCoreConfigWrapper from '@/components/config/AstrBotCoreConfigWrapper.vue';
 import WaitingForRestart from '@/components/shared/WaitingForRestart.vue';
 import StandaloneChat from '@/components/chat/StandaloneChat.vue';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 import { useI18n, useModuleI18n } from '@/i18n/composables';
+
+type AnyRecord = Record<string, any>
+
+type ConfigInfo = {
+  id: string
+  name: string
+  [key: string]: any
+}
 
 export default {
   name: 'ConfigPage',
@@ -201,7 +263,7 @@ export default {
   },
   props: {
     initialConfigId: {
-      type: String,
+      type: String as PropType<string | null>,
       default: null
     }
   },
@@ -226,10 +288,10 @@ export default {
       };
     },
     configInfoNameList() {
-      return this.configInfoList.map(info => info.name);
+      return this.configInfoList.map((info) => info.name);
     },
     selectedConfigInfo() {
-      return this.configInfoList.find(info => info.id === this.selectedConfigID) || {};
+      return this.configInfoList.find((info) => info.id === this.selectedConfigID) || ({} as ConfigInfo);
     },
     configSelectItems() {
       const items = [...this.configInfoList];
@@ -266,7 +328,7 @@ export default {
         config: {}
       },
       fetched: false,
-      metadata: {},
+        metadata: {} as AnyRecord,
       save_message_snack: false,
       save_message: "",
       save_message_success: "",
@@ -279,16 +341,16 @@ export default {
       isSystemConfig: false,
 
       // 多配置文件管理
-      selectedConfigID: null, // 用于存储当前选中的配置项信息
-      configInfoList: [],
+      selectedConfigID: null as string | null, // 用于存储当前选中的配置项信息
+      configInfoList: [] as ConfigInfo[],
       configFormData: {
         name: '',
       },
-      editingConfigId: null,
+      editingConfigId: null as string | null,
 
       // 测试聊天
       testChatDrawer: false,
-      testConfigId: null,
+      testConfigId: null as string | null,
     }
   },
   mounted() {
@@ -298,10 +360,10 @@ export default {
     this.configType = this.isSystemConfig ? 'system' : 'normal';
   },
   methods: {
-    getConfigInfoList(abconf_id) {
+    getConfigInfoList(abconf_id?: string | null) {
       // 获取配置列表
       axios.get('/api/config/abconfs').then((res) => {
-        this.configInfoList = res.data.data.info_list;
+        this.configInfoList = (res.data.data.info_list || []) as ConfigInfo[];
 
         if (abconf_id) {
           let matched = false;
@@ -317,7 +379,7 @@ export default {
           if (!matched && this.configInfoList.length) {
             // 当找不到目标配置时，默认展示列表中的第一个配置
             this.selectedConfigID = this.configInfoList[0].id;
-            this.getConfig(this.selectedConfigID);
+            this.getConfig(this.configInfoList[0].id);
           }
         }
       }).catch((err) => {
@@ -326,14 +388,14 @@ export default {
         this.save_message_success = "error";
       });
     },
-    getConfig(abconf_id) {
+    getConfig(abconf_id?: string | null) {
       this.fetched = false
-      const params = {};
+      const params: any = {};
 
       if (this.isSystemConfig) {
         params.system_config = '1';
       } else {
-        params.id = abconf_id || this.selectedConfigID;
+        params.id = abconf_id || this.selectedConfigID || undefined;
       }
 
       axios.get('/api/config/abconf', {
@@ -352,7 +414,7 @@ export default {
     updateConfig() {
       if (!this.fetched) return;
 
-      const postData = {
+      const postData: any = {
         config: JSON.parse(JSON.stringify(this.config_data)),
       };
 
@@ -370,7 +432,7 @@ export default {
 
           if (this.isSystemConfig) {
             axios.post('/api/stat/restart-core').then(() => {
-              this.$refs.wfr.check();
+              (this.$refs.wfr as any)?.check?.();
             })
           }
         } else {
@@ -423,7 +485,7 @@ export default {
         this.save_message_success = "error";
       });
     },
-    onConfigSelect(value) {
+    onConfigSelect(value: string) {
       if (value === '_%manage%_') {
         this.configManageDialog = true;
         // 重置选择到之前的值
@@ -442,7 +504,7 @@ export default {
       };
       this.editingConfigId = null;
     },
-    startEditConfig(config) {
+    startEditConfig(config: ConfigInfo) {
       this.showConfigForm = true;
       this.isEditingConfig = true;
       this.editingConfigId = config.id;
@@ -473,12 +535,12 @@ export default {
         this.createNewConfig();
       }
     },
-    confirmDeleteConfig(config) {
+    confirmDeleteConfig(config: ConfigInfo) {
       if (confirm(this.tm('configManagement.confirmDelete').replace('{name}', config.name))) {
         this.deleteConfig(config.id);
       }
     },
-    deleteConfig(configId) {
+    deleteConfig(configId: string) {
       axios.post('/api/config/abconf/delete', {
         id: configId
       }).then((res) => {

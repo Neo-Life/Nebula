@@ -1,9 +1,11 @@
-const MainRoutes = {
-  path: '/main',
+import type { RouteRecordRaw } from 'vue-router'
+
+const MainRoutes: RouteRecordRaw = {
+  name: 'main',
+  path: '/',
   meta: {
     requiresAuth: true
   },
-  redirect: '/main/platforms',
   component: () => import('@/layouts/full/FullLayout.vue'),
   children: [
     {
@@ -14,11 +16,6 @@ const MainRoutes = {
     {
       name: 'Extensions',
       path: '/extension',
-      component: () => import('@/views/ExtensionPage.vue')
-    },
-    {
-      name: 'ExtensionMarketplace',
-      path: '/extension-marketplace',
       component: () => import('@/views/ExtensionPage.vue')
     },
     {
@@ -38,7 +35,7 @@ const MainRoutes = {
     },
     {
       name: 'Default',
-      path: '/dashboard/default',
+      path: '/default',
       component: () => import('@/views/dashboards/default/DefaultDashboard.vue')
     },
     {
@@ -151,6 +148,11 @@ const MainRoutes = {
       name: 'About',
       path: '/about',
       component: () => import('@/views/AboutPage.vue')
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'NotFound',
+      component: () => import('@/views/Error404.vue')
     }
   ]
 };

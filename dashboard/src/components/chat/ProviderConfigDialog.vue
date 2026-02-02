@@ -111,10 +111,11 @@
         <v-card-actions class="pa-4">
           <v-spacer></v-spacer>
           <v-btn variant="text" @click="showProviderEditDialog = false"
-            :disabled="savingProviders.includes(providerEditData?.id)">
+            :disabled="providerEditData?.id ? savingProviders.includes(providerEditData.id) : false">
             {{ tm('dialogs.config.cancel') }}
           </v-btn>
-          <v-btn color="primary" @click="saveEditedProvider" :loading="savingProviders.includes(providerEditData?.id)">
+          <v-btn color="primary" @click="saveEditedProvider"
+            :loading="providerEditData?.id ? savingProviders.includes(providerEditData.id) : false">
             {{ tm('dialogs.config.save') }}
           </v-btn>
         </v-card-actions>
@@ -123,7 +124,7 @@
   </v-dialog>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useModuleI18n } from '@/i18n/composables'
 import AstrBotConfig from '@/components/shared/AstrBotConfig.vue'
@@ -132,6 +133,13 @@ import ProviderSourcesPanel from '@/components/provider/ProviderSourcesPanel.vue
 import { useProviderSources } from '@/composables/useProviderSources'
 import { getProviderIcon } from '@/utils/providerUtils'
 import axios from 'axios'
+
+type AnyRecord = Record<string, any>
+
+type ProviderConfig = AnyRecord & {
+  id?: string
+  enable?: boolean
+}
 
 const props = defineProps({
   modelValue: {
@@ -162,7 +170,7 @@ const snackbar = ref({
   color: 'success'
 })
 
-function showMessage(message, color = 'success') {
+function showMessage(message: string, color: string = 'success') {
   snackbar.value = { show: true, message, color }
 }
 
@@ -206,9 +214,9 @@ const {
 
 const showManualModelDialog = ref(false)
 const showProviderEditDialog = ref(false)
-const providerEditData = ref(null)
+const providerEditData = ref<ProviderConfig | null>(null)
 const providerEditOriginalId = ref('')
-const savingProviders = ref([])
+const savingProviders = ref<string[]>([])
 
 function closeDialog() {
   dialog.value = false
@@ -241,16 +249,22 @@ async function confirmManualModel() {
   showManualModelDialog.value = false
 }
 
-function openProviderEdit(provider) {
-  providerEditData.value = JSON.parse(JSON.stringify(provider))
-  providerEditOriginalId.value = provider.id
+function openProviderEdit(provider: ProviderConfig) {
+  providerEditData.value = JSON.parse(JSON.stringify(provider)) as ProviderConfig
+  providerEditOriginalId.value = provider.id || ''
   showProviderEditDialog.value = true
 }
 
 async function saveEditedProvider() {
   if (!providerEditData.value) return
 
-  savingProviders.value.push(providerEditData.value.id)
+  const savingId = providerEditData.value.id || providerEditOriginalId.value
+  if (!savingId) {
+    showMessage(tm('providerSources.saveError'), 'error')
+    return
+  }
+
+  savingProviders.value.push(savingId)
   try {
     const res = await axios.post('/api/config/provider/update', {
       id: providerEditOriginalId.value || providerEditData.value.id,
@@ -265,13 +279,15 @@ async function saveEditedProvider() {
     showProviderEditDialog.value = false
     await loadConfig()
   } catch (err) {
-    showMessage(err.response?.data?.message || err.message || tm('providerSources.saveError'), 'error')
+    const axiosMessage = axios.isAxiosError(err) ? err.response?.data?.message || err.message : undefined
+    const message = axiosMessage || (err instanceof Error ? err.message : undefined) || tm('providerSources.saveError')
+    showMessage(message, 'error')
   } finally {
-    savingProviders.value = savingProviders.value.filter(id => id !== providerEditData.value?.id)
+    savingProviders.value = savingProviders.value.filter((id) => id !== savingId)
   }
 }
 
-async function toggleProviderEnable(provider, value) {
+async function toggleProviderEnable(provider: ProviderConfig, value: boolean) {
   provider.enable = value
 
   try {
@@ -285,7 +301,9 @@ async function toggleProviderEnable(provider, value) {
     }
     showMessage(res.data.message || tm('messages.success.statusUpdate'))
   } catch (error) {
-    showMessage(error.response?.data?.message || error.message || tm('providerSources.saveError'), 'error')
+    const axiosMessage = axios.isAxiosError(error) ? error.response?.data?.message || error.message : undefined
+    const message = axiosMessage || (error instanceof Error ? error.message : undefined) || tm('providerSources.saveError')
+    showMessage(message, 'error')
   } finally {
     await loadConfig()
   }
