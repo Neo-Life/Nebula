@@ -57,8 +57,17 @@ void bootstrap();
 
 axios.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
-  if (token) {
-    config.headers['Authorization'] = `Bearer ${token}`;
+
+  // Only attach our JWT to API requests. Never attach it to third-party origins
+  // (e.g. GitHub API), otherwise those requests will fail and we may leak tokens.
+  const urlStr = config.url;
+  if (token && urlStr) {
+    const resolved = new URL(urlStr, window.location.origin);
+    const isApiRequest =
+      resolved.origin === window.location.origin && resolved.pathname.startsWith('/api');
+    if (isApiRequest) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
   }
   return config;
 });
@@ -70,7 +79,28 @@ window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
   const token = localStorage.getItem('token');
   if (!token) return _origFetch(input, init);
 
-  const headers = new Headers(init?.headers || (typeof input !== 'string' && 'headers' in input ? (input as Request).headers : undefined));
+  const inputUrl =
+    typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : (input as Request).url;
+  const resolved = new URL(inputUrl, window.location.origin);
+
+  // Only attach token for same-origin /api calls.
+  if (
+    resolved.origin !== window.location.origin ||
+    !resolved.pathname.startsWith('/api')
+  ) {
+    return _origFetch(input, init);
+  }
+
+  const headers = new Headers(
+    init?.headers ||
+      (typeof input !== 'string' && 'headers' in input
+        ? (input as Request).headers
+        : undefined),
+  );
   if (!headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`);
   }
@@ -79,7 +109,9 @@ window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
 
 loader.config({
   paths: {
-    vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.54.0/min/vs',
+    // Load Monaco from CDN instead of bundling/installing it locally.
+    vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.55.1/min/vs',
   },
-  'vs/nls': { availableLanguages: { '*': 'zh-cn' } },
+  // Some CDNs don't ship all language packs; stick to English to avoid loader errors.
+  'vs/nls': { availableLanguages: { '*': 'en' } },
 })

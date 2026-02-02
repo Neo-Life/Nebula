@@ -327,7 +327,7 @@
 
 <script lang="ts">
 import axios from 'axios';
-import { debounce } from 'lodash';
+import debounce from 'lodash/debounce';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import { useCommonStore } from '@/stores/common';
 import { useCustomizerStore } from '@/stores/customizer';

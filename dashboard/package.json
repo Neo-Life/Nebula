@@ -27,7 +27,6 @@
     "markdown-it": "^14.1.0",
     "markstream-vue": "^0.0.6",
     "mermaid": "^11.12.2",
-    "monaco-editor": "^0.55.1",
     "pinia": "2.1.6",
     "pinyin-pro": "^3.26.0",
     "shiki": "^3.20.0",

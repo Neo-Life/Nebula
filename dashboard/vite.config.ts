@@ -89,6 +89,15 @@ export default defineConfig(() => {
       alias: {
         // 添加了 mermaid 支持
         'mermaid': 'mermaid/dist/mermaid.js',
+        // Monaco is loaded via CDN (see src/main.ts loader.config).
+        // These aliases prevent bundling/installation of monaco-editor.
+        'monaco-editor': fileURLToPath(new URL('./src/vendor/monaco-editor-proxy.ts', import.meta.url)),
+        'monaco-editor/esm/vs/editor/editor.api': fileURLToPath(new URL('./src/vendor/monaco-editor-proxy.ts', import.meta.url)),
+        'monaco-editor/esm/vs/editor/editor.worker': fileURLToPath(new URL('./src/vendor/empty.ts', import.meta.url)),
+        'monaco-editor/esm/vs/language/json/json.worker': fileURLToPath(new URL('./src/vendor/empty.ts', import.meta.url)),
+        'monaco-editor/esm/vs/language/css/css.worker': fileURLToPath(new URL('./src/vendor/empty.ts', import.meta.url)),
+        'monaco-editor/esm/vs/language/html/html.worker': fileURLToPath(new URL('./src/vendor/empty.ts', import.meta.url)),
+        'monaco-editor/esm/vs/language/typescript/ts.worker': fileURLToPath(new URL('./src/vendor/empty.ts', import.meta.url)),
         '@': fileURLToPath(new URL('./src', import.meta.url))
       },
       extensions: ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.json']
@@ -116,12 +125,6 @@ export default defineConfig(() => {
         'vuetify',
         'stream-monaco',
         '@guolao/vue-monaco-editor',
-        'monaco-editor',
-        'monaco-editor/esm/vs/editor/editor.worker',
-        'monaco-editor/esm/vs/language/json/json.worker',
-        'monaco-editor/esm/vs/language/css/css.worker',
-        'monaco-editor/esm/vs/language/html/html.worker',
-        'monaco-editor/esm/vs/language/typescript/ts.worker'
       ],
       entries: ['./src/**/*.vue']
     },
