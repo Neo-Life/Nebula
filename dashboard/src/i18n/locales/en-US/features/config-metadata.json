@@ -70,6 +70,7 @@
     },
     "persona": {
       "description": "Persona",
+      "hint": "Give Nebula a persona.",
       "provider_settings": {
         "default_personality": {
           "description": "Default Persona"
@@ -78,6 +79,7 @@
     },
     "knowledgebase": {
       "description": "Knowledge Base",
+      "hint": "Nebula's external brain.",
       "kb_names": {
         "description": "Knowledge Base List",
         "hint": "Supports multiple selections"
@@ -97,6 +99,7 @@
     },
     "websearch": {
       "description": "Web Search",
+      "hint": "Let Nebula access the internet for up-to-date information.",
       "provider_settings": {
         "web_search": {
           "description": "Enable Web Search"
@@ -493,7 +496,8 @@
             ]
           },
           "regex": {
-            "description": "Segmentation Regular Expression"
+            "description": "Segmentation Regular Expression",
+            "hint": "Regex used to split a message into segments."
           },
           "split_words": {
             "description": "Split Word List",

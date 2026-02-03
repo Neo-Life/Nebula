@@ -28,7 +28,20 @@ const { tm } = useModuleI18n('features/config-metadata')
 // 翻译器函数 - 如果是国际化键则翻译，否则原样返回
 const translateIfKey = (value: unknown): unknown => {
   if (!value || typeof value !== 'string') return value
-  return tm(value)
+
+  const trimmed = value.trim()
+  if (!trimmed) return value
+
+  // Only translate values that look like i18n keys (avoid translating plain text)
+  const looksLikeI18nKey = /^[\w-]+(\.[\w-]+)+$/.test(trimmed)
+  if (!looksLikeI18nKey) return value
+
+  // Some metadata already provides absolute keys like `features.config-metadata.xxx`
+  if (trimmed.startsWith('core.') || trimmed.startsWith('features.') || trimmed.startsWith('messages.')) {
+    return t(trimmed)
+  }
+
+  return tm(trimmed)
 }
 
 const dialog = ref(false)

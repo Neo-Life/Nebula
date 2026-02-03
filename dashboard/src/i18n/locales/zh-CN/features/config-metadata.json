@@ -494,7 +494,8 @@
             ]
           },
           "regex": {
-            "description": "分段正则表达式"
+            "description": "分段正则表达式",
+            "hint": "用于将消息分割成多段的正则表达式。"
           },
           "split_words": {
             "description": "分段词列表",
