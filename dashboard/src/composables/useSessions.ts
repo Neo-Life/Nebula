@@ -93,7 +93,7 @@ export function useSessions(chatboxMode: boolean = false) {
         }
     }
 
-    function showEditTitleDialog(sessionId: string, title: string) {
+    function showEditTitleDialog(sessionId: string, title: string | null) {
         editingSessionId.value = sessionId;
         editingTitle.value = title || '';
         editTitleDialog.value = true;

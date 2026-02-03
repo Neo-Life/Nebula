@@ -3,7 +3,7 @@
     "name": "AI",
     "agent_runner": {
       "description": "Agent Runner",
-      "hint": "Select the runner for AI conversations. Defaults to AstrBot's built-in Agent runner, which supports knowledge base, persona, and tool calling features. You don't need to modify this section unless you plan to integrate third-party Agent runners like Dify or Coze.",
+      "hint": "Select the runner for AI conversations. Defaults to Nebula's built-in Agent runner, which supports knowledge base, persona, and tool calling features. You don't need to modify this section unless you plan to integrate third-party Agent runners like Dify or Coze.",
       "provider_settings": {
         "enable": {
           "description": "Enable",
@@ -70,6 +70,7 @@
     },
     "persona": {
       "description": "Persona",
+      "hint": "Give Nebula a persona.",
       "provider_settings": {
         "default_personality": {
           "description": "Default Persona"
@@ -78,6 +79,7 @@
     },
     "knowledgebase": {
       "description": "Knowledge Base",
+      "hint": "Nebula's external brain.",
       "kb_names": {
         "description": "Knowledge Base List",
         "hint": "Supports multiple selections"
@@ -97,6 +99,7 @@
     },
     "websearch": {
       "description": "Web Search",
+      "hint": "Let Nebula access the internet for up-to-date information.",
       "provider_settings": {
         "web_search": {
           "description": "Enable Web Search"
@@ -135,7 +138,7 @@
     },
     "agent_computer_use": {
       "description": "Agent Computer Use",
-      "hint": "Allows the AstrBot to access and use your computer or an sandbox environment to perform more complex tasks. See [Sandbox Mode](https://docs.astrbot.app/use/astrbot-agent-sandbox.html), [Skills](https://docs.astrbot.app/use/skills.html)",
+      "hint": "Allows Nebula to access and use your computer or an sandbox environment to perform more complex tasks. See [Sandbox Mode](https://docs.astrbot.app/use/astrbot-agent-sandbox.html), [Skills](https://docs.astrbot.app/use/skills.html)",
       "provider_settings": {
         "computer_use_runtime": {
           "description": "Computer Use Runtime",
@@ -166,12 +169,12 @@
     },
     "proactive_capability": {
       "description": "Proactive Agent",
-      "hint": "AstrBot will wake up, run your tasks, and deliver the results to you. See [Proactive Agent](https://docs.astrbot.app/en/use/proactive-agent.html)",
+      "hint": "Nebula will wake up, run your tasks, and deliver the results to you. See [Proactive Agent](https://docs.astrbot.app/en/use/proactive-agent.html)",
       "provider_settings": {
         "proactive_capability": {
           "add_cron_tools": {
             "description": "Enable",
-            "hint": "When enabled, related tools will be passed to the Agent to implement proactive Agent capabilities. You can tell AstrBot what to do at a future time, and it will be triggered on schedule to execute the task, and report the result back to you."
+            "hint": "When enabled, related tools will be passed to the Agent to implement proactive Agent capabilities. You can tell Nebula what to do at a future time, and it will be triggered on schedule to execute the task, and report the result back to you."
           }
         }
       }
@@ -324,7 +327,7 @@
       },
       "disable_builtin_commands": {
         "description": "Disable Built-in Commands",
-        "hint": "Disable all built-in AstrBot commands such as help, provider, model, etc."
+        "hint": "Disable all built-in Nebula commands such as help, provider, model, etc."
       }
     },
     "whitelist": {
@@ -493,7 +496,8 @@
             ]
           },
           "regex": {
-            "description": "Segmentation Regular Expression"
+            "description": "Segmentation Regular Expression",
+            "hint": "Regex used to split a message into segments."
           },
           "split_words": {
             "description": "Split Word List",
@@ -546,6 +550,16 @@
     "name": "System",
     "system": {
       "description": "System Settings",
+      "dashboard": {
+        "channel": {
+          "description": "WebUI Download Channel",
+          "hint": "Used for automatically downloading/updating WebUI on startup. official is the official release; nebula is the Nebula version.",
+          "labels": [
+            "AstrBot Official Channel",
+            "Nebula Channel"
+          ]
+        }
+      },
       "t2i_strategy": {
         "description": "Text-to-Image Strategy",
         "hint": "Text-to-image strategy. `remote` uses a remote HTML-based rendering service, `local` uses PIL for local rendering. When using local, place a TTF font named 'font.ttf' in the data/ directory to customize the font."
@@ -600,7 +614,7 @@
       },
       "callback_api_base": {
         "description": "Externally Accessible Callback API Address",
-        "hint": "External services may access AstrBot's backend through callback links generated by AstrBot (such as file download links). Since AstrBot cannot automatically determine the externally accessible host address in the deployment environment, this configuration item is needed to explicitly specify how external services should access AstrBot's address. Examples: [http://localhost:6185](http://localhost:6185), [https://example.com](https://example.com), etc."
+        "hint": "External services may access Nebula's backend through callback links generated by Nebula (such as file download links). Since Nebula cannot automatically determine the externally accessible host address in the deployment environment, this configuration item is needed to explicitly specify how external services should access Nebula's address. Examples: http://localhost:6185, https://example.com, etc."
       },
       "timezone": {
         "description": "Timezone",

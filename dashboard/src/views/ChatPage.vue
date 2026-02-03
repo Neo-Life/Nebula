@@ -1,11 +1,11 @@
-<script setup>
+<script setup lang="ts">
 import Chat from '@/components/chat/Chat.vue'
 </script>
 
 <template>
-    <div class="chat-container">
-        <Chat />
-    </div>
+  <div class="chat-container">
+    <Chat />
+  </div>
 </template>
 
 <style scoped>

@@ -1,44 +1,44 @@
-<script setup>
-import TraceDisplayer from '@/components/shared/TraceDisplayer.vue';
-import { useModuleI18n } from '@/i18n/composables';
-import { ref, onMounted } from 'vue';
-import axios from 'axios';
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
+import TraceDisplayer from '@/components/shared/TraceDisplayer.vue'
+import { useModuleI18n } from '@/i18n/composables'
 
-const { tm } = useModuleI18n('features/trace');
+const { tm } = useModuleI18n('features/trace')
 
-const traceEnabled = ref(true);
-const loading = ref(false);
-const traceDisplayerKey = ref(0);
+const traceEnabled = ref(true)
+const loading = ref(false)
+const traceDisplayerKey = ref(0)
 
-const fetchTraceSettings = async () => {
+async function fetchTraceSettings() {
   try {
-    const res = await axios.get('/api/trace/settings');
+    const res = await axios.get('/api/trace/settings')
     if (res.data?.status === 'ok') {
-      traceEnabled.value = res.data.data?.trace_enable ?? true;
+      traceEnabled.value = res.data.data?.trace_enable ?? true
     }
   } catch (err) {
-    console.error('Failed to fetch trace settings:', err);
+    console.error('Failed to fetch trace settings:', err)
   }
-};
+}
 
-const updateTraceSettings = async () => {
-  loading.value = true;
+async function updateTraceSettings() {
+  loading.value = true
   try {
     await axios.post('/api/trace/settings', {
       trace_enable: traceEnabled.value
-    });
+    })
     // Refresh the TraceDisplayer component to reconnect SSE
-    traceDisplayerKey.value += 1;
+    traceDisplayerKey.value += 1
   } catch (err) {
-    console.error('Failed to update trace settings:', err);
+    console.error('Failed to update trace settings:', err)
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
 onMounted(() => {
-  fetchTraceSettings();
-});
+  void fetchTraceSettings()
+})
 </script>
 
 <template>
@@ -69,16 +69,6 @@ onMounted(() => {
     </div>
   </div>
 </template>
-
-<script>
-export default {
-  name: 'TracePage',
-  components: {
-    TraceDisplayer
-  }
-};
-</script>
-
 <style scoped>
 .trace-header {
   display: flex;

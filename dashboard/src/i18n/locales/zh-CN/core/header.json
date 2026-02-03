@@ -1,19 +1,20 @@
 {
-  "logoTitle": "AstrBot 仪表盘",
+  "logoTitle": "Nebula 仪表盘",
   "version": {
-    "hasNewVersion": "AstrBot 有新版本！",
+    "hasNewVersion": "Nebula 有新版本！",
     "dashboardHasNewVersion": "WebUI 有新版本！"
   },
   "buttons": {
     "update": "更新",
     "account": "账户",
+    "language": "语言",
     "theme": {
       "light": "浅色模式",
       "dark": "深色模式"
     }
   },
   "updateDialog": {
-    "title": "更新 AstrBot",
+    "title": "更新 Nebula",
     "currentVersion": "当前版本",
     "status": {
       "checking": "正在检查更新...",
@@ -21,7 +22,9 @@
       "updating": "正在更新..."
     },
     "tabs": {
-      "release": "😊 正式版"
+      "release": "😊 正式版",
+      "source": "源码更新",
+      "dashboard": "面板更新"
     },
     "updateToLatest": "更新到最新版本",
     "preRelease": "预发布",
@@ -49,10 +52,17 @@
     },
     "dashboardUpdate": {
       "title": "单独更新管理面板到最新版本",
-      "currentVersion": "当前版本",
+      "currentVersion": "当前版本：",
       "hasNewVersion": "有新版本！",
       "isLatest": "已经是最新版本了。",
       "downloadAndUpdate": "下载并更新"
+    },
+    "channel": {
+      "label": "更新渠道",
+      "official": "官方渠道（AstrBot）",
+      "nebula": "Nebula 渠道",
+      "nebulaTip": "该渠道没有 releases 版本列表，将直接拉取默认分支最新源码进行更新。",
+      "updateLatest": "更新"
     }
   },
   "accountDialog": {
@@ -64,7 +74,7 @@
       "newUsername": "新用户名 (可选)",
       "passwordHint": "密码长度至少 8 位",
       "usernameHint": "留空表示不修改用户名",
-      "defaultCredentials": "默认用户名和密码均为 astrbot"
+      "defaultCredentials": "默认用户名和密码均为 nebula"
     },
     "validation": {
       "passwordRequired": "请输入密码",

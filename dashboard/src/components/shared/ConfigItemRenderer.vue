@@ -2,37 +2,66 @@
   <div class="w-100">
     <!-- Special handling for specific metadata types -->
     <template v-if="itemMeta?._special === 'select_provider'">
-      <ProviderSelector :model-value="modelValue" @update:model-value="emitUpdate" :provider-type="'chat_completion'" />
+      <ProviderSelector
+        :model-value="modelValueString"
+        :provider-type="'chat_completion'"
+        @update:model-value="emitUpdate"
+      />
     </template>
     <template v-else-if="itemMeta?._special === 'select_provider_stt'">
-      <ProviderSelector :model-value="modelValue" @update:model-value="emitUpdate" :provider-type="'speech_to_text'" />
+      <ProviderSelector
+        :model-value="modelValueString"
+        :provider-type="'speech_to_text'"
+        @update:model-value="emitUpdate"
+      />
     </template>
     <template v-else-if="itemMeta?._special === 'select_provider_tts'">
-      <ProviderSelector :model-value="modelValue" @update:model-value="emitUpdate" :provider-type="'text_to_speech'" />
+      <ProviderSelector
+        :model-value="modelValueString"
+        :provider-type="'text_to_speech'"
+        @update:model-value="emitUpdate"
+      />
     </template>
     <template v-else-if="getSpecialName(itemMeta?._special) === 'select_agent_runner_provider'">
       <ProviderSelector
-        :model-value="modelValue"
-        @update:model-value="emitUpdate"
+        :model-value="modelValueString"
         :provider-type="'agent_runner'"
         :provider-subtype="getSpecialSubtype(itemMeta?._special)"
+        @update:model-value="emitUpdate"
       />
     </template>
     <template v-else-if="itemMeta?._special === 'provider_pool'">
-      <ProviderSelector :model-value="modelValue" @update:model-value="emitUpdate" :provider-type="'chat_completion'"
-        :button-text="t('core.shared.providerSelector.selectProviderPool')" />
+      <ProviderSelector
+        :model-value="modelValueString"
+        :provider-type="'chat_completion'"
+        :button-text="t('core.shared.providerSelector.selectProviderPool')"
+        @update:model-value="emitUpdate"
+      />
     </template>
     <template v-else-if="itemMeta?._special === 'select_persona'">
-      <PersonaSelector :model-value="modelValue" @update:model-value="emitUpdate" />
+      <PersonaSelector
+        :model-value="modelValueString"
+        @update:model-value="emitUpdate"
+      />
     </template>
     <template v-else-if="itemMeta?._special === 'persona_pool'">
-      <PersonaSelector :model-value="modelValue" @update:model-value="emitUpdate" :button-text="t('core.shared.personaSelector.selectPersonaPool')" />
+      <PersonaSelector
+        :model-value="modelValueString"
+        :button-text="t('core.shared.personaSelector.selectPersonaPool')"
+        @update:model-value="emitUpdate"
+      />
     </template>
     <template v-else-if="itemMeta?._special === 'select_knowledgebase'">
-      <KnowledgeBaseSelector :model-value="modelValue" @update:model-value="emitUpdate" />
+      <KnowledgeBaseSelector
+        :model-value="modelValueArray"
+        @update:model-value="emitUpdate"
+      />
     </template>
     <template v-else-if="itemMeta?._special === 'select_plugin_set'">
-      <PluginSetSelector :model-value="modelValue" @update:model-value="emitUpdate" />
+      <PluginSetSelector
+        :model-value="modelValueArray"
+        @update:model-value="emitUpdate"
+      />
     </template>
     <template v-else-if="itemMeta?._special === 't2i_template'">
       <T2ITemplateEditor />
@@ -41,20 +70,20 @@
       <div class="d-flex align-center gap-2">
         <v-text-field
           :model-value="modelValue"
-          @update:model-value="emitUpdate"
           density="compact"
           variant="outlined"
           class="config-field"
           type="number"
           hide-details
-        ></v-text-field>
+          @update:model-value="emitUpdate"
+        />
         <v-btn
           color="primary"
           variant="tonal"
           size="small"
-          @click="$emit('get-embedding-dim')"
           :loading="loading"
           class="ml-2"
+          @click="$emit('get-embedding-dim')"
         >
           {{ t('core.common.autoDetect') }}
         </v-btn>
@@ -68,20 +97,19 @@
       <v-checkbox
         v-for="(option, optionIndex) in itemMeta.options"
         :key="optionIndex"
-        :model-value="modelValue"
-        @update:model-value="emitUpdate"
+        :model-value="modelValueArray"
         :label="getLabel(itemMeta, optionIndex, option)"
         :value="option"
         class="mr-2"
         color="primary"
         hide-details
-      ></v-checkbox>
+        @update:model-value="emitUpdate"
+      />
     </div>
 
     <v-combobox
       v-else-if="itemMeta?.type === 'list' && itemMeta?.options"
-      :model-value="modelValue"
-      @update:model-value="emitUpdate"
+      :model-value="modelValueArray"
       :items="itemMeta.options"
       :disabled="itemMeta?.readonly"
       density="compact"
@@ -90,32 +118,42 @@
       hide-details
       chips
       multiple
-    ></v-combobox>
+      @update:model-value="emitUpdate"
+    />
 
     <v-select
       v-else-if="itemMeta?.options"
       :model-value="modelValue"
-      @update:model-value="emitUpdate"
       :items="getSelectItems(itemMeta)"
       :disabled="itemMeta?.readonly"
       density="compact"
       variant="outlined"
       class="config-field"
       hide-details
-    ></v-select>
+      @update:model-value="emitUpdate"
+    />
 
-    <div v-else-if="itemMeta?.editor_mode" class="editor-container">
+    <div
+      v-else-if="itemMeta?.editor_mode"
+      class="editor-container"
+    >
       <VueMonacoEditor
         :theme="itemMeta?.editor_theme || 'vs-light'"
         :language="itemMeta?.editor_language || 'json'"
         style="min-height: 100px; flex-grow: 1; border: 1px solid rgba(0, 0, 0, 0.1);"
-        :value="modelValue"
+        :value="modelValueString"
         @update:value="emitUpdate"
-      >
-      </VueMonacoEditor>
-      <v-btn v-if="showFullscreenBtn" icon size="small" variant="text" color="primary" class="editor-fullscreen-btn"
+      />
+      <v-btn
+        v-if="showFullscreenBtn"
+        icon
+        size="small"
+        variant="text"
+        color="primary"
+        class="editor-fullscreen-btn"
+        :title="t('core.common.editor.fullscreen')"
         @click="$emit('open-fullscreen')"
-        :title="t('core.common.editor.fullscreen')">
+      >
         <v-icon>mdi-fullscreen</v-icon>
       </v-btn>
     </div>
@@ -123,12 +161,12 @@
     <v-text-field
       v-else-if="itemMeta?.type === 'string'"
       :model-value="modelValue"
-      @update:model-value="emitUpdate"
       density="compact"
       variant="outlined"
       class="config-field"
       hide-details
-    ></v-text-field>
+      @update:model-value="emitUpdate"
+    />
 
     <div
       v-else-if="itemMeta?.type === 'int' || itemMeta?.type === 'float'"
@@ -137,7 +175,6 @@
       <v-slider
         v-if="itemMeta?.slider"
         :model-value="toNumber(modelValue)"
-        @update:model-value="val => emitUpdate(toNumber(val))"
         :min="itemMeta?.slider?.min ?? 0"
         :max="itemMeta?.slider?.max ?? 100"
         :step="itemMeta?.slider?.step ?? 1"
@@ -145,78 +182,80 @@
         density="compact"
         hide-details
         style="flex: 1"
-      ></v-slider>
+        @update:model-value="val => emitUpdate(toNumber(val))"
+      />
       <v-text-field
         :model-value="modelValue"
-        @update:model-value="val => emitUpdate(toNumber(val))"
         density="compact"
         variant="outlined"
         class="config-field"
         type="number"
         hide-details
         style="flex: 1"
-      ></v-text-field>
+        @update:model-value="val => emitUpdate(toNumber(val))"
+      />
     </div>
 
     <v-textarea
       v-else-if="itemMeta?.type === 'text'"
       :model-value="modelValue"
-      @update:model-value="emitUpdate"
       variant="outlined"
       rows="3"
       class="config-field"
       hide-details
-    ></v-textarea>
+      @update:model-value="emitUpdate"
+    />
 
     <v-switch
       v-else-if="itemMeta?.type === 'bool'"
       :model-value="modelValue"
-      @update:model-value="emitUpdate"
       color="primary"
       inset
       density="compact"
       hide-details
-    ></v-switch>
+      @update:model-value="emitUpdate"
+    />
 
     <FileConfigItem
       v-else-if="itemMeta?.type === 'file'"
-      :model-value="modelValue"
+      :model-value="modelValueArray"
       :item-meta="itemMeta"
       :plugin-name="pluginName"
       :config-key="configKey"
-      @update:model-value="emitUpdate"
       class="config-field"
+      @update:model-value="emitUpdate"
     />
 
     <ListConfigItem
       v-else-if="itemMeta?.type === 'list'"
-      :model-value="modelValue"
-      @update:model-value="emitUpdate"
+      :model-value="modelValueArray"
       class="config-field"
+      @update:model-value="emitUpdate"
     />
 
     <ObjectEditor
       v-else-if="itemMeta?.type === 'dict'"
-      :model-value="modelValue"
+      :model-value="modelValueObject"
       :item-meta="itemMeta"
-      @update:model-value="emitUpdate"
       class="config-field"
+      @update:model-value="emitUpdate"
     />
 
     <v-text-field
       v-else
-      :model-value="modelValue"
-      @update:model-value="emitUpdate"
+      :model-value="modelValueAny"
       density="compact"
       variant="outlined"
       class="config-field"
       hide-details
-    ></v-text-field>
+      @update:model-value="emitUpdate"
+    />
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
+import { computed } from 'vue'
 import ListConfigItem from './ListConfigItem.vue'
 import FileConfigItem from './FileConfigItem.vue'
 import ObjectEditor from './ObjectEditor.vue'
@@ -258,21 +297,36 @@ const emit = defineEmits(['update:modelValue', 'get-embedding-dim', 'open-fullsc
 const { t } = useI18n()
 const { getRaw } = useModuleI18n('features/config-metadata')
 
-function emitUpdate(val) {
+const modelValueString = computed(() => (props.modelValue == null ? '' : String(props.modelValue)))
+const modelValueArray = computed(() => (Array.isArray(props.modelValue) ? props.modelValue : []))
+const modelValueAny = computed(() => props.modelValue as any)
+const modelValueObject = computed(() => {
+  const value = props.modelValue
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, any>
+  return {} as Record<string, any>
+})
+
+function emitUpdate(val: unknown) {
   emit('update:modelValue', val)
 }
 
-function toNumber(val) {
-  const n = parseFloat(val)
-  return isNaN(n) ? 0 : n
+function toNumber(val: unknown) {
+  const n = typeof val === 'number' ? val : parseFloat(String(val))
+  return Number.isFinite(n) ? n : 0
 }
 
-function getLabel(itemMeta, index, option) {
+function getLabel(itemMeta: any, index: string | number, option: unknown) {
   const labels = getTranslatedLabels(itemMeta)
-  return labels ? labels[index] : option
+  if (labels) {
+    const numericIndex = typeof index === 'number' ? index : Number(index)
+    if (Number.isFinite(numericIndex)) return labels[numericIndex]
+  }
+  if (typeof option === 'string') return option
+  if (typeof option === 'number' || typeof option === 'boolean') return String(option)
+  return undefined
 }
 
-function getTranslatedLabels(itemMeta) {
+function getTranslatedLabels(itemMeta: any): string[] | null {
   if (!itemMeta?.labels) return null
   if (typeof itemMeta.labels === 'string') {
     const translatedLabels = getRaw(itemMeta.labels)
@@ -286,18 +340,18 @@ function getTranslatedLabels(itemMeta) {
   return null
 }
 
-function getSelectItems(itemMeta) {
+function getSelectItems(itemMeta: any) {
   const labels = getTranslatedLabels(itemMeta)
   if (labels && itemMeta.options) {
-    return itemMeta.options.map((value, index) => ({
+    return itemMeta.options.map((value: unknown, index: number) => ({
       title: labels[index] || value,
-      value: value
+      value
     }))
   }
   return itemMeta.options || []
 }
 
-function parseSpecialValue(value) {
+function parseSpecialValue(value: unknown) {
   if (!value || typeof value !== 'string') {
     return { name: '', subtype: '' }
   }
@@ -308,11 +362,11 @@ function parseSpecialValue(value) {
   }
 }
 
-function getSpecialName(value) {
+function getSpecialName(value: unknown) {
   return parseSpecialValue(value).name
 }
 
-function getSpecialSubtype(value) {
+function getSpecialSubtype(value: unknown) {
   return parseSpecialValue(value).subtype
 }
 </script>

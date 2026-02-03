@@ -2,25 +2,60 @@
   <div class="subagent-page">
     <div class="d-flex align-center justify-space-between mb-4">
       <div>
-        <div class="d-flex align-center" style="gap: 8px;">
-          <h2 class="text-h5 font-weight-bold">{{ tm('page.title') }}</h2>
-          <v-chip size="x-small" color="orange-darken-2" variant="tonal" label>{{ tm('page.beta') }}</v-chip>
+        <div
+          class="d-flex align-center"
+          style="gap: 8px;"
+        >
+          <h2 class="text-h5 font-weight-bold">
+            {{ tm('page.title') }}
+          </h2>
+          <v-chip
+            size="x-small"
+            color="orange-darken-2"
+            variant="tonal"
+            label
+          >
+            {{ tm('page.beta') }}
+          </v-chip>
         </div>
         <div class="text-body-2 text-medium-emphasis">
           {{ tm('page.subtitle') }}
         </div>
       </div>
 
-      <div class="d-flex align-center" style="gap: 8px;">
-        <v-btn variant="tonal" color="primary" :loading="loading" @click="reload">{{ tm('actions.refresh') }}</v-btn>
-        <v-btn variant="flat" color="primary" :loading="saving" @click="save">{{ tm('actions.save') }}</v-btn>
+      <div
+        class="d-flex align-center"
+        style="gap: 8px;"
+      >
+        <v-btn
+          variant="tonal"
+          color="primary"
+          :loading="loading"
+          @click="reload"
+        >
+          {{ tm('actions.refresh') }}
+        </v-btn>
+        <v-btn
+          variant="flat"
+          color="primary"
+          :loading="saving"
+          @click="save"
+        >
+          {{ tm('actions.save') }}
+        </v-btn>
       </div>
     </div>
 
-    <v-card class="rounded-lg" variant="flat">
+    <v-card
+      class="rounded-lg"
+      variant="flat"
+    >
       <v-card-text>
         <v-row>
-          <v-col cols="12" md="6">
+          <v-col
+            cols="12"
+            md="6"
+          >
             <v-switch
               v-model="cfg.main_enable"
               :label="tm('switches.enable')"
@@ -30,7 +65,10 @@
               density="comfortable"
             />
           </v-col>
-          <v-col cols="12" md="6">
+          <v-col
+            cols="12"
+            md="6"
+          >
             <v-switch
               v-model="cfg.remove_main_duplicate_tools"
               :disabled="!cfg.main_enable"
@@ -48,23 +86,42 @@
         </div>
 
         <div class="d-flex align-center justify-space-between mt-6 mb-2">
-          <div class="text-subtitle-1 font-weight-bold">{{ tm('section.title') }}</div>
-          <v-btn size="small" variant="tonal" color="primary" @click="addAgent">
+          <div class="text-subtitle-1 font-weight-bold">
+            {{ tm('section.title') }}
+          </div>
+          <v-btn
+            size="small"
+            variant="tonal"
+            color="primary"
+            @click="addAgent"
+          >
             {{ tm('actions.add') }}
           </v-btn>
         </div>
 
-        <v-expansion-panels variant="accordion" multiple>
-          <v-expansion-panel v-for="(agent, idx) in cfg.agents" :key="agent.__key">
+        <v-expansion-panels
+          variant="accordion"
+          multiple
+        >
+          <v-expansion-panel
+            v-for="(agent, idx) in cfg.agents"
+            :key="agent.__key"
+          >
             <v-expansion-panel-title>
               <div class="subagent-panel-title">
                 <div class="subagent-title-left">
-                  <v-chip :color="agent.enabled ? 'success' : 'grey'" size="small" variant="tonal">
+                  <v-chip
+                    :color="agent.enabled ? 'success' : 'grey'"
+                    size="small"
+                    variant="tonal"
+                  >
                     {{ agent.enabled ? tm('cards.statusEnabled') : tm('cards.statusDisabled') }}
                   </v-chip>
 
                   <div class="subagent-title-text">
-                    <div class="subagent-title-name">{{ agent.name || tm('cards.unnamed') }}</div>
+                    <div class="subagent-title-name">
+                      {{ agent.name || tm('cards.unnamed') }}
+                    </div>
                     <div class="subagent-title-sub">
                       {{ tm('cards.transferPrefix', { name: agent.name || '...' }) }}
                     </div>
@@ -80,10 +137,17 @@
                     class="subagent-enabled-inline"
                     @click.stop
                   >
-                    <template #label>{{ tm('cards.switchLabel') }}</template>
+                    <template #label>
+                      {{ tm('cards.switchLabel') }}
+                    </template>
                   </v-switch>
 
-                  <v-btn size="small" variant="text" color="error" @click.stop="removeAgent(idx)">
+                  <v-btn
+                    size="small"
+                    variant="text"
+                    color="error"
+                    @click.stop="removeAgent(idx)"
+                  >
                     {{ tm('actions.delete') }}
                   </v-btn>
                 </div>
@@ -92,7 +156,10 @@
 
             <v-expansion-panel-text>
               <v-row class="subagent-grid">
-                <v-col cols="12" md="5">
+                <v-col
+                  cols="12"
+                  md="5"
+                >
                   <v-text-field
                     v-model="agent.name"
                     :label="tm('form.nameLabel')"
@@ -102,7 +169,11 @@
                     persistent-hint
                   />
                 </v-col>
-                <v-col cols="12" md="7" class="subagent-actions">
+                <v-col
+                  cols="12"
+                  md="7"
+                  class="subagent-actions"
+                >
                   <ProviderSelector
                     v-model="agent.provider_id"
                     provider-type="chat_completion"
@@ -113,7 +184,10 @@
                     class="subagent-provider"
                   />
                 </v-col>
-                <v-col cols="12" md="6">
+                <v-col
+                  cols="12"
+                  md="6"
+                >
                   <v-autocomplete
                     v-model="agent.persona_id"
                     :items="personaOptions"
@@ -130,7 +204,10 @@
                   />
                 </v-col>
 
-                <v-col cols="12" md="6">
+                <v-col
+                  cols="12"
+                  md="6"
+                >
                   <v-text-field
                     v-model="agent.public_description"
                     :label="tm('form.descriptionLabel')"
@@ -143,12 +220,26 @@
               </v-row>
 
               <div class="mt-3">
-                <div class="text-caption text-medium-emphasis">{{ tm('cards.previewTitle') }}</div>
-                <div class="d-flex align-center" style="gap: 8px; flex-wrap: wrap;">
-                  <v-chip size="small" variant="outlined" color="primary">
+                <div class="text-caption text-medium-emphasis">
+                  {{ tm('cards.previewTitle') }}
+                </div>
+                <div
+                  class="d-flex align-center"
+                  style="gap: 8px; flex-wrap: wrap;"
+                >
+                  <v-chip
+                    size="small"
+                    variant="outlined"
+                    color="primary"
+                  >
                     {{ tm('cards.transferPrefix', { name: agent.name || '...' }) }}
                   </v-chip>
-                  <v-chip size="small" variant="tonal" color="secondary" v-if="agent.persona_id">
+                  <v-chip
+                    v-if="agent.persona_id"
+                    size="small"
+                    variant="tonal"
+                    color="secondary"
+                  >
                     {{ tm('cards.personaChip', { id: agent.persona_id }) }}
                   </v-chip>
                 </div>
@@ -159,7 +250,11 @@
       </v-card-text>
     </v-card>
 
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000">
+    <v-snackbar
+      v-model="snackbar.show"
+      :color="snackbar.color"
+      timeout="3000"
+    >
       {{ snackbar.message }}
     </v-snackbar>
   </div>

@@ -1,71 +1,102 @@
 <template>
-    <v-card class="standalone-chat-card" elevation="0" rounded="0">
-        <v-card-text class="standalone-chat-container">
-            <div class="chat-layout">
-                <!-- 聊天内容区域 -->
-                <div class="chat-content-panel">
-                    <MessageList v-if="messages && messages.length > 0" :messages="messages" :isDark="isDark"
-                        :isStreaming="isStreaming || isConvRunning" @openImagePreview="openImagePreview"
-                        ref="messageList" />
-                    <div class="welcome-container fade-in" v-else>
-                        <div class="welcome-title">
-                            <span>Hello, I'm</span>
-                            <span class="bot-name">AstrBot ⭐</span>
-                        </div>
-                        <p class="text-caption text-medium-emphasis mt-2">
-                            测试配置: {{ configId || 'default' }}
-                        </p>
-                    </div>
+  <v-card
+    class="standalone-chat-card"
+    elevation="0"
+    rounded="0"
+  >
+    <v-card-text class="standalone-chat-container">
+      <div class="chat-layout">
+        <!-- 聊天内容区域 -->
+        <div class="chat-content-panel">
+          <MessageList
+            v-if="messages && messages.length > 0"
+            ref="messageList"
+            :messages="messages"
+            :is-dark="isDark"
+            :is-streaming="isStreaming || isConvRunning"
+            @open-image-preview="openImagePreview"
+          />
+          <WelcomeView
+            v-else
+            bot-name="Nebula"
+          >
+            <p class="text-caption text-medium-emphasis mt-2 text-center">
+              测试配置: {{ configId || 'default' }}
+            </p>
+          </WelcomeView>
 
-                    <!-- 输入区域 -->
-                    <ChatInput
-                        v-model:prompt="prompt"
-                        :stagedImagesUrl="stagedImagesUrl"
-                        :stagedAudioUrl="stagedAudioUrl"
-                        :disabled="isStreaming"
-                        :enableStreaming="enableStreaming"
-                        :isRecording="isRecording"
-                        :session-id="currSessionId || null"
-                        :current-session="getCurrentSession"
-                        :config-id="configId"
-                        @send="handleSendMessage"
-                        @toggleStreaming="toggleStreaming"
-                        @removeImage="removeImage"
-                        @removeAudio="removeAudio"
-                        @startRecording="handleStartRecording"
-                        @stopRecording="handleStopRecording"
-                        @pasteImage="handlePaste"
-                        @fileSelect="handleFileSelect"
-                        @openLiveMode=""
-                        ref="chatInputRef"
-                    />
-                </div>
-            </div>
-        </v-card-text>
+          <!-- 输入区域 -->
+          <ChatInput
+            v-model:prompt="prompt"
+            :staged-images-url="stagedImagesUrl"
+            :staged-audio-url="stagedAudioUrl"
+            :disabled="isStreaming"
+            :enable-streaming="enableStreaming"
+            :is-recording="isRecording"
+            :session-id="currSessionId || null"
+            :current-session="getCurrentSession"
+            :config-id="configId"
+            ref="chatInputRef"
+            @send="handleSendMessage"
+            @toggle-streaming="toggleStreaming"
+            @remove-image="removeImage"
+            @remove-audio="removeAudio"
+            @start-recording="handleStartRecording"
+            @stop-recording="handleStopRecording"
+            @paste-image="handlePaste"
+            @file-select="handleFileSelect"
+          />
+        </div>
+      </div>
+    </v-card-text>
+  </v-card>
+
+  <!-- 图片预览对话框 -->
+  <v-dialog
+    v-model="imagePreviewDialog"
+    max-width="90vw"
+    max-height="90vh"
+    scrollable
+  >
+    <v-card
+      class="image-preview-card"
+      elevation="8"
+    >
+      <v-card-title class="image-preview-header d-flex justify-space-between align-center pa-4">
+        <span>{{ t('core.common.imagePreview') }}</span>
+        <v-btn
+          icon="mdi-close"
+          variant="text"
+          @click="imagePreviewDialog = false"
+        />
+      </v-card-title>
+      <v-card-text class="image-preview-body text-center pa-4">
+        <img
+          :src="previewImageUrl"
+          class="preview-image-large"
+        >
+      </v-card-text>
+      <v-card-actions class="image-preview-footer pa-2">
+        <v-spacer />
+        <v-btn
+          variant="text"
+          @click="imagePreviewDialog = false"
+        >
+          {{ t('core.common.close') }}
+        </v-btn>
+      </v-card-actions>
     </v-card>
-
-    <!-- 图片预览对话框 -->
-    <v-dialog v-model="imagePreviewDialog" max-width="90vw" max-height="90vh">
-        <v-card class="image-preview-card" elevation="8">
-            <v-card-title class="d-flex justify-space-between align-center pa-4">
-                <span>{{ t('core.common.imagePreview') }}</span>
-                <v-btn icon="mdi-close" variant="text" @click="imagePreviewDialog = false" />
-            </v-card-title>
-            <v-card-text class="text-center pa-4">
-                <img :src="previewImageUrl" class="preview-image-large" />
-            </v-card-text>
-        </v-card>
-    </v-dialog>
+  </v-dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import axios from 'axios';
 import { useCustomizerStore } from '@/stores/customizer';
-import { useI18n, useModuleI18n } from '@/i18n/composables';
-import { useTheme } from 'vuetify';
+import { useI18n } from '@/i18n/composables';
 import MessageList from '@/components/chat/MessageList.vue';
 import ChatInput from '@/components/chat/ChatInput.vue';
+import WelcomeView from '@/components/chat/WelcomeView.vue';
 import { useMessages } from '@/composables/useMessages';
 import { useMediaHandling } from '@/composables/useMediaHandling';
 import { useRecording } from '@/composables/useRecording';
@@ -75,7 +106,7 @@ interface Props {
     configId?: string | null;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
     configId: null
 });
 
@@ -102,7 +133,7 @@ async function newSession() {
     }
 }
 
-function updateSessionTitle(sessionId: string, title: string) {
+function updateSessionTitle(_sessionId: string, _title: string) {
     // 独立模式不需要更新会话标题
 }
 
@@ -130,7 +161,6 @@ const {
     isStreaming,
     isConvRunning,
     enableStreaming,
-    getSessionMessages: getSessionMsg,
     sendMessage: sendMsg,
     toggleStreaming
 } = useMessages(currSessionId, getMediaFile, updateSessionTitle, getSessions);
@@ -228,18 +258,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* 基础动画 */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
 .standalone-chat-card {
     width: 100%;
     height: 100%;
@@ -294,32 +312,34 @@ onBeforeUnmount(() => {
     align-items: center;
 }
 
-.welcome-container {
-    height: 100%;
+.image-preview-card {
     display: flex;
-    justify-content: center;
-    align-items: center;
     flex-direction: column;
+    max-height: 90vh;
 }
 
-.welcome-title {
-    font-size: 28px;
-    margin-bottom: 8px;
+.image-preview-header {
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--v-theme-border);
+    background: rgb(var(--v-theme-surface));
 }
 
-.bot-name {
-    font-weight: 700;
-    margin-left: 8px;
-    color: var(--v-theme-secondary);
+.image-preview-body {
+    flex: 1;
+    overflow: auto;
 }
 
-.fade-in {
-    animation: fadeIn 0.3s ease-in-out;
+.image-preview-footer {
+    flex-shrink: 0;
+    border-top: 1px solid var(--v-theme-border);
+    background: rgb(var(--v-theme-surface));
 }
 
 .preview-image-large {
     max-width: 100%;
-    max-height: 70vh;
+    height: auto;
     object-fit: contain;
+    display: block;
+    margin: 0 auto;
 }
 </style>

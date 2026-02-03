@@ -1,7 +1,12 @@
 <template>
   <div class="file-config-item">
     <div class="d-flex align-center gap-2">
-      <v-btn size="small" color="primary" variant="tonal" @click="dialog = true">
+      <v-btn
+        size="small"
+        color="primary"
+        variant="tonal"
+        @click="dialog = true"
+      >
         {{ tm('fileUpload.button') }}
       </v-btn>
       <span class="text-caption text-medium-emphasis ml-2">
@@ -9,61 +14,123 @@
       </span>
     </div>
 
-    <v-dialog v-model="dialog" max-width="700">
-      <v-card class="file-dialog-card" variant="flat">
+    <v-dialog
+      v-model="dialog"
+      max-width="700"
+    >
+      <v-card
+        class="file-dialog-card"
+        variant="flat"
+      >
         <v-card-title class="d-flex align-center">
           <span class="text-h3">{{ tm('fileUpload.dialogTitle') }}</span>
           <v-spacer />
-          <v-btn icon="mdi-close" variant="text" @click="dialog = false" />
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            @click="dialog = false"
+          />
         </v-card-title>
 
         <v-card-text class="file-dialog-body">
-          <div v-if="mergedFileItems.length === 0" class="empty-text">
+          <div
+            v-if="mergedFileItems.length === 0"
+            class="empty-text"
+          >
             {{ tm('fileUpload.empty') }}
           </div>
 
-          <v-list density="compact" lines="one">
-            <v-list-item v-for="item in mergedFileItems" :key="item.path">
+          <v-list
+            density="compact"
+            lines="one"
+          >
+            <v-list-item
+              v-for="item in mergedFileItems"
+              :key="item.path"
+            >
               <template #prepend>
-                <v-icon size="18">mdi-file</v-icon>
+                <v-icon size="18">
+                  mdi-file
+                </v-icon>
               </template>
               <v-list-item-title class="file-name">
                 {{ getDisplayName(item.path) }}
               </v-list-item-title>
               <template #append>
                 <div class="d-flex align-center gap-1">
-                  <v-chip v-if="item.status !== 'ok'" size="x-small" :color="getStatusColor(item.status)"
-                    variant="tonal">
+                  <v-chip
+                    v-if="item.status !== 'ok'"
+                    size="x-small"
+                    :color="getStatusColor(item.status)"
+                    variant="tonal"
+                  >
                     {{ getStatusText(item.status) }}
                   </v-chip>
-                  <v-btn v-if="item.status === 'unconfigured'" icon="mdi-plus" size="x-small" variant="text"
-                    @click="addToConfig(item.path)" />
-                  <v-btn icon="mdi-delete" size="x-small" variant="text"
-                    @click="item.status === 'unconfigured' ? deletePhysicalFile(item.path) : deleteFile(item.path)" />
+                  <v-btn
+                    v-if="item.status === 'unconfigured'"
+                    icon="mdi-plus"
+                    size="x-small"
+                    variant="text"
+                    @click="addToConfig(item.path)"
+                  />
+                  <v-btn
+                    icon="mdi-delete"
+                    size="x-small"
+                    variant="text"
+                    @click="item.status === 'unconfigured' ? deletePhysicalFile(item.path) : deleteFile(item.path)"
+                  />
                 </div>
               </template>
             </v-list-item>
 
-            <v-divider v-if="mergedFileItems.length > 0" class="my-2" />
+            <v-divider
+              v-if="mergedFileItems.length > 0"
+              class="my-2"
+            />
 
-            <v-list-item class="upload-item" :class="{ dragover: isDragging }" @drop.prevent="handleDrop"
-              @dragover.prevent="isDragging = true" @dragleave="isDragging = false" @click="openFilePicker">
+            <v-list-item
+              class="upload-item"
+              :class="{ dragover: isDragging }"
+              @drop.prevent="handleDrop"
+              @dragover.prevent="isDragging = true"
+              @dragleave="isDragging = false"
+              @click="openFilePicker"
+            >
               <template #prepend>
-                <v-icon size="18" color="primary">mdi-plus</v-icon>
+                <v-icon
+                  size="18"
+                  color="primary"
+                >
+                  mdi-plus
+                </v-icon>
               </template>
               <v-list-item-title>{{ tm('fileUpload.dropzone') }}</v-list-item-title>
-              <v-list-item-subtitle v-if="allowedTypesText" class="upload-hint">
+              <v-list-item-subtitle
+                v-if="allowedTypesText"
+                class="upload-hint"
+              >
                 {{ tm('fileUpload.allowedTypes', { types: allowedTypesText }) }}
               </v-list-item-subtitle>
             </v-list-item>
           </v-list>
 
-          <input ref="fileInput" type="file" multiple hidden :accept="acceptAttr" @change="handleFileSelect" />
+          <input
+            ref="fileInput"
+            type="file"
+            multiple
+            hidden
+            :accept="acceptAttr"
+            @change="handleFileSelect"
+          >
         </v-card-text>
 
         <v-card-actions class="file-dialog-actions">
           <v-spacer />
-          <v-btn color="primary" variant="elevated" @click="dialog = false">
+          <v-btn
+            color="primary"
+            variant="elevated"
+            @click="dialog = false"
+          >
             {{ tm('fileUpload.done') }}
           </v-btn>
         </v-card-actions>
@@ -72,11 +139,18 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import axios from 'axios'
 import { useToast } from '@/utils/toast'
 import { useModuleI18n } from '@/i18n/composables'
+
+type FileStatus = 'ok' | 'missing' | 'unconfigured'
+
+type FileItem = {
+  path: string
+  status: FileStatus
+}
 
 const props = defineProps({
   modelValue: {
@@ -103,22 +177,22 @@ const toast = useToast()
 
 const dialog = ref(false)
 const isDragging = ref(false)
-const fileInput = ref(null)
+const fileInput = ref<HTMLInputElement | null>(null)
 const uploading = ref(false)
 const loadingFiles = ref(false)
 const MAX_FILE_BYTES = 500 * 1024 * 1024
 const MAX_FILE_MB = 500
-const directoryFiles = ref([])
+const directoryFiles = ref<string[]>([])
 
 const fileList = computed({
-  get: () => (Array.isArray(props.modelValue) ? props.modelValue : []),
-  set: (val) => emit('update:modelValue', val)
+  get: () => (Array.isArray(props.modelValue) ? (props.modelValue as string[]) : []),
+  set: (val: string[]) => emit('update:modelValue', val)
 })
 
 const mergedFileItems = computed(() => {
   const configured = new Set(fileList.value)
   const existing = new Set(directoryFiles.value)
-  const items = []
+  const items: FileItem[] = []
 
   for (const path of fileList.value) {
     items.push({
@@ -161,21 +235,23 @@ const fileCountText = computed(() => {
   return tm('fileUpload.fileCount', { count: fileList.value.length })
 })
 
-const getStatusText = (status) => {
-  if (status === 'missing') {
+const getStatusText = (status: FileStatus) => {
+  const s = status
+  if (s === 'missing') {
     return tm('fileUpload.statusMissing')
   }
-  if (status === 'unconfigured') {
+  if (s === 'unconfigured') {
     return tm('fileUpload.statusUnconfigured')
   }
   return ''
 }
 
-const getStatusColor = (status) => {
-  if (status === 'missing') {
+const getStatusColor = (status: FileStatus) => {
+  const s = status
+  if (s === 'missing') {
     return 'error'
   }
-  if (status === 'unconfigured') {
+  if (s === 'unconfigured') {
     return 'warning'
   }
   return 'primary'
@@ -211,8 +287,8 @@ const loadDirectoryFiles = async () => {
   }
 }
 
-const handleFileSelect = (event) => {
-  const target = event.target
+const handleFileSelect = (event: Event) => {
+  const target = event.target as HTMLInputElement | null
   if (target?.files && target.files.length > 0) {
     uploadFiles(Array.from(target.files))
   }
@@ -221,14 +297,14 @@ const handleFileSelect = (event) => {
   }
 }
 
-const handleDrop = (event) => {
+const handleDrop = (event: DragEvent) => {
   isDragging.value = false
   if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
     uploadFiles(Array.from(event.dataTransfer.files))
   }
 }
 
-const uploadFiles = async (files) => {
+const uploadFiles = async (files: File[]) => {
   if (!props.pluginName || !props.configKey) {
     toast.warning('Missing plugin config info')
     return
@@ -266,8 +342,8 @@ const uploadFiles = async (files) => {
     )
 
     if (response.data.status === 'ok') {
-      const uploaded = response.data.data?.uploaded || []
-      const errors = response.data.data?.errors || []
+      const uploaded = (response.data.data?.uploaded || []) as string[]
+      const errors = (response.data.data?.errors || []) as string[]
 
       if (uploaded.length > 0) {
         const merged = [...fileList.value]
@@ -297,14 +373,14 @@ const uploadFiles = async (files) => {
   }
 }
 
-const addToConfig = (filePath) => {
+const addToConfig = (filePath: string) => {
   if (!fileList.value.includes(filePath)) {
     fileList.value = [...fileList.value, filePath]
     toast.success(tm('fileUpload.addToConfig'))
   }
 }
 
-const deleteFile = (filePath) => {
+const deleteFile = (filePath: string) => {
   fileList.value = fileList.value.filter((item) => item !== filePath)
   directoryFiles.value = directoryFiles.value.filter((item) => item !== filePath)
 
@@ -316,7 +392,7 @@ const deleteFile = (filePath) => {
         )}`,
         { path: filePath }
       )
-      .catch((error) => {
+      .catch((error: unknown) => {
         console.warn('Staged file delete failed:', error)
         toast.warning(tm('fileUpload.deleteFailed'))
       })
@@ -325,7 +401,7 @@ const deleteFile = (filePath) => {
   toast.success(tm('fileUpload.deleteSuccess'))
 }
 
-const deletePhysicalFile = (filePath) => {
+const deletePhysicalFile = (filePath: string) => {
   directoryFiles.value = directoryFiles.value.filter((item) => item !== filePath)
 
   if (props.pluginName) {
@@ -336,7 +412,7 @@ const deletePhysicalFile = (filePath) => {
         )}`,
         { path: filePath }
       )
-      .catch((error) => {
+      .catch((error: unknown) => {
         console.warn('File delete failed:', error)
         toast.warning(tm('fileUpload.deleteFailed'))
       })
@@ -345,7 +421,7 @@ const deletePhysicalFile = (filePath) => {
   toast.success(tm('fileUpload.deleteSuccess'))
 }
 
-const getDisplayName = (path) => {
+const getDisplayName = (path: string) => {
   if (!path) return ''
   const parts = String(path).split('/')
   return parts[parts.length - 1] || path
