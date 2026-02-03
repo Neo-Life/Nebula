@@ -106,7 +106,7 @@ interface Props {
     configId?: string | null;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
     configId: null
 });
 
@@ -133,7 +133,7 @@ async function newSession() {
     }
 }
 
-function updateSessionTitle(sessionId: string, title: string) {
+function updateSessionTitle(_sessionId: string, _title: string) {
     // 独立模式不需要更新会话标题
 }
 
@@ -161,7 +161,6 @@ const {
     isStreaming,
     isConvRunning,
     enableStreaming,
-    getSessionMessages: getSessionMsg,
     sendMessage: sendMsg,
     toggleStreaming
 } = useMessages(currSessionId, getMediaFile, updateSessionTitle, getSessions);

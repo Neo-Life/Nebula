@@ -161,8 +161,6 @@ const normalizedSessionId = computed(() => {
     return id ? id : null;
 });
 
-const hasActiveSession = computed(() => !!normalizedSessionId.value);
-
 const messageType = computed(() => (props.isGroup ? 'GroupMessage' : 'FriendMessage'));
 
 const username = computed(() => localStorage.getItem('user') || 'guest');

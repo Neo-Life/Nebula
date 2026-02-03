@@ -346,7 +346,6 @@ const {
     isStreaming,
     isConvRunning,
     enableStreaming,
-    currentSessionProject,
     getSessionMessages: getSessionMsg,
     sendMessage: sendMsg,
     toggleStreaming
@@ -422,7 +421,7 @@ async function handleSaveTitle() {
     }
 }
 
-function handleReplyMessage(msg: any, index: number) {
+function handleReplyMessage(msg: any, _index: number) {
     // 从消息中获取 id (PlatformSessionHistoryMessage 的 id)
     const messageId = msg.id;
     if (!messageId) {
@@ -459,7 +458,7 @@ function clearReply() {
 
 function handleReplyWithText(replyData: any) {
     // 处理选中文本的引用
-    const { messageId, selectedText, messageIndex } = replyData;
+    const { messageId, selectedText } = replyData;
 
     if (!messageId) {
         console.warn('Message does not have an id');

@@ -1647,7 +1647,6 @@ export default {
         const updateTasks: Array<Promise<unknown>> = []
         const deleteTasks: Array<Promise<unknown>> = []
         const providerTypes = ['chat_completion', 'speech_to_text', 'text_to_speech'] as const
-        type ProviderPerfType = (typeof providerTypes)[number]
 
         for (const type of providerTypes) {
           const value = this.providerConfig[type]

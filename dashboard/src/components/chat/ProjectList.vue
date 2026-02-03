@@ -82,7 +82,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 import { useModuleI18n } from '@/i18n/composables';
 
 export interface Project {

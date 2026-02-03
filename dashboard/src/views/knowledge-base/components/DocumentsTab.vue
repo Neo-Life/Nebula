@@ -527,7 +527,6 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const uploadMode = ref('file') // 'file' or 'url'
 const uploadUrl = ref('')
 const llmProviders = ref<any[]>([])
-const uploadingTasks = ref<Map<string, any>>(new Map())
 const progressPollingInterval = ref<number | null>(null)
 const tavilyConfigStatus = ref('loading') // 'loading', 'configured', 'not_configured', 'error'
 const showTavilyDialog = ref(false)

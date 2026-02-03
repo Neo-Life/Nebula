@@ -250,7 +250,6 @@ import AstrBotConfig from '@/components/shared/AstrBotConfig.vue'
 import ProviderModelsPanel from '@/components/provider/ProviderModelsPanel.vue'
 import ProviderSourcesPanel from '@/components/provider/ProviderSourcesPanel.vue'
 import { useProviderSources } from '@/composables/useProviderSources'
-import { getProviderIcon } from '@/utils/providerUtils'
 import axios from 'axios'
 
 type AnyRecord = Record<string, any>

@@ -404,7 +404,6 @@ const embeddingProviders = ref<any[]>([])
 const rerankProviders = ref<any[]>([])
 const originalEmbeddingProvider = ref<string | null>(null)
 const showEmbeddingWarning = ref(false)
-const embeddingChangeDialog = ref(false)
 const pendingEmbeddingProvider = ref<string | null>(null)
 
 // 对话框

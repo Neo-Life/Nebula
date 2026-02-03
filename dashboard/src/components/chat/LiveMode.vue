@@ -162,20 +162,6 @@ const statusText = computed(() => {
     return '准备就绪';
 });
 
-const getIcon = computed(() => {
-    if (!isActive.value) return 'mdi-microphone';
-    if (isSpeaking.value) return 'mdi-account-voice';
-    if (isProcessing.value) return 'mdi-loading';
-    return 'mdi-check';
-});
-
-const getIconColor = computed(() => {
-    if (!isActive.value) return isDark.value ? 'white' : 'black';
-    if (isSpeaking.value) return 'success';
-    if (isProcessing.value) return 'warning';
-    return 'primary';
-});
-
 const orbEnergy = computed(() => {
     if (isPlaying.value) return botEnergy.value;
     if (isSpeaking.value || isListening.value) return vadRecording.audioEnergy.value;

@@ -280,7 +280,7 @@
 import type { PropType } from 'vue'
 import { computed } from 'vue';
 import { useI18n, useModuleI18n } from '@/i18n/composables';
-import { MarkdownCodeBlockNode, MarkdownRender, enableKatex, enableMermaid, setCustomComponents } from 'markstream-vue';
+import { MarkdownCodeBlockNode, enableKatex, enableMermaid, setCustomComponents } from 'markstream-vue';
 import 'markstream-vue/index.css';
 import 'katex/dist/katex.min.css';
 import axios from 'axios';
@@ -297,7 +297,6 @@ setCustomComponents('message-list', { ref: RefNode, code_block: MarkdownCodeBloc
 export default {
     name: 'MessageList',
     components: {
-        MarkdownRender,
         ReasoningBlock,
         MessagePartsRenderer,
         ActionRef
@@ -934,7 +933,6 @@ export default {
         // Start timer for updating elapsed time
         startElapsedTimeTimer() {
             // Update every 12ms for sub-second precision, then every second after 1s
-            let fastUpdateCount = 0;
             const fastUpdateInterval = 12;
             const slowUpdateInterval = 1000;
 
@@ -959,7 +957,6 @@ export default {
                     );
 
                     if (hasSubSecondToolCall) {
-                        fastUpdateCount++;
                         this.elapsedTimeTimer = setTimeout(updateTime, fastUpdateInterval);
                     } else {
                         this.elapsedTimeTimer = setTimeout(updateTime, slowUpdateInterval);

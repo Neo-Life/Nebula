@@ -533,7 +533,7 @@ function handleDragOver(e: DragEvent) {
     }
 }
 
-function handleDragLeave(e: DragEvent) {
+function handleDragLeave(_e: DragEvent) {
     // 使用 timeout 避免在子元素间移动时闪烁
     dragLeaveTimeout = window.setTimeout(() => {
         isDragging.value = false;

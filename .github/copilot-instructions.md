@@ -17,11 +17,17 @@ Always reference these instructions first and fallback to search or bash command
 - Application creates WebUI on http://localhost:6185 (default credentials: `astrbot`/`astrbot`)
 
 ### Dashboard Build (Vue.js/Node.js)
-- **Prerequisites**: Node.js 20+ and npm 10+ required
+- **Prerequisites**: Node.js 20+ and pnpm required
 - Navigate to dashboard: `cd dashboard`
-- Install dashboard dependencies: `npm install` -- takes 2-3 minutes. NEVER CANCEL. Set timeout to 5+ minutes.
-- Build dashboard: `npm run build` -- takes 25-30 seconds. NEVER CANCEL.
+- Install pnpm if needed: `npm install -g pnpm`
+- Install dashboard dependencies: `pnpm install` -- takes 2-3 minutes. NEVER CANCEL. Set timeout to 5+ minutes.
+- Build dashboard: `pnpm run build` -- takes 25-30 seconds. NEVER CANCEL.
 - Dashboard creates optimized production build in `dashboard/dist/`
+
+### Dashboard Lint & Typecheck
+- Typecheck: `pnpm -s -C dashboard run typecheck`
+- Lint (check-only, does not modify files): `pnpm -s -C dashboard run lint:check`
+- Combined check (recommended before commits/PRs): `pnpm -s -C dashboard run check`
 
 ### Testing
 - Do not generate test files for now.
@@ -41,7 +47,7 @@ Always reference these instructions first and fallback to search or bash command
 ### Common Issues and Workarounds
 - **Dashboard download fails**: Known issue with "division by zero" error - application still works
 - **Import errors in tests**: Ensure `uv run` is used to run tests in proper environment
-- **Build timeouts**: Always set appropriate timeouts (10+ minutes for uv sync, 5+ minutes for npm install)
+- **Build timeouts**: Always set appropriate timeouts (10+ minutes for uv sync, 5+ minutes for pnpm install)
 
 ## CI/CD Integration
 - GitHub Actions workflows in `.github/workflows/`
@@ -78,7 +84,7 @@ CONSTRAINTS
 	First update the PR branch to the latest `origin/master` (prefer merging `origin/master` into the PR branch to preserve commits).
 2) Resolve conflicts with minimal changes; no refactors or style-only rewrites.
 3) Before merging back to master, run and pass:
-	- `pnpm -s -C dashboard run typecheck`
+	- `pnpm -s -C dashboard run check`
 	If it fails, fix until it passes.
 4) README conflicts: default to keeping THIS repo’s disclaimer/README variant unless explicitly requested otherwise.
 5) First classify the change:
@@ -97,13 +103,13 @@ REQUIRED PROCEDURE (provide short git output summary after each step)
 	- `git merge origin/master`
 	- Resolve conflicts; do NOT merge into master yet.
 5) Verify:
-	- `pnpm -s -C dashboard run typecheck`
+	- `pnpm -s -C dashboard run check`
 6) Commit the “PR branch base sync” merge commit with message:
 	- `merge: sync origin/master into pr/<name>`
 7) Merge into master:
 	- `git switch master`
 	- `git merge --no-ff pr/<name>`
-	- Re-run `pnpm -s -C dashboard run typecheck`
+	- Re-run `pnpm -s -C dashboard run check`
 8) Push:
 	- `git push origin master`
 
