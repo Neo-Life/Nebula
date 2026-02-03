@@ -488,7 +488,7 @@ export default {
     },
   },
   watch: {
-    config_data_str(val) {
+    config_data_str(_val) {
       this.config_data_has_changed = true;
     },
     initialConfigId(newVal) {
@@ -529,7 +529,7 @@ export default {
             this.getConfig(this.configInfoList[0].id);
           }
         }
-      }).catch((err) => {
+      }).catch((_err) => {
         this.save_message = this.messages.loadError;
         this.save_message_snack = true;
         this.save_message_success = "error";
@@ -552,7 +552,7 @@ export default {
         this.fetched = true
         this.metadata = res.data.data.metadata;
         this.configContentKey += 1;
-      }).catch((err) => {
+      }).catch((_err) => {
         this.save_message = this.messages.loadError;
         this.save_message_snack = true;
         this.save_message_success = "error";
@@ -587,7 +587,7 @@ export default {
           this.save_message_snack = true;
           this.save_message_success = "error";
         }
-      }).catch((err) => {
+      }).catch((_err) => {
         this.save_message = this.messages.saveError;
         this.save_message_snack = true;
         this.save_message_success = "error";
@@ -604,7 +604,7 @@ export default {
         this.save_message_success = "success";
         this.save_message = this.messages.configApplied;
         this.save_message_snack = true;
-      } catch (e) {
+      } catch (_e) {
         this.save_message_success = "error";
         this.save_message = this.messages.configApplyError;
         this.save_message_snack = true;

@@ -525,7 +525,7 @@
             class="mb-3"
           >
             <v-chip
-              v-for="(item, index) in selectedItems.slice(0, 5)"
+              v-for="item in selectedItems.slice(0, 5)"
               :key="`${item.user_id}-${item.cid}`"
               size="small"
               class="mr-1 mb-1"
@@ -607,8 +607,6 @@ type ConversationItem = {
     sessionInfo: SessionInfo;
     [key: string]: any;
 };
-
-type PlatformFilterItem = string | { title?: string; value: string };
 
 type HistoryMessage = {
     role?: string;
@@ -821,7 +819,7 @@ export default {
                     JSON.parse(this.editedHistory);
                     // 有效的JSON格式
                     editor.getAction('editor.action.formatDocument').run();
-                } catch (e) {
+                } catch (_e) {
                     // 无效的JSON格式，不做处理，Monaco编辑器会自动提示
                 }
             });
@@ -1006,7 +1004,7 @@ export default {
                 let historyJson;
                 try {
                     historyJson = JSON.parse(this.editedHistory);
-                } catch (e) {
+                } catch (_e) {
                     this.showErrorMessage(this.tm('messages.invalidJson'));
                     return;
                 }
@@ -1321,7 +1319,7 @@ export default {
             } else if (typeof content === 'object' && content !== null) {
                 // 对象格式，尝试提取文本和图片
                 const textParts: string[] = [];
-                for (const [key, value] of Object.entries(content)) {
+                for (const [_key, value] of Object.entries(content)) {
                     if (typeof value === 'string' && value.trim()) {
                         textParts.push(value);
                     }

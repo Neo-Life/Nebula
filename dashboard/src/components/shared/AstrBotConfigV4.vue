@@ -23,33 +23,12 @@ const props = defineProps({
 })
 
 const { t } = useI18n()
-const { tm, getRaw } = useModuleI18n('features/config-metadata')
+const { tm } = useModuleI18n('features/config-metadata')
 
 // 翻译器函数 - 如果是国际化键则翻译，否则原样返回
 const translateIfKey = (value: unknown): unknown => {
   if (!value || typeof value !== 'string') return value
   return tm(value)
-}
-
-// 处理labels翻译 - labels可以是数组或国际化键
-const getTranslatedLabels = (itemMeta: AnyRecord | null | undefined): unknown[] | null => {
-  if (!itemMeta?.labels) return null
-  
-  // 如果labels是字符串（国际化键）
-  if (typeof itemMeta.labels === 'string') {
-    const translatedLabels = getRaw(itemMeta.labels)
-    // 如果翻译成功且是数组，返回翻译结果
-    if (Array.isArray(translatedLabels)) {
-      return translatedLabels
-    }
-  }
-  
-  // 如果labels是数组，直接返回
-  if (Array.isArray(itemMeta.labels)) {
-    return itemMeta.labels
-  }
-  
-  return null
 }
 
 const dialog = ref(false)
@@ -112,7 +91,7 @@ function saveEditedContent() {
   dialog.value = false
 }
 
-function shouldShowItem(itemMeta: unknown, itemKey: string) {
+function shouldShowItem(itemMeta: unknown, _itemKey: string) {
   const meta = itemMeta as AnyRecord | null | undefined
   if (!meta?.condition) {
     return true
@@ -153,25 +132,6 @@ function hasVisibleItemsAfter(items: Record<string, unknown>, currentIndex: numb
   }
 
   return false
-}
-
-function parseSpecialValue(value: unknown) {
-  if (!value || typeof value !== 'string') {
-    return { name: '', subtype: '' }
-  }
-  const [name, ...rest] = value.split(':')
-  return {
-    name,
-    subtype: rest.join(':') || ''
-  }
-}
-
-function getSpecialName(value: unknown) {
-  return parseSpecialValue(value).name
-}
-
-function getSpecialSubtype(value: unknown) {
-  return parseSpecialValue(value).subtype
 }
 
 </script>

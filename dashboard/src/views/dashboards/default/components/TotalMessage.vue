@@ -6,7 +6,7 @@
     :hide-header="true"
     variant="text" 
   >
-    <template #item-details="{ item }">
+    <template #item-details>
       <div class="d-flex align-start content-wrapper">
         <div class="icon-wrapper">
           <v-icon

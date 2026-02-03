@@ -329,8 +329,6 @@
 
 <script lang="ts">
 import axios from 'axios';
-import AstrBotConfig from '@/components/shared/AstrBotConfig.vue';
-import WaitingForRestart from '@/components/shared/WaitingForRestart.vue';
 import ConsoleDisplayer from '@/components/shared/ConsoleDisplayer.vue';
 import ItemCard from '@/components/shared/ItemCard.vue';
 import AddNewPlatform from '@/components/platform/AddNewPlatform.vue';
@@ -364,8 +362,6 @@ type PlatformStat = AnyRecord & {
 export default {
   name: 'PlatformPage',
   components: {
-    AstrBotConfig,
-    WaitingForRestart,
     ConsoleDisplayer,
     ItemCard,
     AddNewPlatform
@@ -632,7 +628,7 @@ export default {
       try {
         await navigator.clipboard.writeText(url);
         this.showSuccess(this.tm('webhookCopied'));
-      } catch (err) {
+      } catch (_err) {
         this.showError(this.tm('webhookCopyFailed'));
       }
     }

@@ -184,7 +184,7 @@ export default {
                         latency: 0
                     };
                 }
-            } catch (error) {
+            } catch (_error) {
                 this.proxyStatus[idx] = {
                     available: false,
                     latency: 0

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, onUnmounted } from "vue";
+import { ref, watch, computed } from "vue";
 import MarkdownIt from "markdown-it";
 import hljs from "highlight.js";
 import axios from "axios";
@@ -40,13 +40,6 @@ md.renderer.rules.fence = (
   </div>`;
 };
 
-const ICONS = {
-  SUCCESS:
-    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"></polyline></svg>',
-  ERROR:
-    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
-  COPY: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>',
-};
 
 const props = defineProps({
   show: { type: Boolean, default: false },
@@ -67,12 +60,7 @@ const error = ref<string | null>(null);
 const loading = ref(false);
 const isEmpty = ref(false);
 const renderedHtml = ref("");
-const copyFeedbackTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 const lastRequestId = ref(0);
-
-onUnmounted(() => {
-  if (copyFeedbackTimer.value) clearTimeout(copyFeedbackTimer.value);
-});
 
 function renderMarkdown(markdown: string): string {
   const rawHtml = md.render(markdown);
@@ -218,27 +206,6 @@ watch(
 
 function handleContainerClick(_event: MouseEvent) {
   // Copy button removed by design.
-}
-
-function showCopyFeedback(btn: HTMLElement, success: boolean) {
-  if (copyFeedbackTimer.value) clearTimeout(copyFeedbackTimer.value);
-  btn.setAttribute(
-    "title",
-    t(`core.common.${success ? "copied" : "error"}`),
-  );
-  btn.innerHTML = success ? ICONS.SUCCESS : ICONS.ERROR;
-  btn.style.color = success
-    ? "var(--v-theme-success)"
-    : "var(--v-theme-error)";
-
-  copyFeedbackTimer.value = setTimeout(() => {
-    if (document.body.contains(btn)) {
-      btn.innerHTML = ICONS.COPY;
-      btn.style.color = "";
-      btn.setAttribute("title", t("core.common.copy"));
-    }
-    copyFeedbackTimer.value = null;
-  }, 2000);
 }
 
 const _show = computed({

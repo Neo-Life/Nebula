@@ -651,7 +651,7 @@ export default {
       };
 
       axios.post('/api/plug/alkaid/ltm/graph/add', payload)
-        .then(response => {
+        .then(_response => {
           // 成功添加后刷新图表
           this.refreshGraph();
 
@@ -813,7 +813,7 @@ export default {
         if (typeof metadata === 'string') {
           try {
             return JSON.parse(metadata);
-          } catch (e) {
+          } catch (_e) {
             return { value: metadata }; // 如果无法解析为JSON，则作为单个值返回
           }
         }
@@ -824,8 +824,8 @@ export default {
         }
         
         return { value: String(metadata) };
-      } catch (e) {
-        console.error('解析元数据出错:', e);
+      } catch (_e) {
+        console.error('解析元数据出错:', _e);
         return { error: this.tm('messages.metadataParseError') };
       }
     },
@@ -846,7 +846,7 @@ export default {
       if (!timestamp) return this.tm('factDialog.unknown');
       try {
         return new Date(timestamp as any).toLocaleString();
-      } catch (e) {
+      } catch (_e) {
         return timestamp;
       }
     },
@@ -923,7 +923,7 @@ export default {
         .attr("fill", "#999");
       
       // 预处理边数据，标识和处理重复边
-      const linkGroups = this.identifyParallelLinks(this.links);
+      this.identifyParallelLinks(this.links);
       
       // 使用路径替代直线来绘制边，以便支持曲线
       const link = g.append("g")

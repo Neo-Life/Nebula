@@ -283,7 +283,7 @@ function formatTime(val: any): string {
   if (!val) return tm('table.notAvailable')
   try {
     return new Date(val).toLocaleString()
-  } catch (e) {
+  } catch (_e) {
     return String(val)
   }
 }
@@ -326,7 +326,7 @@ async function loadPlatforms() {
           display_name: p?.meta?.display_name || p?.display_name
         }))
     }
-  } catch (e) {
+  } catch (_e) {
     // ignore platform fetch errors in UI; subtitle will show fallback
   }
 }

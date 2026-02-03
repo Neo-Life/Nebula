@@ -825,7 +825,7 @@ export default defineComponent({
                         .map((p) => (typeof p.persona_id === 'string' ? p.persona_id : ''))
                         .filter((id) => id.length > 0);
                 }
-            } catch (error) {
+            } catch (_error) {
                 // 加载失败不影响表单使用，只是无法进行前端重名校验
                 this.existingPersonaIds = [];
             }

@@ -1585,7 +1585,7 @@ export default {
                 try {
                     await this.uploadChunkAsFile(chunk.content, chunk.filename);
                     successCount++;
-                } catch (error) {
+                } catch (_error) {
                     failCount++;
                 }
             }

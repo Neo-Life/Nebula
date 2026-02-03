@@ -482,7 +482,7 @@ function updateJSON(index: number, newValue: string | number | boolean | null) {
   try {
     JSON.parse(String(newValue ?? ''))
     localKeyValuePairs.value[index].jsonError = ''
-  } catch (e) {
+  } catch (_e) {
     localKeyValuePairs.value[index].jsonError = 'JSON 格式错误'
   }
 }

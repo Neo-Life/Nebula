@@ -198,14 +198,6 @@ const isAllPlugins = computed(() => {
   return props.modelValue && props.modelValue.length === 1 && props.modelValue[0] === '*'
 })
 
-// 移除插件
-function removePlugin(pluginName: string) {
-  if (props.modelValue && props.modelValue.length > 0) {
-    const newValue = props.modelValue.filter((name) => name !== pluginName)
-    emit('update:modelValue', newValue)
-  }
-}
-
 // 监听 modelValue 变化，同步内部状态
 watch(() => props.modelValue, (newValue) => {
   if (!newValue || newValue.length === 0) {

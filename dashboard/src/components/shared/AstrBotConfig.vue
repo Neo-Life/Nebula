@@ -40,7 +40,7 @@ const { t } = useI18n()
 
 const filteredIterable = computed(() => {
   if (!props.iterable) return {}
-  const { hint, ...rest } = props.iterable
+  const { hint: _hint, ...rest } = props.iterable
   return rest
 })
 
@@ -100,7 +100,12 @@ function getValueBySelector(obj: unknown, selector: string): unknown {
   return current
 }
 
-function shouldShowItem(itemMeta: AnyRecord | null | undefined, itemKey: string | number) {
+function setIterableValueByKey(key: string | number, value: unknown) {
+  // This config editor intentionally mutates the provided config object in-place.
+  ;(props.iterable as AnyRecord)[key] = value
+}
+
+function shouldShowItem(itemMeta: AnyRecord | null | undefined, _itemKey: string | number) {
   if (!itemMeta?.condition) {
     return true
   }
@@ -122,7 +127,7 @@ function hasVisibleItemsAfter(items: Record<string, unknown>, currentIndex: numb
 
   // 检查当前索引之后是否还有可见的配置项
   for (let i = currentIndex + 1; i < itemEntries.length; i++) {
-    const [itemKey, itemValue] = itemEntries[i]
+    const [itemKey, _itemValue] = itemEntries[i]
     const itemMeta = props.metadata[props.metadataKey].items[itemKey]
     if (!itemMeta?.invisible && shouldShowItem(itemMeta, itemKey)) {
       return true
@@ -221,7 +226,8 @@ function hasVisibleItemsAfter(items: Record<string, unknown>, currentIndex: numb
                 </v-list-item-subtitle>
               </div>
               <TemplateListEditor
-                v-model="iterable[key]"
+                :model-value="iterable[key]"
+                @update:model-value="(value) => setIterableValueByKey(key, value)"
                 :templates="metadata[metadataKey].items[key]?.templates || {}"
                 class="config-field"
               />
@@ -264,7 +270,8 @@ function hasVisibleItemsAfter(items: Record<string, unknown>, currentIndex: numb
                 class="config-input"
               >
                 <ConfigItemRenderer
-                  v-model="iterable[key]"
+                  :model-value="iterable[key]"
+                  @update:model-value="(value) => setIterableValueByKey(key, value)"
                   :item-meta="metadata[metadataKey].items[key] || null"
                   :plugin-name="pluginName"
                   :config-key="getItemPath(key)"
@@ -318,13 +325,15 @@ function hasVisibleItemsAfter(items: Record<string, unknown>, currentIndex: numb
           >
             <TemplateListEditor
               v-if="metadata[metadataKey]?.type === 'template_list' && !metadata[metadataKey]?.invisible"
-              v-model="iterable[metadataKey]"
+              :model-value="iterable[metadataKey]"
+              @update:model-value="(value) => setIterableValueByKey(metadataKey, value)"
               :templates="metadata[metadataKey]?.templates || {}"
               class="config-field"
             />
             <ConfigItemRenderer
               v-else
-              v-model="iterable[metadataKey]"
+              :model-value="iterable[metadataKey]"
+              @update:model-value="(value) => setIterableValueByKey(metadataKey, value)"
               :item-meta="metadata[metadataKey]"
               :plugin-name="pluginName"
               :config-key="getItemPath(metadataKey)"
