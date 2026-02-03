@@ -1,9 +1,9 @@
-# 个人维护的 AstrBot 管理面板
+# Nebula Dashboard（AstrBot WebUI-based）
 
 当前状态：
 - 已完成 Dashboard 全量 TypeScript 化（不再依赖/引用本地 JS 源码）
-- 构建目标已对齐到 ES2022，使用了 `"strict": true,` 模式
-- 本仓库内 `pnpm build` 与 `pnpm typecheck` 均可通过
+- 构建目标已对齐到 ES2022，启用 TypeScript 严格模式（`"strict": true`）
+- 在本目录下 `pnpm build` / `pnpm typecheck` / `pnpm lint:check` 均可通过
 
 ## 开发
 
@@ -18,8 +18,12 @@ pnpm dev
 
 ```bash
 pnpm typecheck
+pnpm lint:check
+pnpm check
 pnpm build
 ```
+
+说明：`pnpm build` 会先执行 `pnpm typecheck && pnpm lint:check`。
 
 ## 规划：后续计划
 
