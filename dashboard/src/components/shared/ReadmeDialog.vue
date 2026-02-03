@@ -220,27 +220,6 @@ function handleContainerClick(_event: MouseEvent) {
   // Copy button removed by design.
 }
 
-function tryFallbackCopy(text: string, btn: HTMLElement) {
-  try {
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-    Object.assign(textArea.style, {
-      position: "absolute",
-      opacity: "0",
-      zIndex: "-1",
-    });
-    const parent = btn.parentNode;
-    if (!parent) return;
-    parent.appendChild(textArea);
-    textArea.select();
-    const success = document.execCommand("copy");
-    parent.removeChild(textArea);
-    showCopyFeedback(btn, success);
-  } catch (_err) {
-    showCopyFeedback(btn, false);
-  }
-}
-
 function showCopyFeedback(btn: HTMLElement, success: boolean) {
   if (copyFeedbackTimer.value) clearTimeout(copyFeedbackTimer.value);
   btn.setAttribute(

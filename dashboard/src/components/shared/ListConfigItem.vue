@@ -25,7 +25,7 @@
           class="d-flex flex-wrap ga-2"
         >
           <v-chip
-            v-for="(item, index) in displayItems"
+            v-for="item in displayItems"
             :key="item"
             size="x-small"
             label

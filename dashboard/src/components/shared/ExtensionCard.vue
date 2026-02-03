@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, inject, useAttrs } from 'vue';
+import { ref, useAttrs } from 'vue';
 import { useCustomizerStore } from "@/stores/customizer";
 import { useModuleI18n } from "@/i18n/composables";
 import UninstallConfirmDialog from "./UninstallConfirmDialog.vue";
@@ -32,7 +32,6 @@ const emit = defineEmits([
   "view-changelog",
 ]);
 
-const reveal = ref(false);
 const showUninstallDialog = ref(false);
 
 // 国际化
@@ -50,8 +49,6 @@ const updateExtension = () => {
 const reloadExtension = () => {
   emit("reload", props.extension);
 };
-
-const $confirm = inject("$confirm");
 
 const installExtension = async () => {
   emit("install", props.extension);

@@ -405,7 +405,7 @@ function shouldShowItem(itemMeta: any, entry: Record<string, any>) {
 
 function hasVisibleItemsAfter(entries: Array<[string, any]>, currentIndex: number, entry: Record<string, any>) {
   for (let i = currentIndex + 1; i < entries.length; i++) {
-    const [k, meta] = entries[i]
+    const [_k, meta] = entries[i]
     if (!meta?.invisible && shouldShowItem(meta, entry)) {
       return true
     }

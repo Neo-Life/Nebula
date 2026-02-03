@@ -4,7 +4,7 @@
     :style="themeStyle"
   >
     <template
-      v-for="(renderPart, renderIndex) in getRenderParts(parts)"
+      v-for="renderPart in getRenderParts(parts)"
       :key="renderPart.key"
     >
       <!-- Grouped Tool Calls (consecutive tool_call parts) -->
@@ -18,7 +18,7 @@
           class="tool-call-items"
         >
           <ToolCallItem
-            v-for="(toolCall, tcIndex) in renderPart.toolCalls"
+            v-for="toolCall in renderPart.toolCalls"
             :key="toolCall.id"
             :is-dark="isDark"
           >

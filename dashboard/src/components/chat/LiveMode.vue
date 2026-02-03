@@ -500,7 +500,7 @@ function stopAudioPlayback() {
         try {
             currentSource.stop();
             currentSource.disconnect();
-        } catch (e) {
+        } catch (_e) {
             // ignore
         }
         currentSource = null;

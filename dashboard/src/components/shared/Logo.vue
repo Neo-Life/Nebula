@@ -26,7 +26,7 @@ import { useI18n } from '@/i18n/composables';
 
 const { t } = useI18n();
 
-const props = withDefaults(defineProps<{
+withDefaults(defineProps<{
   title?: string;
   subtitle?: string;
 }>(), {

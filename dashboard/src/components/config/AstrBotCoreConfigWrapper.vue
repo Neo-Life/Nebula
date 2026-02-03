@@ -28,7 +28,7 @@
       >
         <v-container fluid>
           <div
-            v-for="(val2, key2, index2) in (metadata[key]['metadata'] as Record<string, any>)"
+            v-for="(val2, key2) in (metadata[key]['metadata'] as Record<string, any>)"
             :key="key2"
           >
             <!-- Support both traditional and JSON selector metadata -->

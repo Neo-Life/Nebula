@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "private": true,
   "type": "module",
-  "author": "CodedThemes",
+  "author": "IGCrystal",
   "scripts": {
     "dev": "vite --host",
     "build": "pnpm typecheck && pnpm lint:check && vite build",

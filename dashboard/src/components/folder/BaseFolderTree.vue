@@ -144,16 +144,6 @@ interface ContextMenuState {
     folder: FolderTreeNode | null;
 }
 
-interface Folder {
-    folder_id: string;
-    name: string;
-    parent_id: string | null;
-    description?: string | null;
-    sort_order?: number;
-    created_at?: string;
-    updated_at?: string;
-}
-
 interface DefaultLabels {
     searchPlaceholder: string;
     rootFolder: string;

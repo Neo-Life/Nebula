@@ -361,7 +361,7 @@
                     >配置文件不存在</small>
                   </template>
 
-                  <template #item.actions="{ item, index }">
+                  <template #item.actions="{ item: _item, index }">
                     <div
                       v-if="isEditingRoutes"
                       class="d-flex align-center"
