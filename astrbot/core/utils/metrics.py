@@ -68,7 +68,10 @@ class Metric:
 
         try:
             if "adapter_name" in kwargs:
-                kwargs["adapter_name"] = kwargs["adapter_name"] + " - Nebula: Based on AstrBot(https://github.com/Neo-Revaea/Nebula)"
+                kwargs["adapter_name"] = (
+                    kwargs["adapter_name"]
+                    + " - Nebula: Based on AstrBot(https://github.com/Neo-Revaea/Nebula)"
+                )
                 await db_helper.insert_platform_stats(
                     platform_id=kwargs["adapter_name"],
                     platform_type=kwargs.get("adapter_type", "unknown"),
