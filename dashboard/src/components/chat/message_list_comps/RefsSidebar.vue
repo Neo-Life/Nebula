@@ -1,85 +1,131 @@
 <template>
-    <transition name="slide-left">
-        <div v-if="isOpen" class="refs-sidebar">
-            <div class="sidebar-header">
-                <h3 class="sidebar-title">{{ tm('refs.title') }}</h3>
-                <v-btn icon="mdi-close" size="small" variant="text" @click="close"></v-btn>
-            </div>
+  <transition name="slide-left">
+    <div
+      v-if="isOpen"
+      class="refs-sidebar"
+    >
+      <div class="sidebar-header">
+        <h3 class="sidebar-title">
+          {{ tm('refs.title') }}
+        </h3>
+        <v-btn
+          icon="mdi-close"
+          size="small"
+          variant="text"
+          @click="close"
+        />
+      </div>
 
-            <div class="refs-list">
-                <div v-for="(ref, index) in refs?.used || []" :key="index" class="ref-item" @click="openLink(ref.url)">
-                    <div class="ref-item-icon">
-                        <img v-if="ref.favicon" :src="ref.favicon" class="ref-item-favicon"
-                            @error="(e) => e.target.style.display = 'none'" />
-                        <div v-else class="ref-item-initial">{{ getRefInitial(ref.title) }}</div>
-                    </div>
-                    <div class="ref-item-content">
-                        <div class="ref-item-title">{{ ref.title }}</div>
-                        <div class="ref-item-url">{{ formatUrl(ref.url) }}</div>
-                        <div v-if="ref.snippet" class="ref-item-snippet">{{ ref.snippet }}</div>
-                    </div>
-                    <v-icon size="small" class="ref-item-arrow">mdi-open-in-new</v-icon>
-                </div>
+      <div class="refs-list">
+        <div
+          v-for="(ref, index) in refs?.used || []"
+          :key="index"
+          class="ref-item"
+          @click="openLink(ref.url)"
+        >
+          <div class="ref-item-icon">
+            <img
+              v-if="ref.favicon"
+              :src="ref.favicon"
+              class="ref-item-favicon"
+              @error="handleFaviconError"
+            >
+            <div
+              v-else
+              class="ref-item-initial"
+            >
+              {{ getRefInitial(ref.title) }}
             </div>
+          </div>
+          <div class="ref-item-content">
+            <div class="ref-item-title">
+              {{ ref.title }}
+            </div>
+            <div class="ref-item-url">
+              {{ formatUrl(ref.url) }}
+            </div>
+            <div
+              v-if="ref.snippet"
+              class="ref-item-snippet"
+            >
+              {{ ref.snippet }}
+            </div>
+          </div>
+          <v-icon
+            size="small"
+            class="ref-item-arrow"
+          >
+            mdi-open-in-new
+          </v-icon>
         </div>
-    </transition>
+      </div>
+    </div>
+  </transition>
 </template>
 
-<script>
+<script setup lang="ts">
+import { computed } from 'vue';
 import { useModuleI18n } from '@/i18n/composables';
 
-export default {
-    name: 'RefsSidebar',
-    props: {
-        modelValue: {
-            type: Boolean,
-            default: false
-        },
-        refs: {
-            type: Object,
-            default: null
-        }
-    },
-    emits: ['update:modelValue'],
-    setup() {
-        const { tm } = useModuleI18n('features/chat');
-        return { tm };
-    },
-    computed: {
-        isOpen: {
-            get() {
-                return this.modelValue;
-            },
-            set(value) {
-                this.$emit('update:modelValue', value);
-            }
-        }
-    },
-    methods: {
-        close() {
-            this.isOpen = false;
-        },
+type RefItem = {
+    title?: string;
+    url?: string;
+    favicon?: string;
+    snippet?: string;
+};
 
-        getRefInitial(title) {
-            if (!title) return '?';
-            return title.charAt(0).toUpperCase();
-        },
+type RefsPayload = {
+    used?: RefItem[];
+} | null;
 
-        formatUrl(url) {
-            if (!url) return '';
-            try {
-                const urlObj = new URL(url);
-                return urlObj.hostname;
-            } catch {
-                return url;
-            }
-        },
+const props = withDefaults(
+    defineProps<{
+        modelValue: boolean;
+        refs?: RefsPayload;
+    }>(),
+    {
+        refs: null
+    }
+);
 
-        openLink(url) {
-            if (url) {
-                window.open(url, '_blank');
-            }
-        }
+const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>();
+
+const { tm } = useModuleI18n('features/chat');
+
+const isOpen = computed({
+    get: () => props.modelValue,
+    set: (value: boolean) => emit('update:modelValue', value)
+});
+
+function close() {
+    isOpen.value = false;
+}
+
+function getRefInitial(title?: string): string {
+    if (!title) return '?';
+    return title.charAt(0).toUpperCase();
+}
+
+function formatUrl(url?: string): string {
+    if (!url) return '';
+    try {
+        const urlObj = new URL(url);
+        return urlObj.hostname;
+    } catch {
+        return url;
+    }
+}
+
+function openLink(url?: string) {
+    if (url) {
+        window.open(url, '_blank');
+    }
+}
+
+function handleFaviconError(event: Event) {
+    const target = event.target as HTMLImageElement | null;
+    if (target) {
+        target.style.display = 'none';
     }
 }
 </script>

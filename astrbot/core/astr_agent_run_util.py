@@ -135,7 +135,7 @@ async def run_agent(
         except Exception as e:
             logger.error(traceback.format_exc())
 
-            err_msg = f"\n\nAstrBot 请求失败。\n错误类型: {type(e).__name__}\n错误信息: {e!s}\n\n请在平台日志查看和分享错误详情。\n"
+            err_msg = f"\n\nNebula 请求失败。\n错误类型: {type(e).__name__}\n错误信息: {e!s}\n\n请在平台日志查看和分享错误详情。\n"
 
             error_llm_response = LLMResponse(
                 role="err",

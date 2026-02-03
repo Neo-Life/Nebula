@@ -1,48 +1,88 @@
 <template>
-    <div>
-        <!-- 项目按钮 -->
-        <div style="padding: 0 8px 0px 8px; opacity: 0.6;">
-            <v-btn block variant="text" class="project-btn" @click="toggleExpanded" prepend-icon="mdi-folder-outline">
-                {{ tm('project.title') }}
-                <template v-slot:append>
-                    <v-icon size="small">{{ expanded ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
-                </template>
-            </v-btn>
-        </div>
-
-        <!-- 项目列表 -->
-        <v-expand-transition>
-            <div v-show="expanded" style="padding: 0 8px;">
-                <v-list density="compact" nav class="project-list" style="background-color: transparent;">
-                    <v-list-item @click="$emit('createProject')" class="create-project-item" rounded="lg">
-                        <template v-slot:prepend>
-                            <span class="project-emoji"><v-icon size="small">mdi-plus</v-icon></span>
-                        </template>
-                        <v-list-item-title style="font-size: 13px;">{{ tm('project.create') }}</v-list-item-title>
-                    </v-list-item>
-                    <v-list-item v-for="project in projects" :key="project.project_id"
-                        @click="$emit('selectProject', project.project_id)" rounded="lg" class="project-item">
-                        <template v-slot:prepend>
-                            <span class="project-emoji">{{ project.emoji || '📁' }}</span>
-                        </template>
-                        <v-list-item-title class="project-title">{{ project.title }}</v-list-item-title>
-                        <template v-slot:append>
-                            <div class="project-actions">
-                                <v-btn icon="mdi-pencil" size="x-small" variant="text" class="edit-project-btn"
-                                    @click.stop="$emit('editProject', project)" />
-                                <v-btn icon="mdi-delete" size="x-small" variant="text" class="delete-project-btn"
-                                    color="error" @click.stop="handleDeleteProject(project)" />
-                            </div>
-                        </template>
-                    </v-list-item>
-                </v-list>
-            </div>
-        </v-expand-transition>
+  <div class="project-list-container">
+    <!-- 项目按钮 -->
+    <div style="padding: 0 8px 0px 8px; opacity: 0.6;">
+      <v-btn
+        block
+        variant="text"
+        class="project-btn"
+        prepend-icon="mdi-folder-outline"
+        @click="toggleExpanded"
+      >
+        {{ tm('project.title') }}
+        <template #append>
+          <v-icon size="small">
+            {{ expanded ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+          </v-icon>
+        </template>
+      </v-btn>
     </div>
+
+    <!-- 项目列表 -->
+    <v-expand-transition>
+      <div
+        v-show="expanded"
+        style="padding: 0 8px;"
+      >
+        <v-list
+          density="compact"
+          nav
+          class="project-list"
+          style="background-color: transparent;"
+        >
+          <v-list-item
+            class="create-project-item"
+            rounded="lg"
+            @click="$emit('createProject')"
+          >
+            <template #prepend>
+              <span class="project-emoji"><v-icon size="small">mdi-plus</v-icon></span>
+            </template>
+            <v-list-item-title style="font-size: 13px;">
+              {{ tm('project.create') }}
+            </v-list-item-title>
+          </v-list-item>
+          <v-list-item
+            v-for="project in projects"
+            :key="project.project_id"
+            rounded="lg"
+            class="project-item"
+            @click="$emit('selectProject', project.project_id)"
+          >
+            <template #prepend>
+              <span class="project-emoji">{{ project.emoji || '📁' }}</span>
+            </template>
+            <v-list-item-title class="project-title">
+              {{ project.title }}
+            </v-list-item-title>
+            <template #append>
+              <div class="project-actions">
+                <v-btn
+                  icon="mdi-pencil"
+                  size="x-small"
+                  variant="text"
+                  class="edit-project-btn"
+                  @click.stop="$emit('editProject', project)"
+                />
+                <v-btn
+                  icon="mdi-delete"
+                  size="x-small"
+                  variant="text"
+                  class="delete-project-btn"
+                  color="error"
+                  @click.stop="handleDeleteProject(project)"
+                />
+              </div>
+            </template>
+          </v-list-item>
+        </v-list>
+      </div>
+    </v-expand-transition>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref } from 'vue';
 import { useModuleI18n } from '@/i18n/composables';
 
 export interface Project {
@@ -102,6 +142,10 @@ function handleDeleteProject(project: Project) {
     text-transform: none;
 }
 
+.project-list-container {
+    border-bottom: 2px solid rgba(0, 0, 0, 0.04);
+}
+
 .project-item {
     border-radius: 16px !important;
     padding: 4px 12px !important;
@@ -109,7 +153,7 @@ function handleDeleteProject(project: Project) {
 }
 
 .project-item:hover {
-    background-color: rgba(103, 58, 183, 0.05);
+    background-color: rgba(58, 106, 183, 0.05);
 }
 
 .project-item:hover .project-actions {
@@ -153,7 +197,7 @@ function handleDeleteProject(project: Project) {
 }
 
 .create-project-item:hover {
-    background-color: rgba(103, 58, 183, 0.08);
+    background-color: rgba(58, 108, 183, 0.08);
     opacity: 1;
 }
 </style>

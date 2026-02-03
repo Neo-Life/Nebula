@@ -1,18 +1,32 @@
 <template>
-  <RouterView></RouterView>
+  <RouterView />
 
   <!-- 全局唯一 snackbar -->
-  <v-snackbar v-if="toastStore.current" v-model="snackbarShow" :color="toastStore.current.color"
-    :timeout="toastStore.current.timeout" :multi-line="toastStore.current.multiLine"
-    :location="toastStore.current.location" close-on-back>
+  <v-snackbar
+    v-if="toastStore.current"
+    v-model="snackbarShow"
+    :color="toastStore.current.color"
+    :timeout="toastStore.current.timeout"
+    :multi-line="toastStore.current.multiLine"
+    :location="(toastStore.current.location as any)"
+    close-on-back
+  >
     {{ toastStore.current.message }}
-    <template #actions v-if="toastStore.current.closable">
-      <v-btn variant="text" @click="snackbarShow = false">关闭</v-btn>
+    <template
+      v-if="toastStore.current.closable"
+      #actions
+    >
+      <v-btn
+        variant="text"
+        @click="snackbarShow = false"
+      >
+        关闭
+      </v-btn>
     </template>
   </v-snackbar>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { RouterView } from 'vue-router';
 import { computed } from 'vue'
 import { useToastStore } from '@/stores/toast'

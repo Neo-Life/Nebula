@@ -283,6 +283,16 @@ async def _ensure_persona_and_skills(
             # 3. from config default persona setting - last priority
             persona_id = cfg.get("default_personality")
 
+    # Fallback to selected default persona only when persona is truly unset (None).
+    # Do NOT override explicit "[%None]".
+    if persona_id is None:
+        default_persona = plugin_context.persona_manager.selected_default_persona_v3
+        if default_persona:
+            persona_id = default_persona["name"]
+            if event.get_platform_name() == "webchat":
+                persona_id = "_chatui_default_"
+                req.system_prompt += CHATUI_SPECIAL_DEFAULT_PERSONA_PROMPT
+
     persona = next(
         builtins.filter(
             lambda persona: persona["name"] == persona_id,

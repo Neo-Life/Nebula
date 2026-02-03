@@ -18,6 +18,8 @@
   "author": "Author",
   "status": "Status",
   "actions": "Actions",
+  "expand": "Expand",
+  "collapse": "Collapse",
   "enable": "Enable",
   "disable": "Disable",
   "enabled": "Enabled",
@@ -44,7 +46,7 @@
     "cancelButton": "Cancel"
   },
   "restart": {
-    "waiting": "Waiting for AstrBot to restart...",
+    "waiting": "Waiting for Nebula to restart...",
     "maxRetriesReached": "Maximum retry attempts reached, please check manually."
   },
   "readme": {
@@ -73,7 +75,8 @@
   },
   "editor": {
     "fullscreen": "Fullscreen Edit",
-    "editingTitle": "Editing Content"
+    "editingTitle": "Editing Content",
+    "invalidJson": "Invalid JSON. Please fix the syntax before saving."
   },
   "templateList": {
     "addEntry": "Add Entry",
@@ -104,5 +107,9 @@
     "edit": "Edit",
     "copy": "Copy",
     "noData": "No data available"
+  },
+  "error404": {
+    "returnHome": "Return Home",
+    "goBack": "Go Back"
   }
 }

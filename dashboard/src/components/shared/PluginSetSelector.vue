@@ -3,73 +3,113 @@
     <!-- 顶部操作区域 -->
     <div class="d-flex align-center justify-space-between mb-2">
       <div class="flex-grow-1">
-        <span v-if="!modelValue || modelValue.length === 0" style="color: rgb(var(--v-theme-primaryText));">
+        <span
+          v-if="!modelValue || modelValue.length === 0"
+          style="color: rgb(var(--v-theme-primaryText));"
+        >
           {{ tm('pluginSetSelector.notSelected') }}
         </span>
-        <span v-else-if="isAllPlugins" style="color: rgb(var(--v-theme-primaryText));">
+        <span
+          v-else-if="isAllPlugins"
+          style="color: rgb(var(--v-theme-primaryText));"
+        >
           {{ tm('pluginSetSelector.allPlugins') }}
         </span>
-        <span v-else style="color: rgb(var(--v-theme-primaryText));">
+        <span
+          v-else
+          style="color: rgb(var(--v-theme-primaryText));"
+        >
           {{ tm('pluginSetSelector.selectedCount', { count: modelValue.length }) }}
         </span>
       </div>
-      <v-btn size="small" color="primary" variant="tonal" @click="openDialog">
+      <v-btn
+        size="small"
+        color="primary"
+        variant="tonal"
+        @click="openDialog"
+      >
         {{ buttonText || tm('pluginSetSelector.buttonText') }}
       </v-btn>
     </div>
   </div>
 
   <!-- Plugin Set Selection Dialog -->
-  <v-dialog v-model="dialog" max-width="700px">
+  <v-dialog
+    v-model="dialog"
+    max-width="700px"
+  >
     <v-card>
-      <v-card-title class="text-h3 py-4" style="font-weight: normal;">
+      <v-card-title
+        class="text-h3 py-4"
+        style="font-weight: normal;"
+      >
         {{ tm('pluginSetSelector.dialogTitle') }}
       </v-card-title>
       
       <v-card-text class="pa-4">
-        <v-progress-linear v-if="loading" indeterminate color="primary"></v-progress-linear>
+        <v-progress-linear
+          v-if="loading"
+          indeterminate
+          color="primary"
+        />
         
         <div v-if="!loading">
           <!-- 预设选项 -->
-          <v-radio-group v-model="selectionMode" class="mb-4" hide-details>
+          <v-radio-group
+            v-model="selectionMode"
+            class="mb-4"
+            hide-details
+          >
             <v-radio 
               value="all" 
               :label="tm('pluginSetSelector.enableAll')" 
               color="primary"
-            ></v-radio>
+            />
             <v-radio 
               value="none" 
               :label="tm('pluginSetSelector.enableNone')" 
               color="primary"
-            ></v-radio>
+            />
             <v-radio 
               value="custom" 
               :label="tm('pluginSetSelector.customSelect')" 
               color="primary"
-            ></v-radio>
+            />
           </v-radio-group>
 
           <!-- 自定义选择时显示插件列表 -->
-          <div v-if="selectionMode === 'custom'" style="max-height: 300px; overflow-y: auto;">
-            <v-list v-if="pluginList.length > 0" density="compact">
+          <div
+            v-if="selectionMode === 'custom'"
+            style="max-height: 300px; overflow-y: auto;"
+          >
+            <v-list
+              v-if="pluginList.length > 0"
+              density="compact"
+            >
               <v-list-item
                 v-for="plugin in pluginList"
                 :key="plugin.name"
                 rounded="md"
-                class="ma-1">
-                <template v-slot:prepend>
+                class="ma-1"
+              >
+                <template #prepend>
                   <v-checkbox
                     v-model="selectedPlugins"
                     :value="plugin.name"
                     color="primary"
                     hide-details
-                  ></v-checkbox>
+                  />
                 </template>
                 
                 <v-list-item-title>{{ plugin.name }}</v-list-item-title>
                 <v-list-item-subtitle>
                   {{ plugin.desc || tm('pluginSetSelector.noDescription') }}
-                  <v-chip v-if="!plugin.activated" size="x-small" color="grey" class="ml-1">
+                  <v-chip
+                    v-if="!plugin.activated"
+                    size="x-small"
+                    color="grey"
+                    class="ml-1"
+                  >
                     {{ tm('pluginSetSelector.notActivated') }}
                   </v-chip>
                 </v-list-item-subtitle>
@@ -80,20 +120,36 @@
               </div>
             </v-list>
 
-            <div v-else class="text-center py-8">
-              <v-icon size="64" color="grey-lighten-1">mdi-puzzle-outline</v-icon>
-              <p class="text-grey mt-4">{{ tm('pluginSetSelector.noPlugins') }}</p>
+            <div
+              v-else
+              class="text-center py-8"
+            >
+              <v-icon
+                size="64"
+                color="grey-lighten-1"
+              >
+                mdi-puzzle-outline
+              </v-icon>
+              <p class="text-grey mt-4">
+                {{ tm('pluginSetSelector.noPlugins') }}
+              </p>
             </div>
           </div>
         </div>
       </v-card-text>
             
       <v-card-actions class="pa-4">
-        <v-spacer></v-spacer>
-        <v-btn variant="text" @click="cancelSelection">{{ tm('pluginSetSelector.cancelSelection') }}</v-btn>
+        <v-spacer />
+        <v-btn
+          variant="text"
+          @click="cancelSelection"
+        >
+          {{ tm('pluginSetSelector.cancelSelection') }}
+        </v-btn>
         <v-btn 
           color="primary" 
-          @click="confirmSelection">
+          @click="confirmSelection"
+        >
           {{ tm('pluginSetSelector.confirmSelection') }}
         </v-btn>
       </v-card-actions>
@@ -101,18 +157,25 @@
   </v-dialog>
 </template>
 
-<script setup>
-import { ref, computed, watch } from 'vue'
+<script setup lang="ts">
+import { ref, computed, watch, type PropType } from 'vue'
 import axios from 'axios'
 import { useModuleI18n } from '@/i18n/composables'
 
+type PluginMeta = {
+  name: string
+  desc?: string
+  activated?: boolean
+  reserved?: boolean
+}
+
 const props = defineProps({
   modelValue: {
-    type: Array,
+    type: Array as PropType<string[]>,
     default: () => []
   },
   buttonText: {
-    type: String,
+    type: String as PropType<string>,
     default: ''
   },
   maxDisplayItems: {
@@ -125,23 +188,15 @@ const emit = defineEmits(['update:modelValue'])
 const { tm } = useModuleI18n('core.shared')
 
 const dialog = ref(false)
-const pluginList = ref([])
+const pluginList = ref<PluginMeta[]>([])
 const loading = ref(false)
-const selectionMode = ref('custom') // 'all', 'none', 'custom'
-const selectedPlugins = ref([])
+const selectionMode = ref<'all' | 'none' | 'custom'>('custom') // 'all', 'none', 'custom'
+const selectedPlugins = ref<string[]>([])
 
 // 判断是否为"所有插件"模式
 const isAllPlugins = computed(() => {
   return props.modelValue && props.modelValue.length === 1 && props.modelValue[0] === '*'
 })
-
-// 移除插件
-function removePlugin(pluginName) {
-  if (props.modelValue && props.modelValue.length > 0) {
-    const newValue = props.modelValue.filter(name => name !== pluginName)
-    emit('update:modelValue', newValue)
-  }
-}
 
 // 监听 modelValue 变化，同步内部状态
 watch(() => props.modelValue, (newValue) => {
@@ -168,13 +223,22 @@ async function loadPlugins() {
     const response = await axios.get('/api/plugin/get')
     if (response.data.status === 'ok') {
       // 只显示已激活且非系统的插件，并按名称排序
-      pluginList.value = (response.data.data || [])
-        .filter(plugin => plugin.activated && !plugin.reserved)
-        .sort((a, b) => {
-          const nameA = a.name || '';
-          const nameB = b.name || '';
-          return nameA.localeCompare(nameB);
+      const raw = (response.data.data || []) as unknown[]
+      const normalized: PluginMeta[] = raw
+        .map((p) => {
+          const maybe = p as { name?: unknown; desc?: unknown; activated?: unknown; reserved?: unknown }
+          const name = typeof maybe.name === 'string' ? maybe.name : ''
+          return {
+            name,
+            desc: typeof maybe.desc === 'string' ? maybe.desc : undefined,
+            activated: typeof maybe.activated === 'boolean' ? maybe.activated : undefined,
+            reserved: typeof maybe.reserved === 'boolean' ? maybe.reserved : undefined
+          }
         })
+        .filter((p) => p.name.length > 0)
+      pluginList.value = normalized
+        .filter((plugin) => Boolean(plugin.activated) && !plugin.reserved)
+        .sort((a, b) => a.name.localeCompare(b.name))
     }
   } catch (error) {
     console.error('加载插件列表失败:', error)
@@ -185,7 +249,7 @@ async function loadPlugins() {
 }
 
 function confirmSelection() {
-  let newValue = []
+  let newValue: string[] = []
   
   switch (selectionMode.value) {
     case 'all':

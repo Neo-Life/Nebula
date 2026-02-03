@@ -1,0 +1,198 @@
+name: Sync Upstream
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: dashboard-ci-${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  UPSTREAM_REPO: 'astrbotdevs/astrbot'
+  UPSTREAM_BRANCH: 'master'
+  TARGET_BRANCH: 'master'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout downstream
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT }}
+
+      - name: Ensure jq present
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Add upstream remote and fetch
+        run: |
+          set -e
+          UPSTREAM_URL="https://github.com/${{ env.UPSTREAM_REPO }}.git"
+          git remote remove upstream 2>/dev/null || true
+          git remote add upstream "${UPSTREAM_URL}"
+          git fetch --no-tags --prune upstream "${{ env.UPSTREAM_BRANCH }}"
+
+      - name: Create branch from upstream and push to origin
+        id: create_branch
+        run: |
+          set -e
+          TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
+          BRANCH_NAME="sync-upstream-${TIMESTAMP}"
+          echo "BRANCH_NAME=${BRANCH_NAME}" >> $GITHUB_OUTPUT
+          git checkout -b "${BRANCH_NAME}" "upstream/${{ env.UPSTREAM_BRANCH }}"
+          git push --set-upstream origin "${BRANCH_NAME}"
+
+          echo "Pushed ${BRANCH_NAME} to origin"
+
+      - name: Check branch diff vs target
+        id: check_diff
+        env:
+          BRANCH: ${{ steps.create_branch.outputs.BRANCH_NAME }}
+          BASE: ${{ env.TARGET_BRANCH }}
+        run: |
+          set -e
+          BRANCH="${BRANCH}"
+          BASE="${BASE}"
+          git fetch --no-tags --prune origin "${BASE}" || true
+
+          if ! git show-ref --verify --quiet "refs/remotes/origin/${BASE}"; then
+            echo "warning: origin/${BASE} not found locally; continuing but comparisons may be unreliable"
+          fi
+
+          AHEAD_COUNT=$(git rev-list --count "origin/${BASE}..${BRANCH}" 2>/dev/null || echo "0")
+          echo "ahead_count=${AHEAD_COUNT}"
+          echo "ahead_count=${AHEAD_COUNT}" >> $GITHUB_OUTPUT
+          echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
+
+      - name: Create PR via GitHub API if not exists
+        id: create_pr
+        if: steps.check_diff.outputs.ahead_count != '0'
+        env:
+          GITHUB_API: https://api.github.com
+          REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
+          BRANCH: ${{ steps.create_branch.outputs.BRANCH_NAME }}
+          BASE: ${{ env.TARGET_BRANCH }}
+          PAT: ${{ secrets.PAT }}
+        run: |
+          set -e
+          BRANCH="${BRANCH}"
+          BASE="${BASE}"
+
+          PRS_JSON=$(curl -s -H "Authorization: token ${PAT}" \
+            "${GITHUB_API}/repos/${REPO}/pulls?head=${OWNER}:${BRANCH}&state=open")
+
+          LEN=$(echo "$PRS_JSON" | jq 'length')
+          if [ "$LEN" -gt 0 ]; then
+            echo "Found an existing open PR for ${OWNER}:${BRANCH}, skip creating."
+            echo "pr_created=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          TITLE="chore: 同步上游 ${UPSTREAM_REPO} 更新 (${BRANCH})"
+          BODY="已自动同步上游仓库 \`${UPSTREAM_REPO}\` 的更新并新建了分支。<br><br> 请人工检查并合并。"
+          CREATE_RESPONSE=$(curl -s -X POST -H "Authorization: token ${PAT}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg t "$TITLE" --arg h "${OWNER}:${BRANCH}" --arg b "$BASE" --arg body "$BODY" '{title:$t, head:$h, base:$b, body:$body, maintainer_can_modify:true}')" \
+            "${GITHUB_API}/repos/${REPO}/pulls")
+
+          PR_URL=$(echo "$CREATE_RESPONSE" | jq -r '.html_url // empty')
+          PR_NUMBER=$(echo "$CREATE_RESPONSE" | jq -r '.number // empty')
+
+          if [ -n "$PR_URL" ]; then
+            echo "PR created: $PR_URL"
+            echo "pr_created=true" >> $GITHUB_OUTPUT
+            echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          else
+            echo "Failed to create PR. Response:"
+            echo "$CREATE_RESPONSE"
+            echo "pr_created=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Final cleanup
+        if: always()
+        env:
+          CURRENT_BRANCH: ${{ steps.create_branch.outputs.BRANCH_NAME }}
+          AHEAD_COUNT: ${{ steps.check_diff.outputs.ahead_count }}
+          PR_CREATED: ${{ steps.create_pr.outputs.pr_created }}
+          TARGET_BRANCH: ${{ env.TARGET_BRANCH }}
+          PAT: ${{ secrets.PAT }}
+        run: |
+          set -e
+          CURRENT_BRANCH="${CURRENT_BRANCH}"
+          AHEAD_COUNT="${AHEAD_COUNT:-0}"
+          PR_CREATED="${PR_CREATED:-false}"
+          TARGET_BRANCH="${TARGET_BRANCH}"
+          echo "Cleanup step start. current_branch=${CURRENT_BRANCH}, ahead_count=${AHEAD_COUNT}, pr_created=${PR_CREATED}, target=${TARGET_BRANCH}"
+          git fetch --no-tags --prune origin || true
+          if [ "${AHEAD_COUNT}" = "0" ] && [ "${PR_CREATED}" != "true" ]; then
+            if [ "${CURRENT_BRANCH}" = "${TARGET_BRANCH}" ]; then
+              echo "Refusing to delete target branch ${TARGET_BRANCH}"
+            else
+              echo "Deleting current branch ${CURRENT_BRANCH} because it had no new commits and no PR."
+              git push origin --delete "${CURRENT_BRANCH}" || echo "Remote delete failed or branch missing"
+              # ensure detached so we can delete local branch
+              git checkout --detach "origin/${TARGET_BRANCH}" 2>/dev/null || git checkout --detach "${TARGET_BRANCH}" 2>/dev/null || git checkout --orphan temp-cleanup || true
+              git branch -D "${CURRENT_BRANCH}" || echo "Local delete failed or branch missing"
+            fi
+          else
+            echo "Not deleting current branch (either has commits ahead or PR created)."
+          fi
+          THRESHOLD_DAYS=7
+          THRESHOLD_SECONDS=$((THRESHOLD_DAYS*24*3600))
+          NOW=$(date +%s)
+          BR_LIST=$(git branch -r | awk '{print $1}' | grep -E 'origin/sync-upstream-' || true)
+          if [ -z "${BR_LIST}" ]; then
+            echo "No remote sync-upstream-* branches found."
+          fi
+
+          for REMOTE_REF in ${BR_LIST}; do
+            BR=$(echo "${REMOTE_REF}" | sed 's|origin/||')
+
+            if [ "${BR}" = "${CURRENT_BRANCH}" ]; then
+              echo "Skipping current branch ${BR}"
+              continue
+            fi
+            if [ "${BR}" = "${TARGET_BRANCH}" ]; then
+              echo "Skipping target branch ${BR}"
+              continue
+            fi
+
+            if [ "${BR}" = "${TARGET_BRANCH}" ]; then
+              echo "Refusing to delete target branch ${TARGET_BRANCH}"
+              continue
+            fi
+
+            if git merge-base --is-ancestor "origin/${BR}" "origin/${TARGET_BRANCH}" 2>/dev/null; then
+              echo "Branch ${BR} is merged into ${TARGET_BRANCH} -> deleting remote."
+              git push origin --delete "${BR}" || echo "Failed to delete remote ${BR}"
+              continue
+            fi
+
+            LAST_TS=$(git log -1 --format=%ct "origin/${BR}" 2>/dev/null || echo 0)
+            if [ "${LAST_TS}" -eq 0 ]; then
+              echo "Branch ${BR} has no commits or cannot read last commit -> deleting remote."
+              git push origin --delete "${BR}" || echo "Failed to delete remote ${BR}"
+              continue
+            fi
+
+            AGE=$((NOW - LAST_TS))
+            if [ "${AGE}" -ge "${THRESHOLD_SECONDS}" ]; then
+              echo "Branch ${BR} is older than ${THRESHOLD_DAYS} days (age=${AGE}s) and not merged -> deleting remote."
+              git push origin --delete "${BR}" || echo "Failed to delete remote ${BR}"
+            else
+              echo "Keeping branch ${BR} (not merged and not old)."
+            fi
+          done
+
+          echo "Final cleanup complete."

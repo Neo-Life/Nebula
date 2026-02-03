@@ -8,6 +8,7 @@ from time import time
 from typing import Any
 
 from astrbot import logger
+from astrbot.core.agent.tool import ToolSet
 from astrbot.core.db.po import Conversation
 from astrbot.core.message.components import (
     At,
@@ -22,6 +23,7 @@ from astrbot.core.message.components import (
 from astrbot.core.message.message_event_result import MessageChain, MessageEventResult
 from astrbot.core.platform.message_type import MessageType
 from astrbot.core.provider.entities import ProviderRequest
+from astrbot.core.provider.func_tool_manager import FunctionToolManager
 from astrbot.core.utils.metrics import Metric
 from astrbot.core.utils.trace import TraceSpan
 
@@ -389,11 +391,17 @@ class AstrMessageEvent(abc.ABC):
         if len(contexts) > 0 and conversation:
             conversation = None
 
+        func_tool: ToolSet | None = None
+        if isinstance(func_tool_manager, FunctionToolManager):
+            func_tool = func_tool_manager.get_full_tool_set()
+        elif isinstance(func_tool_manager, ToolSet):
+            func_tool = func_tool_manager
+
         return ProviderRequest(
             prompt=prompt,
             session_id=session_id,
             image_urls=image_urls,
-            func_tool=func_tool_manager,
+            func_tool=func_tool,
             contexts=contexts,
             system_prompt=system_prompt,
             conversation=conversation,

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, shallowRef, onMounted, onUnmounted, watch } from 'vue';
 import { useCustomizerStore } from '../../../stores/customizer';
 import { useI18n } from '@/i18n/composables';
@@ -13,11 +13,13 @@ const customizer = useCustomizerStore();
 const sidebarMenu = shallowRef(sidebarItems);
 
 // 侧边栏分组展开状态持久化
-const openedItems = ref(JSON.parse(localStorage.getItem('sidebar_openedItems') || '[]'));
+const openedItems = ref<string[]>(
+  JSON.parse(localStorage.getItem('sidebar_openedItems') || '[]') as string[]
+);
 watch(openedItems, (val) => localStorage.setItem('sidebar_openedItems', JSON.stringify(val)), { deep: true });
 
 // Apply customization on mount and listen for storage changes
-const handleStorageChange = (e) => {
+const handleStorageChange = (e: StorageEvent) => {
   if (e.key === 'astrbot_sidebar_customization') {
     sidebarMenu.value = applySidebarCustomization(sidebarItems);
   }
@@ -29,7 +31,7 @@ const handleCustomEvent = () => {
 
 onMounted(() => {
   sidebarMenu.value = applySidebarCustomization(sidebarItems);
-  
+   
   window.addEventListener('storage', handleStorageChange);
   window.addEventListener('sidebar-customization-changed', handleCustomEvent);
 });
@@ -39,8 +41,7 @@ onUnmounted(() => {
   window.removeEventListener('sidebar-customization-changed', handleCustomEvent);
 });
 
-const showIframe = ref(false);
-const starCount = ref(null);
+const starCount = ref<number | null>(null);
 
 // 更新日志对话框
 const changelogDialog = ref(false);
@@ -50,153 +51,34 @@ const minSidebarWidth = 200;
 const maxSidebarWidth = 300;
 const isResizing = ref(false);
 
-const iframeStyle = ref({
-  position: 'fixed',
-  bottom: '16px',
-  right: '16px',
-  width: '490px',
-  height: '640px',
-  minWidth: '300px',
-  minHeight: '200px',
-  background: 'white',
-  resize: 'both',
-  overflow: 'auto',
-  zIndex: '10000000',
-  borderRadius: '12px',
-  boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
-});
 
 if (window.innerWidth < 768) {
-  iframeStyle.value = {
-    position: 'fixed',
-    top: '10%',
-    left: '0%',
-    width: '100%',
-    height: '80%',
-    minWidth: '300px',
-    minHeight: '200px',
-    background: 'white',
-    resize: 'both',
-    overflow: 'auto',
-    zIndex: '1002',
-    borderRadius: '12px',
-    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
-  };
   customizer.Sidebar_drawer = false;
 }
 
-const dragHeaderStyle = {
-  width: '100%',
-  padding: '8px',
-  background: '#f0f0f0',
-  borderBottom: '1px solid #ccc',
-  borderTopLeftRadius: '8px',
-  borderTopRightRadius: '8px',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  cursor: 'move'
-};
-
-function toggleIframe() {
-  showIframe.value = !showIframe.value;
-}
-
-function openIframeLink(url) {
+function openLink(url?: string) {
   if (typeof window !== 'undefined') {
-    let url_ = url || "https://astrbot.app";
+    let url_ = url || "https://docs.astrbot.app";
     window.open(url_, "_blank");
   }
 }
 
-let offsetX = 0;
-let offsetY = 0;
-let isDragging = false;
-
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function startDrag(clientX, clientY) {
-  isDragging = true;
-  const dm = document.getElementById('draggable-iframe');
-  const rect = dm.getBoundingClientRect();
-  offsetX = clientX - rect.left;
-  offsetY = clientY - rect.top;
-  document.body.style.userSelect = 'none';
-  document.addEventListener('mousemove', onMouseMove);
-  document.addEventListener('mouseup', onMouseUp);
-  document.addEventListener('touchmove', onTouchMove, { passive: false });
-  document.addEventListener('touchend', onTouchEnd);
-}
-
-function onMouseDown(event) {
-  startDrag(event.clientX, event.clientY);
-}
-
-function onMouseMove(event) {
-  if (isDragging) {
-    moveAt(event.clientX, event.clientY);
-  }
-}
-
-function onMouseUp() {
-  endDrag();
-}
-
-function onTouchStart(event) {
-  if (event.touches.length === 1) {
-    const touch = event.touches[0];
-    startDrag(touch.clientX, touch.clientY);
-  }
-}
-
-function onTouchMove(event) {
-  if (isDragging && event.touches.length === 1) {
-    event.preventDefault();
-    const touch = event.touches[0];
-    moveAt(touch.clientX, touch.clientY);
-  }
-}
-
-function onTouchEnd() {
-  endDrag();
-}
-
-function moveAt(clientX, clientY) {
-  const dm = document.getElementById('draggable-iframe');
-  const newLeft = clamp(clientX - offsetX, 0, window.innerWidth - dm.offsetWidth);
-  const newTop = clamp(clientY - offsetY, 0, window.innerHeight - dm.offsetHeight);
-  // 将拖拽后的位置同步到响应式样式变量中
-  iframeStyle.value.left = newLeft + 'px';
-  iframeStyle.value.top = newTop + 'px';
-}
-
-function endDrag() {
-  isDragging = false;
-  document.body.style.userSelect = '';
-  document.removeEventListener('mousemove', onMouseMove);
-  document.removeEventListener('mouseup', onMouseUp);
-  document.removeEventListener('touchmove', onTouchMove);
-  document.removeEventListener('touchend', onTouchEnd);
-}
-
-function startSidebarResize(event) {
+function startSidebarResize(event: MouseEvent) {
   isResizing.value = true;
   document.body.style.userSelect = 'none';
   document.body.style.cursor = 'ew-resize';
-  
+   
   const startX = event.clientX;
   const startWidth = sidebarWidth.value;
-  
-  function onMouseMoveResize(event) {
+   
+  function onMouseMoveResize(event: MouseEvent) {
     if (!isResizing.value) return;
-    
+     
     const deltaX = event.clientX - startX;
     const newWidth = Math.max(minSidebarWidth, Math.min(maxSidebarWidth, startWidth + deltaX));
     sidebarWidth.value = newWidth;
   }
-  
+   
   function onMouseUpResize() {
     isResizing.value = false;
     document.body.style.userSelect = '';
@@ -204,21 +86,28 @@ function startSidebarResize(event) {
     document.removeEventListener('mousemove', onMouseMoveResize);
     document.removeEventListener('mouseup', onMouseUpResize);
   }
-  
+   
   document.addEventListener('mousemove', onMouseMoveResize);
   document.addEventListener('mouseup', onMouseUpResize);
 }
 
-function formatNumber(num) {
-  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+function formatNumber(num: number) {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'm';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  }
+  return num.toString();
 }
 
 async function fetchStarCount() {
   try {
-    const response = await fetch('https://cloud.astrbot.app/api/v1/github/repo-info');
+    const response = await fetch('https://api.github.com/repos/AstrBotDevs/AstrBot');
     const data = await response.json();
-    if (data.data && data.data.stargazers_count) {
-      starCount.value = data.data.stargazers_count;
+    
+    if (data && typeof data.stargazers_count === 'number') {
+      starCount.value = data.stargazers_count;
       console.debug('Fetched star count:', starCount.value);
     }
   } catch (error) {
@@ -237,8 +126,8 @@ function openChangelogDialog() {
 
 <template>
   <v-navigation-drawer
-    left
     v-model="customizer.Sidebar_drawer"
+    left
     elevation="0"
     rail-width="80"
     app
@@ -247,83 +136,85 @@ function openChangelogDialog() {
     :rail="customizer.mini_sidebar"
   >
     <div class="sidebar-container">
-      <v-list class="pa-4 listitem flex-grow-1" v-model:opened="openedItems" :open-strategy="'multiple'">
-        <template v-for="(item, i) in sidebarMenu" :key="i">
-          <NavItem :item="item" class="leftPadding" />
+      <v-list
+        v-model:opened="openedItems"
+        class="pa-4 listitem flex-grow-1"
+        :open-strategy="'multiple'"
+      >
+        <template
+          v-for="(item, i) in sidebarMenu"
+          :key="i"
+        >
+          <NavItem
+            :item="item"
+            class="leftPadding"
+          />
         </template>
       </v-list>
-      <div class="sidebar-footer" v-if="!customizer.mini_sidebar">
-        <v-btn class="sidebar-footer-btn" size="small" variant="tonal" color="primary" to="/settings" prepend-icon="mdi-cog">
+      <div
+        v-if="!customizer.mini_sidebar"
+        class="sidebar-footer"
+      >
+        <v-btn
+          class="sidebar-action-btn"
+          size="small"
+          variant="tonal"
+          color="primary"
+          prepend-icon="mdi-cog-outline"
+          to="/settings"
+        >
           {{ t('core.navigation.settings') }}
         </v-btn>
-        <v-btn class="sidebar-footer-btn" size="small" variant="text" prepend-icon="mdi-note-text-outline"
-          @click="openChangelogDialog">
+        
+        <v-btn
+          class="sidebar-action-btn"
+          size="small"
+          variant="text"
+          prepend-icon="mdi-history"
+          @click="openChangelogDialog"
+        >
           {{ t('core.navigation.changelog') }}
         </v-btn>
-        <v-btn class="sidebar-footer-btn" size="small" variant="text" prepend-icon="mdi-book-open-variant"
-          @click="toggleIframe">
+
+        <v-btn
+          class="sidebar-action-btn"
+          size="small"
+          variant="text"
+          prepend-icon="mdi-book-open-variant"
+          @click="openLink('https://docs.astrbot.app')"
+        >
           {{ t('core.navigation.documentation') }}
         </v-btn>
-        <v-btn class="sidebar-footer-btn" size="small" variant="text" prepend-icon="mdi-github"
-          @click="openIframeLink('https://github.com/AstrBotDevs/AstrBot')">
-          {{ t('core.navigation.github') }}
-           <v-chip
+
+        <v-btn
+          class="sidebar-action-btn"
+          size="small"
+          variant="text"
+          prepend-icon="mdi-github"
+          @click="openLink('https://github.com/AstrBotDevs/AstrBot')"
+        >
+          <span>{{ t('core.navigation.github') }}</span>
+          <v-chip
             v-if="starCount"
             size="x-small"
             variant="outlined"
             class="ml-2"
             style="font-weight: normal;"
-          >{{ formatNumber(starCount) }}</v-chip>
+          >
+            {{ formatNumber(starCount) }}
+          </v-chip>
         </v-btn>
       </div>
     </div>
-    
+     
     <div 
       v-if="!customizer.mini_sidebar && customizer.Sidebar_drawer"
       class="sidebar-resize-handle"
-      @mousedown="startSidebarResize"
       :class="{ 'resizing': isResizing }"
-    >
-    </div>
+      @mousedown="startSidebarResize"
+    />
   </v-navigation-drawer>
-  
-  <div
-    v-if="showIframe"
-    id="draggable-iframe"
-    :style="iframeStyle"
-  >
-
-    <div :style="dragHeaderStyle" @mousedown="onMouseDown" @touchstart="onTouchStart">
-      <div style="display: flex; align-items: center;">
-        <v-icon icon="mdi-cursor-move" />
-        <span style="margin-left: 8px;">{{ t('core.navigation.drag') }}</span>
-      </div>
-      <div style="display: flex; gap: 8px;">
-        <v-btn
-          icon
-          @click.stop="openIframeLink('https://astrbot.app')"
-          @mousedown.stop
-          style="border-radius: 8px; border: 1px solid #ccc;"
-        >
-          <v-icon icon="mdi-open-in-new" />
-        </v-btn>
-        <v-btn
-          icon
-          @click.stop="toggleIframe"
-          @mousedown.stop
-          style="border-radius: 8px; border: 1px solid #ccc;"
-        >
-          <v-icon icon="mdi-close" />
-        </v-btn>
-      </div>
-    </div>
-    <iframe
-      src="https://astrbot.app"
-      style="width: 100%; height: calc(100% - 56px); border: none; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;"
-      ></iframe>
-  </div>
-
-  <!-- 更新日志对话框 -->
+   
   <ChangelogDialog v-model="changelogDialog" />
 </template>
 
@@ -368,5 +259,19 @@ function openChangelogDialog() {
 /* 确保侧边栏容器支持相对定位 */
 .leftSidebar .v-navigation-drawer__content {
   position: relative;
+}
+
+.sidebar-action-btn {
+  justify-content: flex-start;
+  text-transform: none;
+}
+
+.sidebar-action-btn :deep(.v-btn__content) {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.sidebar-action-btn :deep(.v-icon) {
+  opacity: 0.85;
 }
 </style>

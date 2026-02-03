@@ -1,5 +1,4 @@
 import { ref, onBeforeUnmount } from 'vue';
-import axios from 'axios';
 
 interface VADOptions {
     onSpeechStart?: () => void;
