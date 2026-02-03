@@ -6,7 +6,7 @@ export interface menu {
   divider?: boolean;
   chip?: string;
   chipColor?: string;
-  chipVariant?: string;
+  chipVariant?: 'flat' | 'text' | 'elevated' | 'tonal' | 'outlined' | 'plain';
   chipIcon?: string;
   children?: menu[];
   disabled?: boolean;
@@ -75,7 +75,7 @@ const sidebarItem: menu[] = [
       {
         title: 'core.navigation.dashboard',
         icon: 'mdi-view-dashboard',
-        to: '/dashboard/default'
+        to: '/default'
       },
       {
         title: 'core.navigation.console',

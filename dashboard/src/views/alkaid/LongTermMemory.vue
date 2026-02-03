@@ -1,32 +1,62 @@
 <template>
-  <div id="long-term-memory" class="flex-grow-1" style="display: flex; flex-direction: row; ">
-    <div id="graph-container"
-      style="flex-grow: 1; width: 100%; border: 1px solid #eee; border-radius: 8px; max-height: calc(100% - 40px);">
-    </div>
+  <div
+    id="long-term-memory"
+    class="flex-grow-1"
+    style="display: flex; flex-direction: row; "
+  >
+    <div
+      id="graph-container"
+      style="flex-grow: 1; width: 100%; border: 1px solid #eee; border-radius: 8px; max-height: calc(100% - 40px);"
+    />
     <!-- <div id="graph-container-nonono"
       style="display: flex; justify-content: center; align-items: center; width: 100%; font-weight: 1000; font-size: 24px;">
       加速开发中...
     </div> -->
-    <div id="graph-control-panel"
-      style="min-width: 450px; border: 1px solid #eee; border-radius: 8px; padding: 16px; padding-bottom: 0px; margin-left: 16px; max-height: calc(100% - 40px);">
+    <div
+      id="graph-control-panel"
+      style="min-width: 450px; border: 1px solid #eee; border-radius: 8px; padding: 16px; padding-bottom: 0px; margin-left: 16px; max-height: calc(100% - 40px);"
+    >
       <div>
         <!-- <span style="color: #333333;">可视化</span> -->
         <h3>{{ tm('filters.title') }}</h3>
         <div style="margin-top: 8px;">
-          <v-autocomplete v-model="searchUserId" density="compact" :items="userIdList" variant="outlined"
-            :label="tm('filters.userIdLabel')"></v-autocomplete>
+          <v-autocomplete
+            v-model="searchUserId"
+            density="compact"
+            :items="userIdList"
+            variant="outlined"
+            :label="tm('filters.userIdLabel')"
+          />
         </div>
         <div style="display: flex; gap: 8px;">
-          <v-btn color="primary" @click="onNodeSelect" variant="tonal">
-            <v-icon start>mdi-magnify</v-icon>
+          <v-btn
+            color="primary"
+            variant="tonal"
+            @click="onNodeSelect"
+          >
+            <v-icon start>
+              mdi-magnify
+            </v-icon>
             {{ tm('filters.filterButton') }}
           </v-btn>
-          <v-btn color="secondary" @click="resetFilter" variant="tonal">
-            <v-icon start>mdi-filter-remove</v-icon>
+          <v-btn
+            color="secondary"
+            variant="tonal"
+            @click="resetFilter"
+          >
+            <v-icon start>
+              mdi-filter-remove
+            </v-icon>
             {{ tm('filters.resetButton') }}
           </v-btn>
-          <v-btn color="primary" @click="refreshGraph" variant="tonal">
-            <v-icon start>mdi-refresh</v-icon>
+          <v-btn
+            color="primary"
+            variant="tonal"
+            @click="refreshGraph"
+          >
+            <v-icon start>
+              mdi-refresh
+            </v-icon>
             {{ tm('filters.refreshButton') }}
           </v-btn>
         </div>
@@ -35,34 +65,70 @@
       <!-- 新增搜索记忆功能 -->
       <div class="mt-4">
         <h3>{{ tm('search.title') }}</h3>
-        <v-card variant="outlined" class="mt-2 pa-3">
+        <v-card
+          variant="outlined"
+          class="mt-2 pa-3"
+        >
           <div>
-            <v-text-field v-model="searchMemoryUserId" :label="tm('search.userIdLabel')" variant="outlined" density="compact" hide-details
-              class="mb-2"></v-text-field>
-            <v-text-field v-model="searchQuery" :label="tm('search.queryLabel')" variant="outlined" density="compact" hide-details
-              @keyup.enter="searchMemory" class="mb-2"></v-text-field>
-            <v-btn color="info" @click="searchMemory" :loading="isSearching" variant="tonal">
-              <v-icon start>mdi-text-search</v-icon>
+            <v-text-field
+              v-model="searchMemoryUserId"
+              :label="tm('search.userIdLabel')"
+              variant="outlined"
+              density="compact"
+              hide-details
+              class="mb-2"
+            />
+            <v-text-field
+              v-model="searchQuery"
+              :label="tm('search.queryLabel')"
+              variant="outlined"
+              density="compact"
+              hide-details
+              class="mb-2"
+              @keyup.enter="searchMemory"
+            />
+            <v-btn
+              color="info"
+              :loading="isSearching"
+              variant="tonal"
+              @click="searchMemory"
+            >
+              <v-icon start>
+                mdi-text-search
+              </v-icon>
               {{ tm('search.searchButton') }}
             </v-btn>
           </div>
 
           <!-- 新增搜索结果展示区域 -->
-          <div v-if="searchResults.length > 0" class="mt-3">
-            <v-divider class="mb-3"></v-divider>
-            <div class="text-subtitle-1 mb-2">{{ tm('search.resultsTitle') }} ({{ searchResults.length }})</div>
+          <div
+            v-if="searchResults.length > 0"
+            class="mt-3"
+          >
+            <v-divider class="mb-3" />
+            <div class="text-subtitle-1 mb-2">
+              {{ tm('search.resultsTitle') }} ({{ searchResults.length }})
+            </div>
             <v-expansion-panels variant="accordion">
-              <v-expansion-panel v-for="(result, index) in searchResults" :key="index">
+              <v-expansion-panel
+                v-for="(result, index) in searchResults"
+                :key="index"
+              >
                 <v-expansion-panel-title>
                   <div>
-                    <span class="text-truncate d-inline-block" style="max-width: 300px;">{{ result.text.substring(0, 30)
-                      }}...</span>
+                    <span
+                      class="text-truncate d-inline-block"
+                      style="max-width: 300px;"
+                    >{{ result.text.substring(0, 30)
+                    }}...</span>
                     <span class="ms-2 text-caption text-grey">({{ tm('search.similarity') }}: {{ (result.score * 100).toFixed(1) }}%)</span>
                   </div>
                 </v-expansion-panel-title>
                 <v-expansion-panel-text>
                   <div>
-                    <div class="mb-2 text-body-1">{{ result.text }}</div>
+                    <div class="mb-2 text-body-1">
+                      {{ result.text }}
+                    </div>
                     <div class="d-flex">
                       <span class="text-caption text-grey">{{ tm('factDialog.docId') }}: {{ result.doc_id }}</span>
                     </div>
@@ -71,7 +137,10 @@
               </v-expansion-panel>
             </v-expansion-panels>
           </div>
-          <div v-else-if="hasSearched" class="mt-3 text-center text-body-1 text-grey">
+          <div
+            v-else-if="hasSearched"
+            class="mt-3 text-center text-body-1 text-grey"
+          >
             {{ tm('search.noResults') }}
           </div>
         </v-card>
@@ -80,27 +149,59 @@
       <!-- 新增添加记忆数据的表单 -->
       <div class="mt-4">
         <h3>{{ tm('addMemory.title') }}</h3>
-        <v-card variant="outlined" class="mt-2 pa-3">
+        <v-card
+          variant="outlined"
+          class="mt-2 pa-3"
+        >
           <v-form @submit.prevent="addMemoryData">
-            <v-textarea v-model="newMemoryText" :label="tm('addMemory.textLabel')" variant="outlined" rows="4" hide-details
-              class="mb-2"></v-textarea>
+            <v-textarea
+              v-model="newMemoryText"
+              :label="tm('addMemory.textLabel')"
+              variant="outlined"
+              rows="4"
+              hide-details
+              class="mb-2"
+            />
 
-            <v-text-field v-model="newMemoryUserId" :label="tm('addMemory.userIdLabel')" variant="outlined" density="compact"
-              hide-details></v-text-field>
+            <v-text-field
+              v-model="newMemoryUserId"
+              :label="tm('addMemory.userIdLabel')"
+              variant="outlined"
+              density="compact"
+              hide-details
+            />
 
-            <v-switch v-model="needSummarize" color="primary" :label="tm('addMemory.summarizeLabel')" hide-details></v-switch>
+            <v-switch
+              v-model="needSummarize"
+              color="primary"
+              :label="tm('addMemory.summarizeLabel')"
+              hide-details
+            />
 
-            <v-btn color="success" type="submit" :loading="isSubmitting" :disabled="!newMemoryText || !newMemoryUserId">
-              <v-icon start>mdi-plus</v-icon>
+            <v-btn
+              color="success"
+              type="submit"
+              :loading="isSubmitting"
+              :disabled="!newMemoryText || !newMemoryUserId"
+            >
+              <v-icon start>
+                mdi-plus
+              </v-icon>
               {{ tm('addMemory.addButton') }}
             </v-btn>
           </v-form>
         </v-card>
       </div>
 
-      <div v-if="selectedNode" class="mt-4">
+      <div
+        v-if="selectedNode"
+        class="mt-4"
+      >
         <h3>{{ tm('nodeDetails.title') }}</h3>
-        <v-card variant="outlined" class="mt-2 pa-3">
+        <v-card
+          variant="outlined"
+          class="mt-2 pa-3"
+        >
           <div v-if="selectedNode.id">
             <div class="d-flex justify-space-between">
               <span class="text-subtitle-2">{{ tm('nodeDetails.id') }}:</span>
@@ -140,9 +241,15 @@
         </v-card>
       </div>
 
-      <div v-if="graphStats" class="mt-4">
+      <div
+        v-if="graphStats"
+        class="mt-4"
+      >
         <h3>{{ tm('graphStats.title') }}</h3>
-        <v-card variant="outlined" class="mt-2 pa-3">
+        <v-card
+          variant="outlined"
+          class="mt-2 pa-3"
+        >
           <div class="d-flex justify-space-between">
             <span class="text-subtitle-2">{{ tm('graphStats.nodeCount') }}:</span>
             <span>{{ graphStats.nodeCount }}</span>
@@ -154,37 +261,78 @@
         </v-card>
       </div>
 
-      <v-dialog v-model="showFactDialog" max-width="550" scrollable>
+      <v-dialog
+        v-model="showFactDialog"
+        max-width="550"
+        scrollable
+      >
         <v-card class="fact-detail-card">
           <v-card-title class="d-flex align-center bg-primary text-white px-4 py-3">
-            <v-icon class="mr-2" color="white">mdi-memory</v-icon>
+            <v-icon
+              class="mr-2"
+              color="white"
+            >
+              mdi-memory
+            </v-icon>
             {{ tm('factDialog.title') }}
-            <v-spacer></v-spacer>
-            <v-btn icon variant="text" color="white" @click="showFactDialog = false">
+            <v-spacer />
+            <v-btn
+              icon
+              variant="text"
+              color="white"
+              @click="showFactDialog = false"
+            >
               <v-icon>mdi-close</v-icon>
             </v-btn>
           </v-card-title>
           
           <v-card-text class="px-4 pt-4 pb-0">
             <template v-if="selectedEdgeFactData">
-              <v-alert color="primary" variant="tonal" density="compact" class="mb-4">
-                <div class="text-body-1 font-weight-medium">{{ selectedEdgeFactData.text }}</div>
+              <v-alert
+                color="primary"
+                variant="tonal"
+                density="compact"
+                class="mb-4"
+              >
+                <div class="text-body-1 font-weight-medium">
+                  {{ selectedEdgeFactData.text }}
+                </div>
               </v-alert>
               
               <v-row>
                 <v-col cols="6">
                   <div class="d-flex align-center mb-2">
-                    <v-icon size="small" color="primary" class="mr-2">mdi-identifier</v-icon>
-                    <div class="text-subtitle-2">{{ tm('factDialog.id') }}</div>
+                    <v-icon
+                      size="small"
+                      color="primary"
+                      class="mr-2"
+                    >
+                      mdi-identifier
+                    </v-icon>
+                    <div class="text-subtitle-2">
+                      {{ tm('factDialog.id') }}
+                    </div>
                   </div>
-                  <div class="text-body-2 text-grey pa-1">{{ selectedEdgeFactData.id }}</div>
+                  <div class="text-body-2 text-grey pa-1">
+                    {{ selectedEdgeFactData.id }}
+                  </div>
                 </v-col>
                 <v-col cols="6">
                   <div class="d-flex align-center mb-2">
-                    <v-icon size="small" color="primary" class="mr-2">mdi-file-document-outline</v-icon>
-                    <div class="text-subtitle-2">{{ tm('factDialog.docId') }}</div>
+                    <v-icon
+                      size="small"
+                      color="primary"
+                      class="mr-2"
+                    >
+                      mdi-file-document-outline
+                    </v-icon>
+                    <div class="text-subtitle-2">
+                      {{ tm('factDialog.docId') }}
+                    </div>
                   </div>
-                  <div class="text-body-2 text-grey pa-1">{{ selectedEdgeFactData.doc_id }}</div>
+                  <div class="text-body-2 text-grey pa-1">
+                    {{ selectedEdgeFactData.doc_id }}
+                  </div>
                 </v-col>
               </v-row>
               
@@ -192,37 +340,83 @@
               <v-row class="mt-2">
                 <v-col cols="6">
                   <div class="d-flex align-center mb-2">
-                    <v-icon size="small" color="primary" class="mr-2">mdi-calendar-plus</v-icon>
-                    <div class="text-subtitle-2">{{ tm('factDialog.createdAt') }}</div>
+                    <v-icon
+                      size="small"
+                      color="primary"
+                      class="mr-2"
+                    >
+                      mdi-calendar-plus
+                    </v-icon>
+                    <div class="text-subtitle-2">
+                      {{ tm('factDialog.createdAt') }}
+                    </div>
                   </div>
-                  <div class="text-body-2 text-grey pa-1">{{ formatTime(selectedEdgeFactData.created_at) }}</div>
+                  <div class="text-body-2 text-grey pa-1">
+                    {{ formatTime(selectedEdgeFactData.created_at) }}
+                  </div>
                 </v-col>
                 <v-col cols="6">
                   <div class="d-flex align-center mb-2">
-                    <v-icon size="small" color="primary" class="mr-2">mdi-calendar-edit</v-icon>
-                    <div class="text-subtitle-2">{{ tm('factDialog.updatedAt') }}</div>
+                    <v-icon
+                      size="small"
+                      color="primary"
+                      class="mr-2"
+                    >
+                      mdi-calendar-edit
+                    </v-icon>
+                    <div class="text-subtitle-2">
+                      {{ tm('factDialog.updatedAt') }}
+                    </div>
                   </div>
-                  <div class="text-body-2 text-grey pa-1">{{ formatTime(selectedEdgeFactData.updated_at) }}</div>
+                  <div class="text-body-2 text-grey pa-1">
+                    {{ formatTime(selectedEdgeFactData.updated_at) }}
+                  </div>
                 </v-col>
               </v-row>
 
               <!-- 改进元数据展示，解析为键值对 -->
-              <div v-if="parsedMetadata && Object.keys(parsedMetadata).length > 0" class="mt-4">
+              <div
+                v-if="parsedMetadata && Object.keys(parsedMetadata).length > 0"
+                class="mt-4"
+              >
                 <div class="d-flex align-center mb-2">
-                  <v-icon size="small" color="primary" class="mr-2">mdi-database-cog</v-icon>
-                  <div class="text-subtitle-2">{{ tm('factDialog.metadata') }}</div>
+                  <v-icon
+                    size="small"
+                    color="primary"
+                    class="mr-2"
+                  >
+                    mdi-database-cog
+                  </v-icon>
+                  <div class="text-subtitle-2">
+                    {{ tm('factDialog.metadata') }}
+                  </div>
                 </div>
-                <v-card variant="outlined" class="metadata-table">
-                  <v-table density="compact" hover>
+                <v-card
+                  variant="outlined"
+                  class="metadata-table"
+                >
+                  <v-table
+                    density="compact"
+                    hover
+                  >
                     <thead>
                       <tr>
-                        <th class="text-left">{{ tm('factDialog.metadataKey') }}</th>
-                        <th class="text-left">{{ tm('factDialog.metadataValue') }}</th>
+                        <th class="text-left">
+                          {{ tm('factDialog.metadataKey') }}
+                        </th>
+                        <th class="text-left">
+                          {{ tm('factDialog.metadataValue') }}
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="(value, key) in parsedMetadata" :key="key">
-                        <td class="font-weight-medium">{{ key }}</td>
+                      <tr
+                        v-for="(value, key) in parsedMetadata"
+                        :key="key"
+                      >
+                        <td class="font-weight-medium">
+                          {{ key }}
+                        </td>
                         <td>{{ formatMetadataValue(value) }}</td>
                       </tr>
                     </tbody>
@@ -231,16 +425,34 @@
               </div>
             </template>
             
-            <div v-else class="text-center py-6">
-              <v-progress-circular indeterminate color="primary" size="50" width="5"></v-progress-circular>
-              <div class="mt-3 text-body-1">{{ tm('factDialog.loading') }}</div>
+            <div
+              v-else
+              class="text-center py-6"
+            >
+              <v-progress-circular
+                indeterminate
+                color="primary"
+                size="50"
+                width="5"
+              />
+              <div class="mt-3 text-body-1">
+                {{ tm('factDialog.loading') }}
+              </div>
             </div>
           </v-card-text>
           
-          <v-divider v-if="selectedEdgeFactData"></v-divider>
+          <v-divider v-if="selectedEdgeFactData" />
           
-          <v-card-actions class="pa-4" v-if="selectedEdgeFactData">
-            <v-btn block color="primary" variant="tonal" @click="showFactDialog = false">
+          <v-card-actions
+            v-if="selectedEdgeFactData"
+            class="pa-4"
+          >
+            <v-btn
+              block
+              color="primary"
+              variant="tonal"
+              @click="showFactDialog = false"
+            >
               {{ tm('factDialog.close') }}
             </v-btn>
           </v-card-actions>
@@ -250,10 +462,41 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import axios from 'axios';
 // import * as d3 from "d3"; // npm install d3
 import { useModuleI18n } from '@/i18n/composables';
+
+type NodeRaw = [string, Record<string, any>]
+type EdgeRaw = [string, string, Record<string, any>]
+
+type GraphNode = {
+  id: string
+  label: string
+  color: string
+  originalData: Record<string, any>
+  x?: number
+  y?: number
+  fx?: number | null
+  fy?: number | null
+}
+
+type GraphLink = {
+  source: string | GraphNode
+  target: string | GraphNode
+  color: string
+  originalData: Record<string, any>
+  label: string
+  curvature?: number
+}
+
+type GraphStats = { nodeCount: number; edgeCount: number }
+
+type SearchResultItem = {
+  text: string
+  score: number
+  doc_id: string
+}
 
 export default {
   name: 'LongTermMemory',
@@ -263,50 +506,53 @@ export default {
   },
   data() {
     return {
-      simulation: null,
-      svg: null,
-      zoom: null,
-      node_data: [],
-      edge_data: [],
-      nodes: [],
-      links: [],
-      searchUserId: null,
-      userIdList: [],
-      selectedNode: null,
-      graphStats: null,
+      simulation: null as any,
+      svg: null as any,
+      zoom: null as any,
+      g: null as any,
+      width: 0,
+      height: 0,
+      node_data: [] as NodeRaw[],
+      edge_data: [] as EdgeRaw[],
+      nodes: [] as GraphNode[],
+      links: [] as GraphLink[],
+      searchUserId: null as string | null,
+      userIdList: [] as string[],
+      selectedNode: null as Record<string, any> | null,
+      graphStats: null as GraphStats | null,
       nodeColors: {
         'PhaseNode': '#4CAF50',  // 绿色
         'PassageNode': '#2196F3', // 蓝色
         'FactNode': '#FF9800',    // 橙色
         'default': '#9C27B0'      // 紫色作为默认
-      },
+      } as Record<string, string>,
       edgeColors: {
         '_include_': '#607D8B',
         '_related_': '#9E9E9E',
         'default': '#BDBDBD'
-      },
+      } as Record<string, string>,
       isLoading: false,
       // 添加新的数据属性
       newMemoryText: '',
-      newMemoryUserId: null,
+      newMemoryUserId: null as string | null,
       needSummarize: false,
       isSubmitting: false,
       // 搜索记忆相关属性
-      searchMemoryUserId: null,
+      searchMemoryUserId: null as string | null,
       searchQuery: '',
       isSearching: false,
-      searchResults: [],
+      searchResults: [] as SearchResultItem[],
       hasSearched: false,
 
       // 添加边点击相关数据
-      selectedEdge: null,
-      selectedEdgeFactId: null,
-      selectedEdgeFactData: null,
+      selectedEdge: null as GraphLink | null,
+      selectedEdgeFactId: null as string | null,
+      selectedEdgeFactData: null as Record<string, any> | null,
       showFactDialog: false,
       isLoadingFactData: false,
 
       // 改进元数据展示
-      parsedMetadata: null,
+      parsedMetadata: null as Record<string, unknown> | null,
     }
   },
   mounted() {
@@ -348,7 +594,7 @@ export default {
       this.searchResults = [];
 
       // 构建查询参数
-      const params = {
+      const params: any = {
         query: this.searchQuery
       };
 
@@ -405,7 +651,7 @@ export default {
       };
 
       axios.post('/api/plug/alkaid/ltm/graph/add', payload)
-        .then(response => {
+        .then(_response => {
           // 成功添加后刷新图表
           this.refreshGraph();
 
@@ -425,7 +671,7 @@ export default {
         });
     },
 
-    ltmGetGraph(userId = null) {
+    ltmGetGraph(userId: string | null = null) {
       this.isLoading = true;
       const params = userId ? { user_id: userId } : {};
 
@@ -433,17 +679,17 @@ export default {
         .then(response => {
           const data = response.data.data || {};
           // 确保数据是数组类型，并且先检查data是否存在
-          let nodesRaw = data && Array.isArray(data.nodes) ? data.nodes : [];
-          let edgesRaw = data && Array.isArray(data.edges) ? data.edges : [];
+          const nodesRaw: NodeRaw[] = data && Array.isArray(data.nodes) ? (data.nodes as NodeRaw[]) : [];
+          const edgesRaw: EdgeRaw[] = data && Array.isArray(data.edges) ? (data.edges as EdgeRaw[]) : [];
 
           this.node_data = nodesRaw;
           this.edge_data = edgesRaw;
 
           // 转换为D3所需的数据格式
-          this.nodes = nodesRaw.map(node => {
+          this.nodes = nodesRaw.map((node) => {
             const nodeId = node[0];
             const nodeData = node[1];
-            const nodeType = nodeData._label || 'default';
+            const nodeType = String(nodeData._label || 'default');
             const color = this.nodeColors[nodeType] || this.nodeColors['default'];
 
             return {
@@ -454,11 +700,11 @@ export default {
             };
           });
 
-          this.links = edgesRaw.map(edge => {
+          this.links = edgesRaw.map((edge) => {
             const sourceId = edge[0];
             const targetId = edge[1];
             const edgeData = edge[2];
-            const relationType = edgeData.relation_type || 'default';
+            const relationType = String(edgeData.relation_type || 'default');
             const color = this.edgeColors[relationType] || this.edgeColors['default'];
 
             return {
@@ -492,7 +738,7 @@ export default {
         .then(response => {
           // 确保返回的数据是数组类型
           const data = response.data.data;
-          this.userIdList = Array.isArray(data) ? data : [];
+          this.userIdList = Array.isArray(data) ? (data as unknown[]).map((x) => String(x)) : [];
         })
         .catch(error => {
           console.error('Error fetching user IDs:', error);
@@ -528,7 +774,7 @@ export default {
     },
 
     // 添加获取Fact详情的方法
-    getFactDetails(factId) {
+    getFactDetails(factId: string | null) {
       if (!factId) return;
       
       this.isLoadingFactData = true;
@@ -540,9 +786,10 @@ export default {
       })
         .then(response => {
           if (response.data.status === 'ok') {
-            this.selectedEdgeFactData = response.data.data;
+            const factData = (response.data.data || null) as Record<string, any> | null;
+            this.selectedEdgeFactData = factData;
             // 解析元数据
-            this.parsedMetadata = this.parseMetadata(this.selectedEdgeFactData.metadata);
+            this.parsedMetadata = this.parseMetadata(factData?.metadata);
             this.showFactDialog = true;
           } else {
             this.$toast.error(this.tm('messages.factDetailsError') + ': ' + response.data.message);
@@ -558,7 +805,7 @@ export default {
     },
 
     // 添加元数据解析方法
-    parseMetadata(metadata) {
+    parseMetadata(metadata: unknown): Record<string, unknown> | null {
       if (!metadata) return null;
       
       try {
@@ -566,25 +813,25 @@ export default {
         if (typeof metadata === 'string') {
           try {
             return JSON.parse(metadata);
-          } catch (e) {
+          } catch (_e) {
             return { value: metadata }; // 如果无法解析为JSON，则作为单个值返回
           }
         }
         
         // 如果已经是对象，直接返回
         if (typeof metadata === 'object') {
-          return metadata;
+          return metadata as Record<string, unknown>;
         }
         
         return { value: String(metadata) };
-      } catch (e) {
-        console.error('解析元数据出错:', e);
+      } catch (_e) {
+        console.error('解析元数据出错:', _e);
         return { error: this.tm('messages.metadataParseError') };
       }
     },
     
     // 格式化元数据值
-    formatMetadataValue(value) {
+    formatMetadataValue(value: unknown) {
       if (value === null || value === undefined) return this.tm('factDialog.noValue');
       
       if (typeof value === 'object') {
@@ -595,11 +842,11 @@ export default {
     },
 
     // 格式化时间戳的辅助方法
-    formatTime(timestamp) {
+    formatTime(timestamp: unknown) {
       if (!timestamp) return this.tm('factDialog.unknown');
       try {
-        return new Date(timestamp).toLocaleString();
-      } catch (e) {
+        return new Date(timestamp as any).toLocaleString();
+      } catch (_e) {
         return timestamp;
       }
     },
@@ -629,13 +876,13 @@ export default {
       const g = svg.append("g");
       const zoom = d3.zoom()
         .scaleExtent([0.1, 10])
-        .on("zoom", (event) => {
+        .on("zoom", (event: any) => {
           g.attr("transform", event.transform);
         });
 
       svg.call(zoom);
       const simulation = d3.forceSimulation()
-        .force("link", d3.forceLink().id(d => d.id).distance(100))
+        .force("link", d3.forceLink().id((d: { id: string }) => d.id).distance(100))
         .force("charge", d3.forceManyBody().strength(-300))
         .force("center", d3.forceCenter(width / 2, height / 2))
         .force("collision", d3.forceCollide().radius(30));
@@ -676,14 +923,14 @@ export default {
         .attr("fill", "#999");
       
       // 预处理边数据，标识和处理重复边
-      const linkGroups = this.identifyParallelLinks(this.links);
+      this.identifyParallelLinks(this.links);
       
       // 使用路径替代直线来绘制边，以便支持曲线
       const link = g.append("g")
         .selectAll("path")
         .data(this.links)
         .join("path")
-        .attr("stroke", d => d.color)
+        .attr("stroke", (d: GraphLink) => d.color)
         .attr("stroke-width", 1.5)
         .attr("fill", "none")
         .attr("marker-end", "url(#arrowhead)")
@@ -694,12 +941,12 @@ export default {
         .selectAll("text")
         .data(this.links)
         .join("text")
-        .text(d => d.label)
+        .text((d: GraphLink) => d.label)
         .attr("font-size", "8px")
         .attr("text-anchor", "middle")
         .attr("fill", "#666")
         .style("cursor", "pointer")
-        .on("click", (event, d) => {
+        .on("click", (event: any, d: GraphLink) => {
           event.stopPropagation();
           
           // 检查边数据中是否有fact_id
@@ -719,7 +966,7 @@ export default {
         .data(this.nodes)
         .join("circle")
         .attr("r", 8)
-        .attr("fill", d => d.color)
+        .attr("fill", (d: GraphNode) => d.color)
         .style("cursor", "pointer")
         .call(this.dragBehavior());
         
@@ -727,13 +974,13 @@ export default {
         .selectAll("text")
         .data(this.nodes)
         .join("text")
-        .text(d => d.label)
+        .text((d: GraphNode) => d.label)
         .attr("font-size", "10px")
         .attr("text-anchor", "middle")
         .attr("fill", "#333")
         .attr("dy", -12);
         
-      node.on("click", (event, d) => {
+      node.on("click", (event: any, d: GraphNode) => {
         event.stopPropagation();
         this.selectedNode = d.originalData;
       });
@@ -747,21 +994,21 @@ export default {
         .nodes(this.nodes)
         .on("tick", () => {
           // 更新边的路径
-          link.attr("d", d => this.generateLinkPath(d));
+          link.attr("d", (d: GraphLink) => this.generateLinkPath(d));
           
           // 更新边标签位置
           edgeLabels
-            .attr("x", d => this.getLinkLabelX(d))
-            .attr("y", d => this.getLinkLabelY(d));
+            .attr("x", (d: GraphLink) => this.getLinkLabelX(d))
+            .attr("y", (d: GraphLink) => this.getLinkLabelY(d));
             
           // 更新节点位置
           node
-            .attr("cx", d => d.x)
-            .attr("cy", d => d.y);
+            .attr("cx", (d: GraphNode) => d.x)
+            .attr("cy", (d: GraphNode) => d.y);
             
           nodeLabels
-            .attr("x", d => d.x)
-            .attr("y", d => d.y);
+            .attr("x", (d: GraphNode) => d.x)
+            .attr("y", (d: GraphNode) => d.y);
         });
 
       this.simulation.force("link")
@@ -771,12 +1018,12 @@ export default {
     },
     
     // 识别并标记平行边（连接相同两个节点的多条边）
-    identifyParallelLinks(links) {
+    identifyParallelLinks(links: GraphLink[]) {
       // 创建一个映射来存储连接相同节点对的边
-      const linkMap = new Map();
+      const linkMap = new Map<string, Array<{ link: GraphLink; isForward: boolean }>>();
       
       // 遍历所有边，按照起点和终点进行分组
-      links.forEach(link => {
+      links.forEach((link: GraphLink) => {
         // 创建边的键，确保无论边的方向如何，同一对节点生成的键都相同
         const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
         const targetId = typeof link.target === 'object' ? link.target.id : link.target;
@@ -794,17 +1041,17 @@ export default {
         }
         
         // 存储边和其方向
-        linkMap.get(key).push({
+        linkMap.get(key)!.push({
           link,
           isForward: isForwardLink
         });
       });
       
       // 处理每一组平行边，为它们分配曲率
-      linkMap.forEach((parallels, key) => {
+      linkMap.forEach((parallels) => {
         if (parallels.length > 1) {
           // 有多条平行边，分配不同曲率
-          parallels.forEach((item, index) => {
+          parallels.forEach((item: { link: GraphLink; isForward: boolean }, index: number) => {
             // 根据边的数量计算适当的曲率
             const totalLinks = parallels.length;
             // 基础曲率，可根据边数调整
@@ -849,29 +1096,34 @@ export default {
     },
     
     // 根据曲率生成边的路径
-    generateLinkPath(d) {
+    generateLinkPath(d: GraphLink) {
       // 确保source和target是对象
-      const source = typeof d.source === 'object' ? d.source : this.nodes.find(n => n.id === d.source);
-      const target = typeof d.target === 'object' ? d.target : this.nodes.find(n => n.id === d.target);
+      const source = typeof d.source === 'object' ? d.source : this.nodes.find((n) => n.id === d.source);
+      const target = typeof d.target === 'object' ? d.target : this.nodes.find((n) => n.id === d.target);
       
       if (!source || !target) return '';
+
+      const sx = source.x ?? 0;
+      const sy = source.y ?? 0;
+      const tx = target.x ?? 0;
+      const ty = target.y ?? 0;
       
       // 如果是直线(无曲率)
       if (!d.curvature || d.curvature === 0) {
-        return `M${source.x},${source.y}L${target.x},${target.y}`;
+        return `M${sx},${sy}L${tx},${ty}`;
       }
       
       // 计算曲线的控制点
-      const dx = target.x - source.x;
-      const dy = target.y - source.y;
+      const dx = tx - sx;
+      const dy = ty - sy;
       const dr = Math.sqrt(dx * dx + dy * dy);
       
       // 控制点偏移距离，由曲率决定
       const offset = dr * d.curvature;
       
       // 计算中点
-      const midX = (source.x + target.x) / 2;
-      const midY = (source.y + target.y) / 2;
+      const midX = (sx + tx) / 2;
+      const midY = (sy + ty) / 2;
       
       // 计算垂直于连线的方向向量
       const nx = -dy / dr;
@@ -882,28 +1134,33 @@ export default {
       const cpy = midY + offset * ny;
       
       // 创建二次贝塞尔曲线路径
-      return `M${source.x},${source.y} Q${cpx},${cpy} ${target.x},${target.y}`;
+      return `M${sx},${sy} Q${cpx},${cpy} ${tx},${ty}`;
     },
     
     // 新增方法：计算边标签的X坐标
-    getLinkLabelX(d) {
-      const source = typeof d.source === 'object' ? d.source : this.nodes.find(n => n.id === d.source);
-      const target = typeof d.target === 'object' ? d.target : this.nodes.find(n => n.id === d.target);
+    getLinkLabelX(d: GraphLink) {
+      const source = typeof d.source === 'object' ? d.source : this.nodes.find((n) => n.id === d.source);
+      const target = typeof d.target === 'object' ? d.target : this.nodes.find((n) => n.id === d.target);
       
       if (!source || !target) return 0;
+
+      const sx = source.x ?? 0;
+      const sy = source.y ?? 0;
+      const tx = target.x ?? 0;
+      const ty = target.y ?? 0;
       
       // 如果是直线
       if (!d.curvature || d.curvature === 0) {
-        return (source.x + target.x) / 2;
+        return (sx + tx) / 2;
       }
       
       // 计算曲线上的点
-      const dx = target.x - source.x;
-      const dy = target.y - source.y;
+      const dx = tx - sx;
+      const dy = ty - sy;
       const dr = Math.sqrt(dx * dx + dy * dy);
       
       // 中点
-      const midX = (source.x + target.x) / 2;
+      const midX = (sx + tx) / 2;
       
       // 垂直向量
       const nx = -dy / dr;
@@ -913,24 +1170,29 @@ export default {
     },
     
     // 新增方法：计算边标签的Y坐标
-    getLinkLabelY(d) {
-      const source = typeof d.source === 'object' ? d.source : this.nodes.find(n => n.id === d.source);
-      const target = typeof d.target === 'object' ? d.target : this.nodes.find(n => n.id === d.target);
+    getLinkLabelY(d: GraphLink) {
+      const source = typeof d.source === 'object' ? d.source : this.nodes.find((n) => n.id === d.source);
+      const target = typeof d.target === 'object' ? d.target : this.nodes.find((n) => n.id === d.target);
       
       if (!source || !target) return 0;
+
+      const sx = source.x ?? 0;
+      const sy = source.y ?? 0;
+      const tx = target.x ?? 0;
+      const ty = target.y ?? 0;
       
       // 如果是直线
       if (!d.curvature || d.curvature === 0) {
-        return (source.y + target.y) / 2;
+        return (sy + ty) / 2;
       }
       
       // 计算曲线上的点
-      const dx = target.x - source.x;
-      const dy = target.y - source.y;
+      const dx = tx - sx;
+      const dy = ty - sy;
       const dr = Math.sqrt(dx * dx + dy * dy);
       
       // 中点
-      const midY = (source.y + target.y) / 2;
+      const midY = (sy + ty) / 2;
       
       // 垂直向量
       const ny = dx / dr;
@@ -941,17 +1203,17 @@ export default {
 
     dragBehavior() {
       return d3.drag()
-        .on("start", (event, d) => {
-          if (!event.active) this.simulation.alphaTarget(0.3).restart();
+        .on("start", (event: any, d: GraphNode) => {
+          if (!event.active) this.simulation?.alphaTarget(0.3)?.restart?.();
           d.fx = d.x;
           d.fy = d.y;
         })
-        .on("drag", (event, d) => {
+        .on("drag", (event: any, d: GraphNode) => {
           d.fx = event.x;
           d.fy = event.y;
         })
-        .on("end", (event, d) => {
-          if (!event.active) this.simulation.alphaTarget(0);
+        .on("end", (event: any, d: GraphNode) => {
+          if (!event.active) this.simulation?.alphaTarget?.(0);
           d.fx = null;
           d.fy = null;
         });

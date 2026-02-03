@@ -3,7 +3,7 @@
     "name": "AI 配置",
     "agent_runner": {
       "description": "Agent 执行方式",
-      "hint": "选择 AI 对话的执行器,默认为 AstrBot 内置 Agent 执行器,可使用 AstrBot 内的知识库、人格、工具调用功能。如果不打算接入 Dify 或 Coze 等第三方 Agent 执行器,不需要修改此节。",
+      "hint": "选择 AI 对话的执行器,默认为 Nebula 内置 Agent 执行器,可使用 Nebula 内的知识库、人格、工具调用功能。如果不打算接入 Dify 或 Coze 等第三方 Agent 执行器,不需要修改此节。",
       "provider_settings": {
         "enable": {
           "description": "启用",
@@ -334,7 +334,7 @@
       },
       "disable_builtin_commands": {
         "description": "禁用自带指令",
-        "hint": "禁用所有 AstrBot 自带指令,如 help, provider, model 等"
+        "hint": "禁用所有 Nebula 自带指令,如 help, provider, model 等"
       }
     },
     "whitelist": {
@@ -552,10 +552,27 @@
       }
     }
   },
+  "help": {
+    "helpPrefix": "如需更多信息，请查看",
+    "documentation": "官方文档",
+    "helpMiddle": "，或加入",
+    "support": "社区支持群",
+    "helpSuffix": " 获取进一步支持。"
+  },
   "system_group": {
     "name": "系统配置",
     "system": {
       "description": "系统配置",
+      "dashboard": {
+        "channel": {
+          "description": "WebUI 下载渠道",
+          "hint": "用于启动时自动下载/更新 WebUI。official 为官方发布版；nebula 为 Nebula 版本。",
+          "labels": [
+            "AstrBot 官方渠道",
+            "Nebula 渠道"
+          ]
+        }
+      },
       "t2i_strategy": {
         "description": "文本转图像策略",
         "hint": "文本转图像策略。`remote` 为使用远程基于 HTML 的渲染服务,`local` 为使用 PIL 本地渲染。当使用 local 时,将 ttf 字体命名为 'font.ttf' 放在 data/ 目录下可自定义字体。"
@@ -610,7 +627,7 @@
       },
       "callback_api_base": {
         "description": "对外可达的回调接口地址",
-        "hint": "外部服务可能会通过 AstrBot 生成的回调链接(如文件下载链接)访问 AstrBot 后端。由于 AstrBot 无法自动判断部署环境中对外可达的主机地址(host),因此需要通过此配置项显式指定外部服务如何访问 AstrBot 的地址。如 http://localhost:6185,https://example.com 等。"
+        "hint": "外部服务可能会通过 Nebula 生成的回调链接(如文件下载链接)访问 Nebula 后端。由于 Nebula 无法自动判断部署环境中对外可达的主机地址(host),因此需要通过此配置项显式指定外部服务如何访问 Nebula 的地址。如 http://localhost:6185,https://example.com 等。"
       },
       "timezone": {
         "description": "时区",

@@ -1,16 +1,37 @@
 <template>
-    <v-chip v-if="domain" class="ref-chip" size="x-small" variant="flat"
-        :style="{ backgroundColor: isDark ? '#303030' : '#f4f4f4', color: isDark ? '#999' : '#666' }" :href="url"
-        target="_blank" clickable>
-        <v-icon start size="x-small" color>mdi-link-variant</v-icon>
-        <span>{{ domain }}</span>
-
-    </v-chip>
-    <span v-else class="ref-fallback" :style="{ color: isDark ? '#999' : '#666' }">{{ 'site' }}</span>
+  <v-chip
+    v-if="domain"
+    class="ref-chip"
+    size="x-small"
+    variant="flat"
+    :style="{ backgroundColor: isDark ? '#303030' : '#f4f4f4', color: isDark ? '#999' : '#666' }"
+    :href="url"
+    target="_blank"
+    clickable
+  >
+    <v-icon
+      start
+      size="x-small"
+    >
+      mdi-link-variant
+    </v-icon>
+    <span>{{ domain }}</span>
+  </v-chip>
+  <span
+    v-else
+    class="ref-fallback"
+    :style="{ color: isDark ? '#999' : '#666' }"
+  >{{ 'site' }}</span>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed, inject } from 'vue'
+
+type WebSearchResultItem = {
+    url?: string;
+};
+
+type WebSearchResults = Record<string, WebSearchResultItem>;
 
 const props = defineProps({
     node: {
@@ -23,7 +44,10 @@ console.log('RefNode node:', props.node);
 
 // 从父组件注入的暗黑模式状态和搜索结果
 const isDark = inject('isDark', false)
-const webSearchResults = inject('webSearchResults', () => ({}))
+const webSearchResults = inject<(() => WebSearchResults) | WebSearchResults>(
+    'webSearchResults',
+    () => ({}) as WebSearchResults
+)
 
 // 从 node.content 中提取 ref index (格式: uuid.idx)
 const refIndex = computed(() => props.node?.content?.trim() || '')
@@ -42,7 +66,7 @@ const domain = computed(() => {
     try {
         const urlObj = new URL(url.value)
         return urlObj.hostname.replace(/^www\./, '')
-    } catch (e) {
+    } catch (_e) {
         return ''
     }
 })

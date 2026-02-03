@@ -1,9 +1,25 @@
-<script setup>
+<script setup lang="ts">
 import { useI18n } from '@/i18n/composables';
 import { useCustomizerStore } from '@/stores/customizer';
 import { computed } from 'vue';
 
-const props = defineProps({ item: Object, level: Number });
+type SidebarNavItem = {
+  title?: string
+  icon?: string
+  iconSize?: string | number
+  to?: string
+  divider?: boolean
+  chip?: string
+  chipColor?: string
+  chipVariant?: 'flat' | 'text' | 'elevated' | 'tonal' | 'outlined' | 'plain'
+  chipIcon?: string
+  children?: SidebarNavItem[]
+  disabled?: boolean
+  type?: string
+  subCaption?: string
+}
+
+const props = defineProps<{ item: SidebarNavItem; level?: number }>();
 const { t } = useI18n();
 const customizer = useCustomizerStore();
 
@@ -15,34 +31,78 @@ const itemStyle = computed(() => {
 </script>
 
 <template>
-  <v-list-group v-if="item.children" :value="item.title" :class="{ 'group-bordered': customizer.mini_sidebar }">
-    <template v-slot:activator="{ props }">
-      <v-list-item v-bind="props" rounded class="mb-1" color="secondary" :prepend-icon="item.icon"
-        :style="{ '--indent-padding': '0px' }">
+  <v-list-group
+    v-if="item.children"
+    :value="item.title"
+    :class="{ 'group-bordered': customizer.mini_sidebar }"
+  >
+    <template #activator="{ props }">
+      <v-list-item
+        v-bind="props"
+        rounded
+        class="mb-1"
+        color="secondary"
+        :prepend-icon="item.icon"
+        :style="{ '--indent-padding': '0px' }"
+      >
         <v-list-item-title style="font-size: 14px; font-weight: 500; line-height: 1.2; word-break: break-word;">
-          {{ t(item.title) }}
+          {{ t(item.title || '') }}
         </v-list-item-title>
       </v-list-item>
     </template>
 
     <!-- children -->
-    <template v-for="(child, index) in item.children" :key="index">
-      <NavItem :item="child" :level="(level || 0) + 1" />
+    <template
+      v-for="(child, index) in item.children"
+      :key="index"
+    >
+      <NavItem
+        :item="child"
+        :level="(level || 0) + 1"
+      />
     </template>
   </v-list-group>
 
-  <v-list-item v-else :to="item.type === 'external' ? '' : item.to" :href="item.type === 'external' ? item.to : ''" rounded
-    class="mb-1" color="secondary" :disabled="item.disabled" :target="item.type === 'external' ? '_blank' : ''" :style="itemStyle">
-    <template v-slot:prepend>
-      <v-icon v-if="item.icon" :size="item.iconSize" class="hide-menu" :icon="item.icon"></v-icon>
+  <v-list-item
+    v-else
+    :to="item.type === 'external' ? '' : item.to"
+    :href="item.type === 'external' ? item.to : ''"
+    rounded
+    class="mb-1"
+    color="secondary"
+    :disabled="item.disabled"
+    :target="item.type === 'external' ? '_blank' : ''"
+    :style="itemStyle"
+    :exact="item.type !== 'external' && item.to === '/'"
+  >
+    <template #prepend>
+      <v-icon
+        v-if="item.icon"
+        :size="item.iconSize"
+        class="hide-menu"
+        :icon="item.icon"
+      />
     </template>
-    <v-list-item-title style="font-size: 14px;">{{ t(item.title) }}</v-list-item-title>
-    <v-list-item-subtitle v-if="item.subCaption" class="text-caption mt-n1 hide-menu">
+    <v-list-item-title style="font-size: 14px;">
+      {{ t(item.title || '') }}
+    </v-list-item-title>
+    <v-list-item-subtitle
+      v-if="item.subCaption"
+      class="text-caption mt-n1 hide-menu"
+    >
       {{ item.subCaption }}
     </v-list-item-subtitle>
-    <template v-slot:append v-if="item.chip">
-      <v-chip :color="item.chipColor" class="sidebarchip hide-menu" :size="item.chipIcon ? 'small' : 'default'"
-        :variant="item.chipVariant" :prepend-icon="item.chipIcon">
+    <template
+      v-if="item.chip"
+      #append
+    >
+      <v-chip
+        :color="item.chipColor"
+        class="sidebarchip hide-menu"
+        :size="item.chipIcon ? 'small' : 'default'"
+        :variant="item.chipVariant"
+        :prepend-icon="item.chipIcon"
+      >
         {{ item.chip }}
       </v-chip>
     </template>

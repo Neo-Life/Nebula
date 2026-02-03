@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, useCssModule } from 'vue';
+import { ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { Form } from 'vee-validate';
-import md5 from 'js-md5';
+import * as md5 from 'js-md5';
 import { useModuleI18n } from '@/i18n/composables';
+import { useRoute, useRouter } from 'vue-router';
 
 const { tm: t } = useModuleI18n('features/auth');
 
@@ -12,26 +13,33 @@ const show1 = ref(false);
 const password = ref('');
 const username = ref('');
 const loading = ref(false);
+const route = useRoute();
+const router = useRouter();
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-async function validate(values: any, { setErrors }: any) {
+type LoginFormValues = {
+  username?: string;
+  password?: string;
+};
+
+type LoginFormErrors = {
+  apiError?: string;
+};
+
+async function validate(_values: LoginFormValues, { setErrors }: { setErrors: (errors: LoginFormErrors) => void }) {
   loading.value = true;
 
   // md5加密
-  let password_ = password.value;
-  if (password.value != '') {
-    // @ts-ignore
-    password_ = md5(password.value);
-  }
+  const password_ = password.value !== '' ? md5.md5(password.value) : password.value;
 
   const authStore = useAuthStore();
-  // @ts-ignore
-  authStore.returnUrl = new URLSearchParams(window.location.search).get('redirect');
-  return authStore.login(username.value, password_).then((res) => {
-    console.log(res);
+  const redirect = route.query.redirect;
+  authStore.returnUrl = typeof redirect === 'string' ? redirect : null;
+  return authStore.login(username.value, password_).then(async () => {
+    await router.push(authStore.returnUrl || '/');
     loading.value = false;
-  }).catch((err) => {
-    setErrors({ apiError: err });
+  }).catch((err: unknown) => {
+    const message = err instanceof Error ? err.message : String(err);
+    setErrors({ apiError: message });
     loading.value = false;
   });
 }
@@ -39,26 +47,64 @@ async function validate(values: any, { setErrors }: any) {
 </script>
 
 <template>
-  <Form @submit="validate" class="mt-4 login-form" v-slot="{ errors, isSubmitting }">
-    <v-text-field v-model="username" :label="t('username')" class="mb-6 input-field" required hide-details="auto"
-      variant="outlined" prepend-inner-icon="mdi-account" :disabled="loading"></v-text-field>
+  <Form
+    v-slot="{ errors, isSubmitting }"
+    class="mt-4 login-form"
+    @submit="validate"
+  >
+    <v-text-field
+      v-model="username"
+      :label="t('username')"
+      class="mb-6 input-field"
+      required
+      hide-details="auto"
+      variant="outlined"
+      prepend-inner-icon="mdi-account"
+      :disabled="loading"
+    />
 
-    <v-text-field v-model="password" :label="t('password')" required variant="outlined" hide-details="auto"
-      :append-icon="show1 ? 'mdi-eye' : 'mdi-eye-off'" :type="show1 ? 'text' : 'password'"
-      @click:append="show1 = !show1" class="pwd-input" prepend-inner-icon="mdi-lock" :disabled="loading"></v-text-field>
+    <v-text-field
+      v-model="password"
+      :label="t('password')"
+      required
+      variant="outlined"
+      hide-details="auto"
+      :append-icon="show1 ? 'mdi-eye' : 'mdi-eye-off'"
+      :type="show1 ? 'text' : 'password'"
+      class="pwd-input"
+      prepend-inner-icon="mdi-lock"
+      :disabled="loading"
+      @click:append="show1 = !show1"
+    />
 
     <div class="mt-2">
       <small style="color: grey;">{{ t('defaultHint') }}</small>
     </div>
 
 
-    <v-btn color="secondary" :loading="isSubmitting || loading" block class="login-btn mt-8" variant="flat" size="large"
-      :disabled="valid" type="submit">
+    <v-btn
+      color="secondary"
+      :loading="isSubmitting || loading"
+      block
+      class="login-btn mt-8"
+      variant="flat"
+      size="large"
+      :disabled="valid"
+      type="submit"
+    >
       <span class="login-btn-text">{{ t('login') }}</span>
     </v-btn>
 
-    <div v-if="errors.apiError" class="mt-4 error-container">
-      <v-alert color="error" variant="tonal" icon="mdi-alert-circle" border="start">
+    <div
+      v-if="errors.apiError"
+      class="mt-4 error-container"
+    >
+      <v-alert
+        color="error"
+        variant="tonal"
+        icon="mdi-alert-circle"
+        border="start"
+      >
         {{ errors.apiError }}
       </v-alert>
     </div>

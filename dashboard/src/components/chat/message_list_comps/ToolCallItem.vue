@@ -1,28 +1,41 @@
 <template>
-    <div class="tool-call-item">
-        <div class="tool-call-line" role="button" tabindex="0"
-            @click="toggleExpanded"
-            @keydown.enter="toggleExpanded"
-            @keydown.space.prevent="toggleExpanded">
-            <slot name="label" :expanded="isExpanded" />
-        </div>
-        <transition name="tool-call-fade">
-            <div v-if="isExpanded" class="tool-call-inline-details" :class="{ 'is-dark': isDark }">
-                <slot name="details" />
-            </div>
-        </transition>
+  <div class="tool-call-item">
+    <div
+      class="tool-call-line"
+      role="button"
+      tabindex="0"
+      @click="toggleExpanded"
+      @keydown.enter="toggleExpanded"
+      @keydown.space.prevent="toggleExpanded"
+    >
+      <slot
+        name="label"
+        :expanded="isExpanded"
+      />
     </div>
+    <transition name="tool-call-fade">
+      <div
+        v-if="isExpanded"
+        class="tool-call-inline-details"
+        :class="{ 'is-dark': isDark }"
+      >
+        <slot name="details" />
+      </div>
+    </transition>
+  </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
 
-const props = defineProps({
-    isDark: {
-        type: Boolean,
-        default: false
-    }
-});
+defineSlots<{
+    label(props: { expanded: boolean }): any
+    details(): any
+}>()
+
+defineProps<{
+    isDark?: boolean
+}>()
 
 const isExpanded = ref(false);
 

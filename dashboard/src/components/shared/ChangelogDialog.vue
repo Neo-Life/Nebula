@@ -1,16 +1,20 @@
-<script setup>
+<script setup lang="ts">
 import { ref, watch, computed } from 'vue';
 import { useI18n } from '@/i18n/composables';
-import axios from 'axios';
 import { MarkdownRender, enableKatex, enableMermaid } from 'markstream-vue';
 import 'markstream-vue/index.css';
 import 'katex/dist/katex.min.css';
-import 'highlight.js/styles/github.css';
+import axios from 'axios';
+import { useTheme } from 'vuetify';
+import { shikiWasmReady } from '@/composables/shikiWasm';
 
 enableKatex();
 enableMermaid();
 
 const { t } = useI18n();
+
+const theme = useTheme();
+const isDark = computed(() => theme.global.current.value.dark);
 
 const props = defineProps({
   modelValue: {
@@ -29,9 +33,9 @@ const dialog = computed({
 const changelogContent = ref('');
 const changelogLoading = ref(false);
 const changelogError = ref('');
-const changelogVersion = ref('');
-const selectedVersion = ref('');
-const availableVersions = ref([]);
+const changelogVersion = ref<string>('');
+const selectedVersion = ref<string | null>(null);
+const availableVersions = ref<string[]>([]);
 const loadingVersions = ref(false);
 
 // 获取当前版本号（从版本信息中提取）
@@ -49,7 +53,7 @@ async function getCurrentVersion() {
 }
 
 // 加载更新日志
-async function loadChangelog(version) {
+async function loadChangelog(version?: string) {
   const targetVersion = version || selectedVersion.value || changelogVersion.value;
   if (!targetVersion) {
     changelogError.value = t('core.navigation.changelogDialog.selectVersion');
@@ -71,7 +75,7 @@ async function loadChangelog(version) {
     } else {
       changelogError.value = res.data.message || t('core.navigation.changelogDialog.error');
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to load changelog:', err);
     if (err.response?.status === 404 || err.response?.data?.message?.includes('not found')) {
       changelogError.value = t('core.navigation.changelogDialog.notFound');
@@ -139,15 +143,19 @@ getCurrentVersion();
 <template>
   <v-dialog 
     :model-value="dialog" 
-    @update:model-value="dialog = $event"
     :width="$vuetify.display.smAndDown ? '100%' : '800'"
-    :fullscreen="$vuetify.display.xs" 
-    max-width="1000"
+    :fullscreen="$vuetify.display.xs"
+    max-width="1000" 
+    @update:model-value="dialog = $event"
   >
     <v-card>
       <v-card-title class="d-flex justify-space-between align-center">
         <span class="text-h3">{{ t('core.navigation.changelogDialog.title') }}</span>
-        <v-btn icon @click="dialog = false" flat>
+        <v-btn
+          icon
+          flat
+          @click="dialog = false"
+        >
           <v-icon>mdi-close</v-icon>
         </v-btn>
       </v-card-title>
@@ -163,16 +171,26 @@ getCurrentVersion();
             density="compact"
             @update:model-value="onVersionChange"
           >
-            <template v-slot:item="{ item, props }">
-              <v-list-item v-bind="props" :title="`v${item.value}`">
-                <template v-slot:append v-if="item.value === changelogVersion">
-                  <v-chip size="x-small" color="primary" variant="tonal">
+            <template #item="{ item, props }">
+              <v-list-item
+                v-bind="props"
+                :title="`v${item.value}`"
+              >
+                <template
+                  v-if="item.value === changelogVersion"
+                  #append
+                >
+                  <v-chip
+                    size="x-small"
+                    color="primary"
+                    variant="tonal"
+                  >
                     {{ t('core.navigation.changelogDialog.current') }}
                   </v-chip>
                 </template>
               </v-list-item>
             </template>
-            <template v-slot:selection="{ item }">
+            <template #selection="{ item }">
               <span>v{{ item.value }}</span>
             </template>
           </v-select>
@@ -180,21 +198,49 @@ getCurrentVersion();
         
         <!-- 更新日志内容 -->
         <div style="max-height: 70vh; overflow-y: auto;">
-          <div v-if="changelogLoading" class="text-center py-8">
-            <v-progress-circular indeterminate color="primary"></v-progress-circular>
-            <div class="mt-4">{{ t('core.navigation.changelogDialog.loading') }}</div>
+          <div
+            v-if="changelogLoading"
+            class="text-center py-8"
+          >
+            <v-progress-circular
+              indeterminate
+              color="primary"
+            />
+            <div class="mt-4">
+              {{ t('core.navigation.changelogDialog.loading') }}
+            </div>
           </div>
-          <v-alert v-else-if="changelogError" type="error" variant="tonal" border="start">
+          <v-alert
+            v-else-if="changelogError"
+            type="error"
+            variant="tonal"
+            border="start"
+          >
             {{ changelogError }}
           </v-alert>
-          <div v-else-if="changelogContent" class="changelog-content">
-            <MarkdownRender :content="changelogContent" :typewriter="false" class="markdown-content" />
+          <div
+            v-else-if="changelogContent"
+            class="changelog-content"
+          >
+            <MarkdownRender
+              :key="shikiWasmReady ? 'shiki' : 'pre'"
+              :content="changelogContent"
+              :typewriter="false"
+              :is-dark="isDark"
+              :render-code-blocks-as-pre="false"
+              class="markdown-content"
+              :class="{ dark: isDark }"
+            />
           </div>
         </div>
       </v-card-text>
       <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn color="blue-darken-1" variant="text" @click="dialog = false">
+        <v-spacer />
+        <v-btn
+          color="blue-darken-1"
+          variant="text"
+          @click="dialog = false"
+        >
           {{ t('core.common.close') }}
         </v-btn>
       </v-card-actions>

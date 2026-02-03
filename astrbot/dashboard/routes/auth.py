@@ -26,8 +26,8 @@ class AuthRoute(Route):
         if post_data["username"] == username and post_data["password"] == password:
             change_pwd_hint = False
             if (
-                username == "astrbot"
-                and password == "77b90590a8945a7d36c963981a307dc9"
+                username == "nebula"
+                and password == "2852dea96871a5907a83402772ef2192"
                 and not DEMO_MODE
             ):
                 change_pwd_hint = True

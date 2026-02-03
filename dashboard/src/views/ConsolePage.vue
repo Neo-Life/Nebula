@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import ConsoleDisplayer from '@/components/shared/ConsoleDisplayer.vue';
 import { useModuleI18n } from '@/i18n/composables';
 import axios from 'axios';
@@ -9,7 +9,8 @@ const { tm } = useModuleI18n('features/console');
 <template>
   <div style="height: 100%;">
     <div
-      style="background-color: var(--v-theme-surface); padding: 8px; padding-left: 16px; border-radius: 8px; margin-bottom: 16px; display: flex; flex-direction: row; align-items: center; justify-content: space-between;">
+      style="background-color: var(--v-theme-surface); padding: 8px; padding-left: 16px; border-radius: 8px; margin-bottom: 16px; display: flex; flex-direction: row; align-items: center; justify-content: space-between;"
+    >
       <h4>{{ tm('title') }}</h4>
       <div class="d-flex align-center">
         <v-switch
@@ -19,27 +20,47 @@ const { tm } = useModuleI18n('features/console');
           density="compact"
           color="primary"
           style="margin-right: 16px;"
-        ></v-switch>
-        <v-dialog v-model="pipDialog" width="400">
-          <template v-slot:activator="{ props }">
-            <v-btn variant="plain" v-bind="props">{{ tm('pipInstall.button') }}</v-btn>
+        />
+        <v-dialog
+          v-model="pipDialog"
+          width="400"
+        >
+          <template #activator="{ props }">
+            <v-btn
+              variant="plain"
+              v-bind="props"
+            >
+              {{ tm('pipInstall.button') }}
+            </v-btn>
           </template>
           <v-card>
             <v-card-title>
               <span class="text-h5">{{ tm('pipInstall.dialogTitle') }}</span>
             </v-card-title>
             <v-card-text>
-              <v-text-field v-model="pipInstallPayload.package" :label="tm('pipInstall.packageLabel')" variant="outlined"></v-text-field>
-              <v-text-field v-model="pipInstallPayload.mirror" :label="tm('pipInstall.mirrorLabel')" variant="outlined"></v-text-field>
+              <v-text-field
+                v-model="pipInstallPayload.package"
+                :label="tm('pipInstall.packageLabel')"
+                variant="outlined"
+              />
+              <v-text-field
+                v-model="pipInstallPayload.mirror"
+                :label="tm('pipInstall.mirrorLabel')"
+                variant="outlined"
+              />
               <small>{{ tm('pipInstall.mirrorHint') }}</small>
               <div>
-                <small>{{ status }}</small>
+                <small>{{ pipStatus }}</small>
               </div>
-              
             </v-card-text>
             <v-card-actions>
-              <v-spacer></v-spacer>
-              <v-btn color="blue-darken-1" variant="text" @click="pipInstall" :loading="loading">
+              <v-spacer />
+              <v-btn
+                color="blue-darken-1"
+                variant="text"
+                :loading="loading"
+                @click="pipInstall"
+              >
                 {{ tm('pipInstall.installButton') }}
               </v-btn>
             </v-card-actions>
@@ -47,10 +68,13 @@ const { tm } = useModuleI18n('features/console');
         </v-dialog>
       </div>
     </div>
-    <ConsoleDisplayer ref="consoleDisplayer" style="height: calc(100vh - 220px); " />
+    <ConsoleDisplayer
+      ref="consoleDisplayer"
+      style="height: calc(100vh - 220px); "
+    />
   </div>
 </template>
-<script>
+<script lang="ts">
 export default {
   name: 'ConsolePage',
   components: {
@@ -65,13 +89,13 @@ export default {
         mirror: ''
       },
       loading: false,
-      status: ''
+      pipStatus: ''
     }
   },
   watch: {
     autoScrollEnabled(val) {
       if (this.$refs.consoleDisplayer) {
-        this.$refs.consoleDisplayer.autoScroll = val;
+        (this.$refs.consoleDisplayer as any).autoScroll = val;
       }
     }
   },
@@ -79,16 +103,16 @@ export default {
     pipInstall() {
       this.loading = true;
       axios.post('/api/update/pip-install', this.pipInstallPayload)
-        .then(res => {
-          this.status = res.data.message;
+          .then(res => {
+          this.pipStatus = res.data.message;
           setTimeout(() => {
-            this.status = '';
+            this.pipStatus = '';
             this.pipDialog = false;
           }, 2000);
-        })
-        .catch(err => {
-          this.status = err.response.data.message;
-        }).finally(() => {
+          })
+          .catch(err => {
+          this.pipStatus = err.response.data.message;
+          }).finally(() => {
           this.loading = false;
         });
     }

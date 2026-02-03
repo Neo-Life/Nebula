@@ -27,6 +27,11 @@ class WebChatQueueMgr:
         if conversation_id in self.back_queues:
             del self.back_queues[conversation_id]
 
+    def remove_back_queue(self, key: str):
+        """Remove a back queue by key (used for per-request stream queues)."""
+        if key in self.back_queues:
+            del self.back_queues[key]
+
     def has_queue(self, conversation_id: str) -> bool:
         """Check if a queue exists for the given conversation ID"""
         return conversation_id in self.queues

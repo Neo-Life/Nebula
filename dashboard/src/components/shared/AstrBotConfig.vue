@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 import { ref, computed } from 'vue'
 import ConfigItemRenderer from './ConfigItemRenderer.vue'
@@ -6,6 +6,8 @@ import TemplateListEditor from './TemplateListEditor.vue'
 import { useI18n } from '@/i18n/composables'
 import axios from 'axios'
 import { useToast } from '@/utils/toast'
+
+type AnyRecord = Record<string, any>
 
 const props = defineProps({
   metadata: {
@@ -38,7 +40,7 @@ const { t } = useI18n()
 
 const filteredIterable = computed(() => {
   if (!props.iterable) return {}
-  const { hint, ...rest } = props.iterable
+  const { hint: _hint, ...rest } = props.iterable
   return rest
 })
 
@@ -46,14 +48,14 @@ const dialog = ref(false)
 const currentEditingKey = ref('')
 const currentEditingLanguage = ref('json')
 const currentEditingTheme = ref('vs-light')
-let currentEditingKeyIterable = null
+let currentEditingKeyIterable: AnyRecord = {}
 const loadingEmbeddingDim = ref(false)
 
-function openEditorDialog(key, value, theme, language) {
-  currentEditingKey.value = key
+function openEditorDialog(key: string | number, value: unknown, theme?: string, language?: string) {
+  currentEditingKey.value = String(key)
   currentEditingLanguage.value = language || 'json'
   currentEditingTheme.value = theme || 'vs-light'
-  currentEditingKeyIterable = value
+  currentEditingKeyIterable = value && typeof value === 'object' ? (value as AnyRecord) : {}
   dialog.value = true
 }
 
@@ -62,7 +64,7 @@ function saveEditedContent() {
   dialog.value = false
 }
 
-async function getEmbeddingDimensions(providerConfig) {
+async function getEmbeddingDimensions(providerConfig: AnyRecord) {
   if (loadingEmbeddingDim.value) return
   
   loadingEmbeddingDim.value = true
@@ -85,12 +87,12 @@ async function getEmbeddingDimensions(providerConfig) {
   }
 }
 
-function getValueBySelector(obj, selector) {
+function getValueBySelector(obj: unknown, selector: string): unknown {
   const keys = selector.split('.')
-  let current = obj
+  let current: unknown = obj
   for (const key of keys) {
-    if (current && typeof current === 'object' && key in current) {
-      current = current[key]
+    if (current && typeof current === 'object' && key in (current as AnyRecord)) {
+      current = (current as AnyRecord)[key]
     } else {
       return undefined
     }
@@ -98,7 +100,12 @@ function getValueBySelector(obj, selector) {
   return current
 }
 
-function shouldShowItem(itemMeta, itemKey) {
+function setIterableValueByKey(key: string | number, value: unknown) {
+  // This config editor intentionally mutates the provided config object in-place.
+  ;(props.iterable as AnyRecord)[key] = value
+}
+
+function shouldShowItem(itemMeta: AnyRecord | null | undefined, _itemKey: string | number) {
   if (!itemMeta?.condition) {
     return true
   }
@@ -111,16 +118,16 @@ function shouldShowItem(itemMeta, itemKey) {
   return true
 }
 
-function getItemPath(key) {
-  return props.pathPrefix ? `${props.pathPrefix}.${key}` : key
+function getItemPath(key: string | number): string {
+  return props.pathPrefix ? `${props.pathPrefix}.${String(key)}` : String(key)
 }
 
-function hasVisibleItemsAfter(items, currentIndex) {
+function hasVisibleItemsAfter(items: Record<string, unknown>, currentIndex: number) {
   const itemEntries = Object.entries(items)
 
   // 检查当前索引之后是否还有可见的配置项
   for (let i = currentIndex + 1; i < itemEntries.length; i++) {
-    const [itemKey, itemValue] = itemEntries[i]
+    const [itemKey, _itemValue] = itemEntries[i]
     const itemMeta = props.metadata[props.metadataKey].items[itemKey]
     if (!itemMeta?.invisible && shouldShowItem(itemMeta, itemKey)) {
       return true
@@ -132,182 +139,261 @@ function hasVisibleItemsAfter(items, currentIndex) {
 </script>
 
 <template>
-  <div class="config-section" v-if="iterable && metadata[metadataKey]?.type === 'object'">
-    <v-list-item-title class="config-title">
-      {{ metadata[metadataKey]?.description }} <span class="metadata-key">({{ metadataKey }})</span>
-    </v-list-item-title>
-    <v-list-item-subtitle class="config-hint">
-      <span v-if="metadata[metadataKey]?.obvious_hint && metadata[metadataKey]?.hint" class="important-hint">‼️</span>
-      {{ metadata[metadataKey]?.hint }}
-    </v-list-item-subtitle>
-  </div>
+  <div class="astrbot-config">
+    <div
+      v-if="iterable && metadata[metadataKey]?.type === 'object'"
+      class="config-section"
+    >
+      <v-list-item-title class="config-title">
+        {{ metadata[metadataKey]?.description }} <span class="metadata-key">({{ metadataKey }})</span>
+      </v-list-item-title>
+      <v-list-item-subtitle class="config-hint">
+        <span
+          v-if="metadata[metadataKey]?.obvious_hint && metadata[metadataKey]?.hint"
+          class="important-hint"
+        >‼️</span>
+        {{ metadata[metadataKey]?.hint }}
+      </v-list-item-subtitle>
+    </div>
 
-  <v-card-text class="px-0 py-1">
-    <!-- Object Type Configuration -->
-    <div v-if="metadata[metadataKey]?.type === 'object' || metadata[metadataKey]?.config_template" class="object-config">
-      <!-- Provider-level hint -->
-      <v-alert
-        v-if="iterable.hint && !isEditing"
-        type="info"
-        variant="tonal"
-        class="mb-4"
-        border="start"
-        density="compact"
+    <v-card-text class="px-0 py-1">
+      <!-- Object Type Configuration -->
+      <div
+        v-if="metadata[metadataKey]?.type === 'object' || metadata[metadataKey]?.config_template"
+        class="object-config"
       >
-        {{ iterable.hint }}
-      </v-alert>
+        <!-- Provider-level hint -->
+        <v-alert
+          v-if="iterable.hint && !isEditing"
+          type="info"
+          variant="tonal"
+          class="mb-4"
+          border="start"
+          density="compact"
+        >
+          {{ iterable.hint }}
+        </v-alert>
 
-      <div v-for="(val, key, index) in filteredIterable" :key="key" class="config-item">
-        <!-- Nested Object -->
-        <div v-if="metadata[metadataKey].items[key]?.type === 'object'" class="nested-object">
-          <div v-if="metadata[metadataKey].items[key] && !metadata[metadataKey].items[key]?.invisible && shouldShowItem(metadata[metadataKey].items[key], key)" class="nested-container">
-            <v-expand-transition>
-              <AstrBotConfig
-                :metadata="metadata[metadataKey].items"
-                :iterable="iterable[key]"
-                :metadataKey="key"
-                :pluginName="pluginName"
-                :pathPrefix="getItemPath(key)"
-              >
-              </AstrBotConfig>
-            </v-expand-transition>
-          </div>
-        </div>
-
-        <!-- Template List -->
-        <div v-else-if="metadata[metadataKey].items[key]?.type === 'template_list'" class="nested-object w-100">
-          <div v-if="!metadata[metadataKey].items[key]?.invisible && shouldShowItem(metadata[metadataKey].items[key], key)" class="nested-container">
-            <div class="config-section mb-2">
-              <v-list-item-title class="config-title">
-                <span v-if="metadata[metadataKey].items[key]?.description">
-                  {{ metadata[metadataKey].items[key]?.description }}
-                  <span class="property-key">({{ key }})</span>
-                </span>
-                <span v-else>{{ key }}</span>
-              </v-list-item-title>
-              <v-list-item-subtitle class="config-hint">
-                <span v-if="metadata[metadataKey].items[key]?.obvious_hint && metadata[metadataKey].items[key]?.hint" class="important-hint">‼️</span>
-                {{ metadata[metadataKey].items[key]?.hint }}
-              </v-list-item-subtitle>
+        <div
+          v-for="(val, key, index) in filteredIterable"
+          :key="key"
+          class="config-item"
+        >
+          <!-- Nested Object -->
+          <div
+            v-if="metadata[metadataKey].items[key]?.type === 'object'"
+            class="nested-object"
+          >
+            <div
+              v-if="metadata[metadataKey].items[key] && !metadata[metadataKey].items[key]?.invisible && shouldShowItem(metadata[metadataKey].items[key], key)"
+              class="nested-container"
+            >
+              <v-expand-transition>
+                <AstrBotConfig
+                  :metadata="metadata[metadataKey].items"
+                  :iterable="iterable[key]"
+                  :metadata-key="String(key)"
+                  :plugin-name="pluginName"
+                  :path-prefix="getItemPath(key)"
+                />
+              </v-expand-transition>
             </div>
-            <TemplateListEditor
-              v-model="iterable[key]"
-              :templates="metadata[metadataKey].items[key]?.templates || {}"
-              class="config-field"
-            />
           </div>
-        </div>
 
-        <!-- Regular Property -->
-        <template v-else>
-          <v-row v-if="!metadata[metadataKey].items[key]?.invisible && shouldShowItem(metadata[metadataKey].items[key], key)" class="config-row">
-            <v-col cols="12" sm="6" class="property-info">
-              <v-list-item density="compact">
-                <v-list-item-title class="property-name">
+          <!-- Template List -->
+          <div
+            v-else-if="metadata[metadataKey].items[key]?.type === 'template_list'"
+            class="nested-object w-100"
+          >
+            <div
+              v-if="!metadata[metadataKey].items[key]?.invisible && shouldShowItem(metadata[metadataKey].items[key], key)"
+              class="nested-container"
+            >
+              <div class="config-section mb-2">
+                <v-list-item-title class="config-title">
                   <span v-if="metadata[metadataKey].items[key]?.description">
                     {{ metadata[metadataKey].items[key]?.description }}
                     <span class="property-key">({{ key }})</span>
                   </span>
                   <span v-else>{{ key }}</span>
                 </v-list-item-title>
-
-                <v-list-item-subtitle class="property-hint">
-                  <span v-if="metadata[metadataKey].items[key]?.obvious_hint && metadata[metadataKey].items[key]?.hint"
-                        class="important-hint">‼️</span>
+                <v-list-item-subtitle class="config-hint">
+                  <span
+                    v-if="metadata[metadataKey].items[key]?.obvious_hint && metadata[metadataKey].items[key]?.hint"
+                    class="important-hint"
+                  >‼️</span>
                   {{ metadata[metadataKey].items[key]?.hint }}
                 </v-list-item-subtitle>
-              </v-list-item>
-            </v-col>
-
-            <v-col cols="12" sm="6" class="config-input">
-              <ConfigItemRenderer
-                v-model="iterable[key]"
-                :item-meta="metadata[metadataKey].items[key] || null"
-                :plugin-name="pluginName"
-                :config-key="getItemPath(key)"
-                :loading="loadingEmbeddingDim"
-                :show-fullscreen-btn="!!metadata[metadataKey].items[key]?.editor_mode"
-                @get-embedding-dim="getEmbeddingDimensions(iterable)"
-                @open-fullscreen="openEditorDialog(key, iterable, metadata[metadataKey].items[key]?.editor_theme, metadata[metadataKey].items[key]?.editor_language)"
+              </div>
+              <TemplateListEditor
+                :model-value="iterable[key]"
+                @update:model-value="(value) => setIterableValueByKey(key, value)"
+                :templates="metadata[metadataKey].items[key]?.templates || {}"
+                class="config-field"
               />
-            </v-col>
-          </v-row>
+            </div>
+          </div>
 
-          <v-divider
-            v-if="hasVisibleItemsAfter(filteredIterable, index) && !metadata[metadataKey].items[key]?.invisible && shouldShowItem(metadata[metadataKey].items[key], key)"
-            class="config-divider"
-          ></v-divider>
-        </template>
+          <!-- Regular Property -->
+          <template v-else>
+            <v-row
+              v-if="!metadata[metadataKey].items[key]?.invisible && shouldShowItem(metadata[metadataKey].items[key], key)"
+              class="config-row"
+            >
+              <v-col
+                cols="12"
+                sm="6"
+                class="property-info"
+              >
+                <v-list-item density="compact">
+                  <v-list-item-title class="property-name">
+                    <span v-if="metadata[metadataKey].items[key]?.description">
+                      {{ metadata[metadataKey].items[key]?.description }}
+                      <span class="property-key">({{ key }})</span>
+                    </span>
+                    <span v-else>{{ key }}</span>
+                  </v-list-item-title>
+
+                  <v-list-item-subtitle class="property-hint">
+                    <span
+                      v-if="metadata[metadataKey].items[key]?.obvious_hint && metadata[metadataKey].items[key]?.hint"
+                      class="important-hint"
+                    >‼️</span>
+                    {{ metadata[metadataKey].items[key]?.hint }}
+                  </v-list-item-subtitle>
+                </v-list-item>
+              </v-col>
+
+              <v-col
+                cols="12"
+                sm="6"
+                class="config-input"
+              >
+                <ConfigItemRenderer
+                  :model-value="iterable[key]"
+                  @update:model-value="(value) => setIterableValueByKey(key, value)"
+                  :item-meta="metadata[metadataKey].items[key] || null"
+                  :plugin-name="pluginName"
+                  :config-key="getItemPath(key)"
+                  :loading="loadingEmbeddingDim"
+                  :show-fullscreen-btn="!!metadata[metadataKey].items[key]?.editor_mode"
+                  @get-embedding-dim="getEmbeddingDimensions(iterable)"
+                  @open-fullscreen="openEditorDialog(key, iterable, metadata[metadataKey].items[key]?.editor_theme, metadata[metadataKey].items[key]?.editor_language)"
+                />
+              </v-col>
+            </v-row>
+
+            <v-divider
+              v-if="hasVisibleItemsAfter(filteredIterable, index) && !metadata[metadataKey].items[key]?.invisible && shouldShowItem(metadata[metadataKey].items[key], key)"
+              class="config-divider"
+            />
+          </template>
+        </div>
       </div>
-    </div>
 
-    <!-- Simple Value Configuration -->
-    <div v-else class="simple-config">
-      <v-row class="config-row">
-        <v-col cols="12" sm="7" class="property-info">
-          <v-list-item density="compact">
-            <v-list-item-title class="property-name">
-              {{ metadata[metadataKey]?.description }}
-              <span class="property-key">({{ metadataKey }})</span>
-            </v-list-item-title>
+      <!-- Simple Value Configuration -->
+      <div
+        v-else
+        class="simple-config"
+      >
+        <v-row class="config-row">
+          <v-col
+            cols="12"
+            sm="7"
+            class="property-info"
+          >
+            <v-list-item density="compact">
+              <v-list-item-title class="property-name">
+                {{ metadata[metadataKey]?.description }}
+                <span class="property-key">({{ metadataKey }})</span>
+              </v-list-item-title>
 
-            <v-list-item-subtitle class="property-hint">
-              <span v-if="metadata[metadataKey]?.obvious_hint && metadata[metadataKey]?.hint" class="important-hint">‼️</span>
-              {{ metadata[metadataKey]?.hint }}
-            </v-list-item-subtitle>
-          </v-list-item>
-        </v-col>
+              <v-list-item-subtitle class="property-hint">
+                <span
+                  v-if="metadata[metadataKey]?.obvious_hint && metadata[metadataKey]?.hint"
+                  class="important-hint"
+                >‼️</span>
+                {{ metadata[metadataKey]?.hint }}
+              </v-list-item-subtitle>
+            </v-list-item>
+          </v-col>
 
-        <v-col cols="12" sm="5" class="config-input">
-          <TemplateListEditor
-            v-if="metadata[metadataKey]?.type === 'template_list' && !metadata[metadataKey]?.invisible"
-            v-model="iterable[metadataKey]"
-            :templates="metadata[metadataKey]?.templates || {}"
-            class="config-field"
-          />
-          <ConfigItemRenderer
-            v-else
-            v-model="iterable[metadataKey]"
-            :item-meta="metadata[metadataKey]"
-            :plugin-name="pluginName"
-            :config-key="getItemPath(metadataKey)"
-          />
-        </v-col>
-      </v-row>
+          <v-col
+            cols="12"
+            sm="5"
+            class="config-input"
+          >
+            <TemplateListEditor
+              v-if="metadata[metadataKey]?.type === 'template_list' && !metadata[metadataKey]?.invisible"
+              :model-value="iterable[metadataKey]"
+              @update:model-value="(value) => setIterableValueByKey(metadataKey, value)"
+              :templates="metadata[metadataKey]?.templates || {}"
+              class="config-field"
+            />
+            <ConfigItemRenderer
+              v-else
+              :model-value="iterable[metadataKey]"
+              @update:model-value="(value) => setIterableValueByKey(metadataKey, value)"
+              :item-meta="metadata[metadataKey]"
+              :plugin-name="pluginName"
+              :config-key="getItemPath(metadataKey)"
+            />
+          </v-col>
+        </v-row>
 
-      <v-divider class="my-2 config-divider"></v-divider>
-    </div>
-  </v-card-text>
+        <v-divider class="my-2 config-divider" />
+      </div>
+    </v-card-text>
 
-  <!-- Full Screen Editor Dialog -->
-  <v-dialog v-model="dialog" fullscreen transition="dialog-bottom-transition" scrollable>
-    <v-card>
-      <v-toolbar color="primary" dark>
-        <v-btn icon @click="dialog = false">
-          <v-icon>mdi-close</v-icon>
-        </v-btn>
-        <v-toolbar-title>{{ t('core.common.editor.editingTitle') }} - {{ currentEditingKey }}</v-toolbar-title>
-        <v-spacer></v-spacer>
-        <v-toolbar-items>
-          <v-btn variant="text" @click="saveEditedContent">{{ t('core.common.save') }}</v-btn>
-        </v-toolbar-items>
-      </v-toolbar>
-      <v-card-text class="pa-0">
-        <VueMonacoEditor
-          :theme="currentEditingTheme"
-          :language="currentEditingLanguage"
-          style="height: calc(100vh - 64px);"
-          v-model:value="currentEditingKeyIterable[currentEditingKey]"
+    <!-- Full Screen Editor Dialog -->
+    <v-dialog
+      v-model="dialog"
+      fullscreen
+      transition="dialog-bottom-transition"
+      scrollable
+    >
+      <v-card>
+        <v-toolbar
+          color="primary"
+          dark
         >
-        </VueMonacoEditor>
-      </v-card-text>
-    </v-card>
-  </v-dialog>
+          <v-btn
+            icon
+            @click="dialog = false"
+          >
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+          <v-toolbar-title>{{ t('core.common.editor.editingTitle') }} - {{ currentEditingKey }}</v-toolbar-title>
+          <v-spacer />
+          <v-toolbar-items>
+            <v-btn
+              variant="text"
+              @click="saveEditedContent"
+            >
+              {{ t('core.common.save') }}
+            </v-btn>
+          </v-toolbar-items>
+        </v-toolbar>
+        <v-card-text class="pa-0">
+          <VueMonacoEditor
+            v-model:value="currentEditingKeyIterable[currentEditingKey]"
+            :theme="currentEditingTheme"
+            :language="currentEditingLanguage"
+            style="height: calc(100vh - 64px);"
+          />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+  </div>
 </template>
 
 
 
 <style scoped>
+.astrbot-config {
+  display: contents;
+}
+
 .config-section {
   margin-bottom: 12px;
 }

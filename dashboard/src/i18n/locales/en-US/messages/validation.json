@@ -21,5 +21,5 @@
   "date_range": "Invalid date range",
   "upload_failed": "File upload failed",
   "network_error": "Network connection error, please try again",
-  "operation_cannot_be_undone": "⚠️ This operation cannot be undone, please choose carefully!"
+  "operation_cannot_be_undone": "This operation cannot be undone, please choose carefully!"
 } 
