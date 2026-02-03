@@ -24,11 +24,7 @@ As a derivative work of the upstream project, this repository strictly adheres t
 * **Inheritance:** All copyright notices and license files from the upstream project are retained within this repository.
 * **Distribution Obligation:** Under the AGPL, if you run this modified version over a network and interact with others, you must disclose your complete source code (including **IGCrystal**'s modifications) to the users interacting with it.
 
-<<<<<<< sync-upstream-20260203134038
-AstrBot 是一个开源的一站式 Agentic 个人和群聊助手，可在 QQ、Telegram、企业微信、飞书、钉钉、Slack、等数十款主流即时通讯软件上部署，此外还内置类似 OpenWebUI 的轻量化 ChatUI，为个人、开发者和团队打造可靠、可扩展的对话式智能基础设施。无论是个人 AI 伙伴、智能客服、自动化助手，还是企业知识库，AstrBot 都能在你的即时通讯软件平台的工作流中快速构建 AI 应用。
-=======
 **If you cannot accept the terms of the AGPL or the limitations of this statement, please stop using this repository immediately.**
->>>>>>> master
 
 ---
 
@@ -39,30 +35,7 @@ AstrBot 是一个开源的一站式 Agentic 个人和群聊助手，可在 QQ、
 ### 1. 范围与用途限定 (Scope & Purpose Limitation)
 本仓库（Repository）内由 **IGCrystal** 进行的所有修改内容、配置调整及衍生代码，仅供开发者本人进行个人学习、研究及数据备份使用。
 
-<<<<<<< sync-upstream-20260203134038
-<br>
-
-<table align="center">
-  <tr align="center">
-    <th>💙 角色扮演 & 情感陪伴</th>
-    <th>✨ 主动式 Agent</th>
-    <th>🚀 通用 Agentic 能力</th>
-    <th>🧩 900+ 社区插件</th>
-  </tr>
-  <tr>
-    <td align="center"><p align="center"><img width="984" height="1746" alt="99b587c5d35eea09d84f33e6cf6cfd4f" src="https://github.com/user-attachments/assets/89196061-3290-458d-b51f-afa178049f84" /></p></td>
-    <td align="center"><p align="center"><img width="976" height="1612" alt="c449acd838c41d0915cc08a3824025b1" src="https://github.com/user-attachments/assets/f75368b4-e022-41dc-a9e0-131c3e73e32e" /></p></td>
-    <td align="center"><p align="center"><img width="974" height="1732" alt="image" src="https://github.com/user-attachments/assets/e22a3968-87d7-4708-a7cd-e7f198c7c32e" /></p></td>
-    <td align="center"><p align="center"><img width="976" height="1734" alt="image" src="https://github.com/user-attachments/assets/0952b395-6b4a-432a-8a50-c294b7f89750" /></p></td>
-  </tr>
-</table>
-
-陪伴与能力**从来不应该是**对立面。我们希望创造的是一个既能理解情绪、给予陪伴，也能可靠完成工作的机器人——致敬[ATRI](https://zh.wikipedia.org/zh-cn/ATRI_-My_Dear_Moments-)。
-
-## 快速开始
-=======
 本修改版本**不旨在**向任何第三方提供公共服务、稳定接口或生产环境解决方案。任何非本人对本仓库内容的获取、部署或运行行为，均被视为您的个人自发行为，与修改者 (**IGCrystal**) 及原上游作者无关。
->>>>>>> master
 
 ### 2. 无担保声明 (No Warranty)
 本仓库包含的修改内容按 **“原样”** 提供，不附带任何明示或暗示的保证，包括但不限于对适销性、特定用途适用性或非侵权性的保证。
