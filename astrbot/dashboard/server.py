@@ -269,4 +269,4 @@ class AstrBotDashboard:
 
     async def shutdown_trigger(self):
         await self.shutdown_event.wait()
-        logger.info("AstrBot WebUI 已经被优雅地关闭")
+        logger.info("WebUI 已经被优雅地关闭")

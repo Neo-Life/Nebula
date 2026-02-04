@@ -291,7 +291,7 @@ async def download_dashboard(
         ver_name = "latest" if latest else version
         dashboard_release_url = f"https://astrbot-registry.soulter.top/download/astrbot-dashboard/{ver_name}/dist.zip"
         logger.info(
-            f"准备下载指定发行版本的 AstrBot WebUI 文件: {dashboard_release_url}",
+            f"准备下载指定发行版本的 WebUI 文件: {dashboard_release_url}",
         )
         try:
             await download_file(
@@ -313,7 +313,7 @@ async def download_dashboard(
             )
     else:
         url = f"https://github.com/AstrBotDevs/astrbot-release-harbour/releases/download/release-{version}/dist.zip"
-        logger.info(f"准备下载指定版本的 AstrBot WebUI: {url}")
+        logger.info(f"准备下载指定版本的 WebUI: {url}")
         if proxy:
             url = f"{proxy}/{url}"
         await download_file(url, str(zip_path), show_progress=True)
