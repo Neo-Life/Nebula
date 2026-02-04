@@ -3,7 +3,12 @@
  */
 import { ref, reactive } from 'vue';
 import axios from 'axios';
-import type { CommandItem, CommandSummary, SnackbarState, ToolItem } from '../types';
+import type {
+  CommandItem,
+  CommandSummary,
+  SnackbarState,
+  ToolItem,
+} from '../types';
 
 export function useComponentData() {
   const loading = ref(false);
@@ -12,13 +17,13 @@ export function useComponentData() {
   const toolsLoading = ref(false);
   const summary = reactive<CommandSummary>({
     disabled: 0,
-    conflicts: 0
+    conflicts: 0,
   });
 
   const snackbar = reactive<SnackbarState>({
     show: false,
     message: '',
-    color: 'success'
+    color: 'success',
   });
 
   /**
@@ -77,7 +82,6 @@ export function useComponentData() {
     snackbar,
     toast,
     fetchCommands,
-    fetchTools
+    fetchTools,
   };
 }
-

@@ -61,7 +61,9 @@ export const usePersonaStore = defineStore({
       if (this.breadcrumbPath.length === 0) {
         return '根目录';
       }
-      return this.breadcrumbPath[this.breadcrumbPath.length - 1]?.name || '根目录';
+      return (
+        this.breadcrumbPath[this.breadcrumbPath.length - 1]?.name || '根目录'
+      );
     },
   },
 
@@ -118,10 +120,10 @@ export const usePersonaStore = defineStore({
         // 并行加载子文件夹和 Persona
         const [foldersRes, personasRes] = await Promise.all([
           axios.get('/api/persona/folder/list', {
-            params: { parent_id: folderId ?? '' }
+            params: { parent_id: folderId ?? '' },
           }),
           axios.get('/api/persona/list', {
-            params: { folder_id: folderId ?? '' }
+            params: { folder_id: folderId ?? '' },
           }),
         ]);
 
@@ -179,10 +181,13 @@ export const usePersonaStore = defineStore({
     /**
      * 移动 Persona 到文件夹
      */
-    async movePersonaToFolder(personaId: string, targetFolderId: string | null): Promise<void> {
+    async movePersonaToFolder(
+      personaId: string,
+      targetFolderId: string | null,
+    ): Promise<void> {
       const response = await axios.post('/api/persona/move', {
         persona_id: personaId,
-        folder_id: targetFolderId
+        folder_id: targetFolderId,
       });
 
       if (response.data.status !== 'ok') {
@@ -190,19 +195,19 @@ export const usePersonaStore = defineStore({
       }
 
       // 刷新当前文件夹内容和文件夹树
-      await Promise.all([
-        this.refreshCurrentFolder(),
-        this.loadFolderTree(),
-      ]);
+      await Promise.all([this.refreshCurrentFolder(), this.loadFolderTree()]);
     },
 
     /**
      * 移动文件夹到另一个文件夹
      */
-    async moveFolderToFolder(folderId: string, targetParentId: string | null): Promise<void> {
+    async moveFolderToFolder(
+      folderId: string,
+      targetParentId: string | null,
+    ): Promise<void> {
       const response = await axios.post('/api/persona/folder/update', {
         folder_id: folderId,
-        parent_id: targetParentId
+        parent_id: targetParentId,
       });
 
       if (response.data.status !== 'ok') {
@@ -210,10 +215,7 @@ export const usePersonaStore = defineStore({
       }
 
       // 刷新当前文件夹内容和文件夹树
-      await Promise.all([
-        this.refreshCurrentFolder(),
-        this.loadFolderTree(),
-      ]);
+      await Promise.all([this.refreshCurrentFolder(), this.loadFolderTree()]);
     },
 
     /**
@@ -234,10 +236,7 @@ export const usePersonaStore = defineStore({
       }
 
       // 刷新当前文件夹内容和文件夹树
-      await Promise.all([
-        this.refreshCurrentFolder(),
-        this.loadFolderTree(),
-      ]);
+      await Promise.all([this.refreshCurrentFolder(), this.loadFolderTree()]);
 
       return response.data.data.folder;
     },
@@ -257,10 +256,7 @@ export const usePersonaStore = defineStore({
       }
 
       // 刷新当前文件夹内容和文件夹树
-      await Promise.all([
-        this.refreshCurrentFolder(),
-        this.loadFolderTree(),
-      ]);
+      await Promise.all([this.refreshCurrentFolder(), this.loadFolderTree()]);
     },
 
     /**
@@ -268,7 +264,7 @@ export const usePersonaStore = defineStore({
      */
     async deleteFolder(folderId: string): Promise<void> {
       const response = await axios.post('/api/persona/folder/delete', {
-        folder_id: folderId
+        folder_id: folderId,
       });
 
       if (response.data.status !== 'ok') {
@@ -276,10 +272,7 @@ export const usePersonaStore = defineStore({
       }
 
       // 刷新当前文件夹内容和文件夹树
-      await Promise.all([
-        this.refreshCurrentFolder(),
-        this.loadFolderTree(),
-      ]);
+      await Promise.all([this.refreshCurrentFolder(), this.loadFolderTree()]);
     },
 
     /**
@@ -287,7 +280,7 @@ export const usePersonaStore = defineStore({
      */
     async deletePersona(personaId: string): Promise<void> {
       const response = await axios.post('/api/persona/delete', {
-        persona_id: personaId
+        persona_id: personaId,
       });
 
       if (response.data.status !== 'ok') {
@@ -330,5 +323,5 @@ export const usePersonaStore = defineStore({
       };
       return findNode(this.folderTree);
     },
-  }
+  },
 });

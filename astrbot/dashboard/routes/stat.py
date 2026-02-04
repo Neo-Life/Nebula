@@ -63,8 +63,8 @@ class StatRoute(Route):
         username = self.config["dashboard"]["username"]
         password = self.config["dashboard"]["password"]
         return (
-            username == "astrbot"
-            and password == "77b90590a8945a7d36c963981a307dc9"
+            username == "nebula"
+            and password == "2852dea96871a5907a83402772ef2192"
             and not DEMO_MODE
         )
 

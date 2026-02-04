@@ -6,14 +6,14 @@ export type * from '../types';
 // 实用工具函数
 export function generateMissingKeys(
   sourceTranslations: Record<string, any>,
-  targetTranslations: Record<string, any>
+  targetTranslations: Record<string, any>,
 ): string[] {
   const missing: string[] = [];
-  
+
   function traverse(source: any, target: any, path: string = '') {
     for (const key in source) {
       const currentPath = path ? `${path}.${key}` : key;
-      
+
       if (typeof source[key] === 'object' && source[key] !== null) {
         if (!target[key]) {
           missing.push(currentPath);
@@ -27,7 +27,7 @@ export function generateMissingKeys(
       }
     }
   }
-  
+
   traverse(sourceTranslations, targetTranslations);
   return missing;
-} 
+}

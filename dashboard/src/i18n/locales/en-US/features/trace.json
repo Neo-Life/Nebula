@@ -4,7 +4,7 @@
     "enabled": "Auto-scroll: On",
     "disabled": "Auto-scroll: Off"
   },
-  "hint": "Currently only recording partial model call paths from AstrBot main Agent. More coverage will be added.",
+  "hint": "Currently only recording partial model call paths from Nebula main Agent. More coverage will be added.",
   "recording": "Recording",
   "paused": "Paused"
 }

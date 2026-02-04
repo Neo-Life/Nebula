@@ -1,9 +1,9 @@
 /**
  * 通用文件夹管理组件库
- * 
+ *
  * 提供可复用的文件夹管理 UI 组件，适用于各种需要文件夹组织功能的场景
  * 如：persona 管理、模板管理、知识库管理等
- * 
+ *
  * 使用示例:
  * ```vue
  * <script setup>
@@ -15,7 +15,7 @@
  *   BaseMoveToFolderDialog,
  *   useFolderManager
  * } from '@/components/folder';
- * 
+ *
  * const folderManager = useFolderManager({
  *   operations: {
  *     loadFolderTree: async () => { ... },
@@ -33,8 +33,14 @@
 export * from './types';
 
 // Composable 导出
-export { useFolderManager, collectFolderAndChildrenIds } from './useFolderManager';
-export type { UseFolderManagerOptions, UseFolderManagerReturn } from './useFolderManager';
+export {
+  useFolderManager,
+  collectFolderAndChildrenIds,
+} from './useFolderManager';
+export type {
+  UseFolderManagerOptions,
+  UseFolderManagerReturn,
+} from './useFolderManager';
 
 // 组件导出
 export { default as BaseFolderTree } from './BaseFolderTree.vue';
