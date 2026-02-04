@@ -572,13 +572,13 @@ const {
 }
 
 .plugin-description::-webkit-scrollbar-thumb {
-  background-color: rgba(var(--v-theme-primary-rgb), 0.4);
+  background-color: rgba(var(--v-theme-primary), 0.4);
   border-radius: 4px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 
 .plugin-description::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(var(--v-theme-primary-rgb), 0.6);
+  background-color: rgba(var(--v-theme-primary), 0.6);
 }
 </style>
