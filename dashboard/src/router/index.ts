@@ -7,11 +7,7 @@ import { useRouterLoadingStore } from '@/stores/routerLoading';
 
 export const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
-  routes: [
-    MainRoutes,
-    AuthRoutes,
-    ChatBoxRoutes
-  ]
+  routes: [MainRoutes, AuthRoutes, ChatBoxRoutes],
 });
 
 interface AuthStore {

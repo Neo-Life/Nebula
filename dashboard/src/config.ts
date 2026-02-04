@@ -9,9 +9,9 @@ export type ConfigProps = {
 
 function checkUITheme() {
   /* 检查localStorage有无记忆的主题选项，如有则使用，否则使用默认值 */
-  const theme = localStorage.getItem("uiTheme");
-  if (!theme || !(['PurpleTheme', 'PurpleThemeDark'].includes(theme))) {
-    localStorage.setItem("uiTheme", "PurpleTheme");   // todo: 这部分可以根据vuetify.ts的默认主题动态调整
+  const theme = localStorage.getItem('uiTheme');
+  if (!theme || !['PurpleTheme', 'PurpleThemeDark'].includes(theme)) {
+    localStorage.setItem('uiTheme', 'PurpleTheme'); // todo: 这部分可以根据vuetify.ts的默认主题动态调整
     return 'PurpleTheme';
   } else return theme;
 }
@@ -22,7 +22,7 @@ const config: ConfigProps = {
   mini_sidebar: false,
   fontTheme: 'Roboto',
   uiTheme: checkUITheme(),
-  inputBg: false
+  inputBg: false,
 };
 
 export default config;

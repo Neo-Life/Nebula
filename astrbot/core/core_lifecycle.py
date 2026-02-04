@@ -278,7 +278,7 @@ class AstrBotCoreLifecycle:
         用load加载事件总线和任务并初始化, 执行启动完成事件钩子
         """
         self._load()
-        logger.info("AstrBot 启动完成。")
+        logger.info("Nebula 启动完成。")
 
         # 执行启动完成事件钩子
         handlers = star_handlers_registry.get_handlers_by_event_type(

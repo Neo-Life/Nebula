@@ -4,7 +4,7 @@
   "tooltip": {
     "info": "函数调用和 MCP 是什么？",
     "marketplace": "浏览和安装来自社区的 MCP 服务器",
-    "serverConfig": "MCP 服务器(stdio)配置支持以下字段:\ncommand: 命令名称 (例如 python 或 uv)\nargs: 命令参数数组 (例如 [\"run\", \"server.py\"])\nenv: 环境变量对象 (例如 {\"api_key\": \"abc\"})\ncwd: 工作目录路径 (例如 /path/to/server)\nencoding: 输出编码 (默认 utf-8)\nencoding_error_handler: The text encoding error handler. Defaults to strict.\n其他字段请参考 MCP 文档\n⚠️ 如果您使用 Docker 部署 AstrBot, 请务必将 MCP 服务器装在 AstrBot 挂载好的 data 目录下"
+    "serverConfig": "MCP 服务器(stdio)配置支持以下字段:\ncommand: 命令名称 (例如 python 或 uv)\nargs: 命令参数数组 (例如 [\"run\", \"server.py\"])\nenv: 环境变量对象 (例如 {\"api_key\": \"abc\"})\ncwd: 工作目录路径 (例如 /path/to/server)\nencoding: 输出编码 (默认 utf-8)\nencoding_error_handler: The text encoding error handler. Defaults to strict.\n其他字段请参考 MCP 文档\n⚠️ 如果您使用 Docker 部署 Nebula, 请务必将 MCP 服务器装在 Nebula 挂载好的 data 目录下"
   },
   "tabs": {
     "local": "本地服务器",
@@ -97,42 +97,42 @@
         "importConfig": "导入配置"
       }
     },
-    "confirmDelete": "确定要删除服务器 {name} 吗?",
-    "syncProvider": {
-      "title": "同步 MCP 服务器",
-      "subtitle": "从提供商同步 MCP 服务器配置到本地",
-      "steps": {
-        "selectProvider": "步骤 1: 选择提供商",
-        "configureAuth": "步骤 2: 配置认证",
-        "syncServers": "步骤 3: 同步服务器"
-      },
-      "providers": {
-        "modelscope": "ModelScope",
-        "description": "ModelScope 是一个开源的模型社区，提供各种机器学习和AI服务的MCP服务器"
-      },
-      "fields": {
-        "provider": "选择提供商",
-        "accessToken": "访问令牌",
-        "tokenRequired": "访问令牌是必填项",
-        "tokenHint": "请输入您的 ModelScope 访问令牌"
-      },
-      "buttons": {
-        "cancel": "取消",
-        "previous": "上一步",
-        "next": "下一步",
-        "sync": "开始同步",
-        "getToken": "获取令牌"
-      },
-      "status": {
-        "selectProvider": "请选择一个 MCP 服务器提供商",
-        "enterToken": "请输入访问令牌以继续",
-        "readyToSync": "准备同步服务器配置"
-      },
-      "messages": {
-        "syncSuccess": "MCP 服务器同步成功!",
-        "syncError": "同步失败: {error}",
-        "tokenHelp": "如何获取 ModelScope 访问令牌？点击右侧按钮查看说明"
-      }
+    "confirmDelete": "确定要删除服务器 {name} 吗?"
+  },
+  "syncProvider": {
+    "title": "同步 MCP 服务器",
+    "subtitle": "从提供商同步 MCP 服务器配置到本地",
+    "steps": {
+      "selectProvider": "步骤 1: 选择提供商",
+      "configureAuth": "步骤 2: 配置认证",
+      "syncServers": "步骤 3: 同步服务器"
+    },
+    "providers": {
+      "modelscope": "ModelScope",
+      "description": "ModelScope 是一个开源的模型社区，提供各种机器学习和AI服务的MCP服务器"
+    },
+    "fields": {
+      "provider": "选择提供商",
+      "accessToken": "访问令牌",
+      "tokenRequired": "访问令牌是必填项",
+      "tokenHint": "请输入您的 ModelScope 访问令牌"
+    },
+    "buttons": {
+      "cancel": "取消",
+      "previous": "上一步",
+      "next": "下一步",
+      "sync": "开始同步",
+      "getToken": "获取令牌"
+    },
+    "status": {
+      "selectProvider": "请选择一个 MCP 服务器提供商",
+      "enterToken": "请输入访问令牌以继续",
+      "readyToSync": "准备同步服务器配置"
+    },
+    "messages": {
+      "syncSuccess": "MCP 服务器同步成功!",
+      "syncError": "同步失败: {error}",
+      "tokenHelp": "如何获取 ModelScope 访问令牌？点击右侧按钮查看说明"
     }
   },
   "messages": {

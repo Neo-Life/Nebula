@@ -1,21 +1,23 @@
-const ChatBoxRoutes = {
-    path: '/chatbox',
-    component: () => import('@/layouts/blank/BlankLayout.vue'),
-    children: [
+import type { RouteRecordRaw } from 'vue-router';
+
+const ChatBoxRoutes: RouteRecordRaw = {
+  path: '/chatbox',
+  component: () => import('@/layouts/blank/BlankLayout.vue'),
+  children: [
+    {
+      name: 'ChatBox',
+      path: '/chatbox',
+      component: () => import('@/views/ChatBoxPage.vue'),
+      children: [
         {
-            name: 'ChatBox',
-            path: '/chatbox',
-            component: () => import('@/views/ChatBoxPage.vue'),
-            children: [
-                {
-                    path: ':conversationId',
-                    name: 'ChatBoxDetail',
-                    component: () => import('@/views/ChatBoxPage.vue'),
-                    props: true
-                }
-            ]
-        }
-    ]
+          path: ':conversationId',
+          name: 'ChatBoxDetail',
+          component: () => import('@/views/ChatBoxPage.vue'),
+          props: true,
+        },
+      ],
+    },
+  ],
 };
 
 export default ChatBoxRoutes;

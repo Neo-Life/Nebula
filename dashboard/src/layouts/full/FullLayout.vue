@@ -25,7 +25,8 @@ const showSidebar = computed(() => {
 
 // 计算是否显示 chat 页面（在 chat 模式下显示）
 const showChatPage = computed(() => {
-  return customizer.viewMode === 'chat';
+  // 避免 viewMode 与 route 脱节导致“Bot 路由显示 Chat 内容”
+  return customizer.viewMode === 'chat' && route.path.startsWith('/chat');
 });
 
 const migrationDialog = ref<InstanceType<typeof MigrationDialog> | null>(null);
@@ -36,9 +37,12 @@ const checkMigration = async () => {
     const response = await axios.get('/api/stat/version');
     if (response.data.status === 'ok' && response.data.data.need_migration) {
       // 需要迁移，显示迁移对话框
-      if (migrationDialog.value && typeof migrationDialog.value.open === 'function') {
-        const result = await migrationDialog.value.open();
-        if (result.success) {
+      if (
+        migrationDialog.value &&
+        typeof migrationDialog.value.open === 'function'
+      ) {
+        const result = (await migrationDialog.value.open()) as any;
+        if (result?.success) {
           // 迁移成功，可以显示成功消息
           console.log('Migration completed successfully:', result.message);
           // 可以考虑刷新页面或显示成功通知
@@ -59,8 +63,13 @@ onMounted(() => {
 
 <template>
   <v-locale-provider>
-    <v-app :theme="useCustomizerStore().uiTheme"
-      :class="[customizer.fontTheme, customizer.mini_sidebar ? 'mini-sidebar' : '', customizer.inputBg ? 'inputWithbg' : '']"
+    <v-app
+      :theme="useCustomizerStore().uiTheme"
+      :class="[
+        customizer.fontTheme,
+        customizer.mini_sidebar ? 'mini-sidebar' : '',
+        customizer.inputBg ? 'inputWithbg' : '',
+      ]"
     >
       <!-- 路由切换进度条 -->
       <v-progress-linear
@@ -70,32 +79,44 @@ onMounted(() => {
         height="2"
         fixed
         top
-        style="z-index: 9999; position: absolute; opacity: 0.3; "
+        style="z-index: 9999; position: absolute; opacity: 0.3"
       />
       <VerticalHeaderVue />
       <VerticalSidebarVue v-if="showSidebar" />
-      <v-main :style="{ 
-        height: showChatPage ? 'calc(100vh - 55px)' : undefined,
-        overflow: showChatPage ? 'hidden' : undefined
-      }">
-        <v-container 
-          fluid 
-          class="page-wrapper" 
+      <v-main
+        :style="{
+          height: showChatPage ? 'calc(100vh - 55px)' : undefined,
+          overflow: showChatPage ? 'hidden' : undefined,
+        }"
+      >
+        <v-container
+          fluid
+          class="page-wrapper"
           :class="{ 'chat-mode-container': showChatPage }"
-          :style="{ 
+          :style="{
             height: showChatPage ? '100%' : 'calc(100% - 8px)',
-            padding: (isChatPage || showChatPage) ? '0' : undefined,
-            minHeight: showChatPage ? 'unset' : undefined
-          }">
-          <div :style="{ height: '100%', width: '100%', overflow: showChatPage ? 'hidden' : undefined }">
-            <div v-if="showChatPage" style="height: 100%; width: 100%; overflow: hidden;">
+            padding: isChatPage || showChatPage ? '0' : undefined,
+            minHeight: showChatPage ? 'unset' : undefined,
+          }"
+        >
+          <div
+            :style="{
+              height: '100%',
+              width: '100%',
+              overflow: showChatPage ? 'hidden' : undefined,
+            }"
+          >
+            <div
+              v-if="showChatPage"
+              style="height: 100%; width: 100%; overflow: hidden"
+            >
               <Chat />
             </div>
             <RouterView v-else />
           </div>
         </v-container>
       </v-main>
-      
+
       <!-- Migration Dialog -->
       <MigrationDialog ref="migrationDialog" />
     </v-app>

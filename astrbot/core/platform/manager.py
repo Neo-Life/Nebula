@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import traceback
 from asyncio import Queue
 
@@ -18,6 +19,10 @@ class PlatformManager:
         """加载的 Platform 的实例"""
 
         self._inst_map: dict[str, dict] = {}
+        self._platform_op_locks: dict[str, asyncio.Lock] = {}
+
+        self._reload_debounce_tasks: dict[str, asyncio.Task] = {}
+        self._reload_debounce_state: dict[str, dict] = {}
 
         self.astrbot_config = config
         self.platforms_config = config["platform"]
@@ -37,6 +42,13 @@ class PlatformManager:
             return platform_id, False
         sanitized = platform_id.replace(":", "_").replace("!", "_")
         return sanitized, sanitized != platform_id
+
+    def _get_platform_lock(self, platform_id: str) -> asyncio.Lock:
+        lock = self._platform_op_locks.get(platform_id)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._platform_op_locks[platform_id] = lock
+        return lock
 
     async def initialize(self):
         """初始化所有平台适配器"""
@@ -58,8 +70,8 @@ class PlatformManager:
             ),
         )
 
-    async def load_platform(self, platform_config: dict):
-        """实例化一个平台"""
+    async def _load_platform_unlocked(self, platform_config: dict):
+        """实例化一个平台（调用方需确保已获取平台锁）"""
         # 动态导入
         try:
             if not platform_config["enable"]:
@@ -80,6 +92,13 @@ class PlatformManager:
                         f"平台 ID {platform_id!r} 不能为空，跳过加载该平台适配器。",
                     )
                     return
+
+            platform_id = platform_config.get("id")
+            if platform_id and platform_id in self._inst_map:
+                logger.warning(
+                    f"检测到平台 {platform_id} 已加载，正在先终止旧实例以避免重复连接...",
+                )
+                await self._terminate_platform_unlocked(platform_id)
 
             logger.info(
                 f"载入 {platform_config['type']}({platform_config['id']}) 平台适配器 ...",
@@ -176,6 +195,17 @@ class PlatformManager:
             except Exception:
                 logger.error(traceback.format_exc())
 
+    async def load_platform(self, platform_config: dict):
+        """实例化一个平台"""
+        platform_id = platform_config.get("id")
+        if not platform_id:
+            # 没有 id 时无法做并发保护，保持原有行为
+            await self._load_platform_unlocked(platform_config)
+            return
+
+        async with self._get_platform_lock(platform_id):
+            await self._load_platform_unlocked(platform_config)
+
     async def _task_wrapper(self, task: asyncio.Task, platform: Platform | None = None):
         # 设置平台状态为运行中
         if platform:
@@ -199,9 +229,16 @@ class PlatformManager:
                 platform.record_error(error_msg, tb_str)
 
     async def reload(self, platform_config: dict):
-        await self.terminate_platform(platform_config["id"])
-        if platform_config["enable"]:
-            await self.load_platform(platform_config)
+        platform_id = platform_config.get("id")
+        if platform_id:
+            async with self._get_platform_lock(platform_id):
+                await self._terminate_platform_unlocked(platform_id)
+                if platform_config["enable"]:
+                    await self._load_platform_unlocked(platform_config)
+        else:
+            await self.terminate_platform(platform_config["id"])
+            if platform_config["enable"]:
+                await self.load_platform(platform_config)
 
         # 和配置文件保持同步
         config_ids = [provider["id"] for provider in self.platforms_config]
@@ -209,27 +246,73 @@ class PlatformManager:
             if key not in config_ids:
                 await self.terminate_platform(key)
 
-    async def terminate_platform(self, platform_id: str):
-        if platform_id in self._inst_map:
-            logger.info(f"正在尝试终止 {platform_id} 平台适配器 ...")
+    async def reload_debounced(self, platform_config: dict, debounce_sec: float = 0.35):
+        """对平台重载做去抖：同一 platform_id 在 debounce 窗口内只执行一次实际 reload。
 
-            # client_id = self._inst_map.pop(platform_id, None)
-            info = self._inst_map.pop(platform_id)
-            client_id = info["client_id"]
-            inst: Platform = info["inst"]
+        语义：
+        - 多次调用会合并，最终仅使用最后一次传入的配置。
+        - 同一平台的并发调用会等待同一个结果。
+        """
+
+        platform_id = platform_config.get("id")
+        if not platform_id:
+            # 没有 id 时无法合并，保持原有行为
+            await self.reload(platform_config)
+            return
+
+        state = self._reload_debounce_state.get(platform_id)
+        if state is None or state.get("future") is None or state["future"].done():
+            loop = asyncio.get_running_loop()
+            future: asyncio.Future = loop.create_future()
+            state = {"future": future, "latest_config": copy.deepcopy(platform_config)}
+            self._reload_debounce_state[platform_id] = state
+        else:
+            # 复用同一个 future，让所有请求等待同一个最终重载
+            state["latest_config"] = copy.deepcopy(platform_config)
+
+        # 取消旧的计时任务（仅取消计时，不取消 future）
+        old_task = self._reload_debounce_tasks.get(platform_id)
+        if old_task and not old_task.done():
+            old_task.cancel()
+
+        async def _runner():
             try:
-                self.platform_insts.remove(
-                    next(
-                        inst
-                        for inst in self.platform_insts
-                        if inst.client_self_id == client_id
-                    ),
-                )
-            except Exception:
-                logger.warning(f"可能未完全移除 {platform_id} 平台适配器")
+                await asyncio.sleep(debounce_sec)
+                latest_config = state["latest_config"]
+                await self.reload(latest_config)
+                if not state["future"].done():
+                    state["future"].set_result(None)
+            except asyncio.CancelledError:
+                # 被新的更新覆盖，正常退出
+                return
+            except Exception as exc:
+                if not state["future"].done():
+                    state["future"].set_exception(exc)
 
-            if getattr(inst, "terminate", None):
-                await inst.terminate()
+        self._reload_debounce_tasks[platform_id] = asyncio.create_task(_runner())
+        await state["future"]
+
+    async def _terminate_platform_unlocked(self, platform_id: str):
+        """终止一个平台（调用方需确保已获取平台锁）"""
+        if platform_id not in self._inst_map:
+            return
+
+        logger.info(f"正在尝试终止 {platform_id} 平台适配器 ...")
+
+        info = self._inst_map.pop(platform_id)
+        inst: Platform = info["inst"]
+
+        try:
+            self.platform_insts.remove(inst)
+        except Exception:
+            logger.warning(f"可能未完全移除 {platform_id} 平台适配器")
+
+        if getattr(inst, "terminate", None):
+            await inst.terminate()
+
+    async def terminate_platform(self, platform_id: str):
+        async with self._get_platform_lock(platform_id):
+            await self._terminate_platform_unlocked(platform_id)
 
     async def terminate(self):
         for inst in self.platform_insts:

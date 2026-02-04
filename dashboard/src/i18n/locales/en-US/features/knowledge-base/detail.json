@@ -87,6 +87,8 @@
     "settings": "Retrieval Settings",
     "topK": "Number of Results",
     "topKHint": "Maximum number of results to return",
+    "debugMode": "Debug Mode",
+    "tsneVisualization": "t-SNE Visualization",
     "enableRerank": "Enable Rerank",
     "enableRerankHint": "Use a rerank model to improve retrieval quality",
     "score": "Relevance Score",

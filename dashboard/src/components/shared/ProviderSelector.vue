@@ -1,6 +1,6 @@
 <template>
   <div class="d-flex align-center justify-space-between">
-    <span v-if="!modelValue" style="color: rgb(var(--v-theme-primaryText));">
+    <span v-if="!modelValue" style="color: rgb(var(--v-theme-primaryText))">
       {{ tm('providerSelector.notSelected') }}
     </span>
     <span v-else class="provider-name-text">
@@ -16,7 +16,7 @@
     <v-card>
       <v-card-title
         class="text-h3 py-4 d-flex align-center justify-space-between gap-4 flex-wrap"
-        style="font-weight: normal;"
+        style="font-weight: normal"
       >
         <span>{{ tm('providerSelector.dialogTitle') }}</span>
         <v-btn
@@ -29,63 +29,82 @@
           {{ tm('providerSelector.createProvider') }}
         </v-btn>
       </v-card-title>
-      
-      <v-card-text class="pa-0" style="max-height: 400px; overflow-y: auto;">
-        <v-progress-linear v-if="loading" indeterminate color="primary"></v-progress-linear>
-        
+
+      <v-card-text class="pa-0" style="max-height: 400px; overflow-y: auto">
+        <v-progress-linear v-if="loading" indeterminate color="primary" />
+
         <v-list v-if="!loading && providerList.length > 0" density="compact">
           <!-- 不选择选项 -->
           <v-list-item
             key="none"
             value=""
-            @click="selectProvider({ id: '' })"
             :active="selectedProvider === ''"
             rounded="md"
-            class="ma-1">
-            <v-list-item-title>{{ tm('providerSelector.clearSelection') }}</v-list-item-title>
-            <v-list-item-subtitle>{{ tm('providerSelector.clearSelectionSubtitle') }}</v-list-item-subtitle>
-            
-            <template v-slot:append>
-              <v-icon v-if="selectedProvider === ''" color="primary">mdi-check-circle</v-icon>
+            class="ma-1"
+            @click="selectProvider({ id: '' })"
+          >
+            <v-list-item-title>{{
+              tm('providerSelector.clearSelection')
+            }}</v-list-item-title>
+            <v-list-item-subtitle>{{
+              tm('providerSelector.clearSelectionSubtitle')
+            }}</v-list-item-subtitle>
+
+            <template #append>
+              <v-icon v-if="selectedProvider === ''" color="primary">
+                mdi-check-circle
+              </v-icon>
             </template>
           </v-list-item>
-          
-          <v-divider class="ma-1"></v-divider>
-          
+
+          <v-divider class="ma-1" />
+
           <v-list-item
             v-for="provider in providerList"
             :key="provider.id"
             :value="provider.id"
-            @click="selectProvider(provider)"
             :active="selectedProvider === provider.id"
             rounded="md"
-            class="ma-1">
+            class="ma-1"
+            @click="selectProvider(provider)"
+          >
             <v-list-item-title>{{ provider.id }}</v-list-item-title>
             <v-list-item-subtitle>
-              {{ provider.type || provider.provider_type || tm('providerSelector.unknownType') }}
+              {{
+                provider.type ||
+                provider.provider_type ||
+                tm('providerSelector.unknownType')
+              }}
               <span v-if="provider.model">- {{ provider.model }}</span>
             </v-list-item-subtitle>
-            
-            <template v-slot:append>
-              <v-icon v-if="selectedProvider === provider.id" color="primary">mdi-check-circle</v-icon>
+
+            <template #append>
+              <v-icon v-if="selectedProvider === provider.id" color="primary">
+                mdi-check-circle
+              </v-icon>
             </template>
           </v-list-item>
         </v-list>
-        
-        <div v-else-if="!loading && providerList.length === 0" class="text-center py-8">
-          <v-icon size="64" color="grey-lighten-1">mdi-api-off</v-icon>
-          <p class="text-grey mt-4">{{ tm('providerSelector.noProviders') }}</p>
+
+        <div
+          v-else-if="!loading && providerList.length === 0"
+          class="text-center py-8"
+        >
+          <v-icon size="64" color="grey-lighten-1"> mdi-api-off </v-icon>
+          <p class="text-grey mt-4">
+            {{ tm('providerSelector.noProviders') }}
+          </p>
         </div>
       </v-card-text>
-      
-      <v-divider></v-divider>
-      
+
+      <v-divider />
+
       <v-card-actions class="pa-4">
-        <v-spacer></v-spacer>
-        <v-btn variant="text" @click="cancelSelection">{{ tm('providerSelector.cancelSelection') }}</v-btn>
-        <v-btn 
-          color="primary" 
-          @click="confirmSelection">
+        <v-spacer />
+        <v-btn variant="text" @click="cancelSelection">
+          {{ tm('providerSelector.cancelSelection') }}
+        </v-btn>
+        <v-btn color="primary" @click="confirmSelection">
           {{ tm('providerSelector.confirmSelection') }}
         </v-btn>
       </v-card-actions>
@@ -113,117 +132,148 @@
   </v-overlay>
 </template>
 
-<script setup>
-import { computed, ref, watch } from 'vue'
-import axios from 'axios'
-import { useModuleI18n } from '@/i18n/composables'
-import ProviderPage from '@/views/ProviderPage.vue'
+<script setup lang="ts">
+import { computed, ref, watch, type PropType } from 'vue';
+import axios from 'axios';
+import { useModuleI18n } from '@/i18n/composables';
+import ProviderPage from '@/views/ProviderPage.vue';
+
+type ProviderMeta = {
+  id: string;
+  type?: string;
+  provider_type?: string;
+  provider?: string;
+  model?: string;
+};
 
 const props = defineProps({
   modelValue: {
-    type: String,
-    default: ''
+    type: String as PropType<string>,
+    default: '',
   },
   providerType: {
-    type: String,
-    default: 'chat_completion'
+    type: String as PropType<string>,
+    default: 'chat_completion',
   },
   providerSubtype: {
-    type: String,
-    default: ''
+    type: String as PropType<string>,
+    default: '',
   },
   buttonText: {
-    type: String,
-    default: ''
-  }
-})
+    type: String as PropType<string>,
+    default: '',
+  },
+});
 
-const emit = defineEmits(['update:modelValue'])
-const { tm } = useModuleI18n('core.shared')
+const emit = defineEmits(['update:modelValue']);
+const { tm } = useModuleI18n('core.shared');
 
-const dialog = ref(false)
-const providerList = ref([])
-const loading = ref(false)
-const selectedProvider = ref('')
-const providerDrawer = ref(false)
+const dialog = ref(false);
+const providerList = ref<ProviderMeta[]>([]);
+const loading = ref(false);
+const selectedProvider = ref('');
+const providerDrawer = ref(false);
 
 const defaultTab = computed(() => {
   if (props.providerType === 'agent_runner' && props.providerSubtype) {
-    return `select_agent_runner_provider:${props.providerSubtype}`
+    return `select_agent_runner_provider:${props.providerSubtype}`;
   }
-  return props.providerType || 'chat_completion'
-})
+  return props.providerType || 'chat_completion';
+});
 
 // 监听 modelValue 变化，同步到 selectedProvider
-watch(() => props.modelValue, (newValue) => {
-  selectedProvider.value = newValue || ''
-}, { immediate: true })
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    selectedProvider.value = newValue || '';
+  },
+  { immediate: true },
+);
 
 watch(providerDrawer, (isOpen, wasOpen) => {
   if (!isOpen && wasOpen) {
-    loadProviders()
+    loadProviders();
   }
-})
+});
 
 async function openDialog() {
-  selectedProvider.value = props.modelValue || ''
-  dialog.value = true
-  await loadProviders()
+  selectedProvider.value = props.modelValue || '';
+  dialog.value = true;
+  await loadProviders();
 }
 
 async function loadProviders() {
-  loading.value = true
+  loading.value = true;
   try {
     const response = await axios.get('/api/config/provider/list', {
       params: {
-        provider_type: props.providerType
-      }
-    })
+        provider_type: props.providerType,
+      },
+    });
     if (response.data.status === 'ok') {
-      const providers = response.data.data || []
+      const raw = (response.data.data || []) as unknown[];
+      const providers: ProviderMeta[] = raw
+        .map((p) => {
+          const maybe = p as Record<string, unknown>;
+          const id = typeof maybe.id === 'string' ? maybe.id : '';
+          return {
+            id,
+            type: typeof maybe.type === 'string' ? maybe.type : undefined,
+            provider_type:
+              typeof maybe.provider_type === 'string'
+                ? maybe.provider_type
+                : undefined,
+            provider:
+              typeof maybe.provider === 'string' ? maybe.provider : undefined,
+            model: typeof maybe.model === 'string' ? maybe.model : undefined,
+          };
+        })
+        .filter((p) => p.id.length > 0);
       providerList.value = props.providerSubtype
-        ? providers.filter((provider) => matchesProviderSubtype(provider, props.providerSubtype))
-        : providers
+        ? providers.filter((provider) =>
+            matchesProviderSubtype(provider, props.providerSubtype),
+          )
+        : providers;
     }
   } catch (error) {
-    console.error('加载提供商列表失败:', error)
-    providerList.value = []
+    console.error('加载提供商列表失败:', error);
+    providerList.value = [];
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
-function matchesProviderSubtype(provider, subtype) {
+function matchesProviderSubtype(provider: ProviderMeta, subtype: string) {
   if (!subtype) {
-    return true
+    return true;
   }
-  const normalized = String(subtype).toLowerCase()
+  const normalized = String(subtype).toLowerCase();
   const candidates = [provider.type, provider.provider, provider.id]
     .filter(Boolean)
-    .map((value) => String(value).toLowerCase())
-  return candidates.includes(normalized)
+    .map((value) => String(value).toLowerCase());
+  return candidates.includes(normalized);
 }
 
-function selectProvider(provider) {
-  selectedProvider.value = provider.id
+function selectProvider(provider: Pick<ProviderMeta, 'id'>) {
+  selectedProvider.value = provider.id;
 }
 
 function confirmSelection() {
-  emit('update:modelValue', selectedProvider.value)
-  dialog.value = false
+  emit('update:modelValue', selectedProvider.value);
+  dialog.value = false;
 }
 
 function cancelSelection() {
-  selectedProvider.value = props.modelValue || ''
-  dialog.value = false
+  selectedProvider.value = props.modelValue || '';
+  dialog.value = false;
 }
 
 function openProviderDrawer() {
-  providerDrawer.value = true
+  providerDrawer.value = true;
 }
 
 function closeProviderDrawer() {
-  providerDrawer.value = false
+  providerDrawer.value = false;
 }
 </script>
 
