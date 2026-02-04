@@ -83,6 +83,7 @@ CONSTRAINTS
 1) Do NOT merge an old-base PR branch directly into master.
 	First update the PR branch to the latest `origin/master` (prefer merging `origin/master` into the PR branch to preserve commits).
 2) Resolve conflicts with minimal changes; no refactors or style-only rewrites.
+2.1) Local untracked artifacts are usually already ignored by `.gitignore` (e.g. `*.tsbuildinfo`, `/packages`). Do NOT remove/stash them just for merging unless Git reports they will be overwritten.
 3) Before merging back to master, run and pass:
 	- `pnpm -s -C dashboard run check`
 	If it fails, fix until it passes.
