@@ -79,7 +79,7 @@ export function useConversations(chatboxMode: boolean = false) {
         }
     }
 
-    function showEditTitleDialog(cid: string, title: string) {
+    function showEditTitleDialog(cid: string, title: string | null) {
         editingCid.value = cid;
         editingTitle.value = title || '';
         editTitleDialog.value = true;

@@ -1,55 +1,93 @@
 <template>
-    <div class="live-mode-container">
-        <div class="header-controls">
-            <v-btn icon="mdi-close" @click="handleClose" flat variant="text" />
-            <v-btn :icon="isCodeMode ? 'mdi-code-tags-check' : 'mdi-code-tags'" @click="toggleCodeMode" flat
-                variant="text" :color="isCodeMode ? 'primary' : ''" />
-            <v-btn :icon="isNervousMode ? 'mdi-emoticon-confused' : 'mdi-emoticon-confused-outline'"
-                @click="toggleNervousMode" flat variant="text" :color="isNervousMode ? 'primary' : ''" />
-        </div>
-
-        <span style="color: gray; padding-left: 16px;">We're developing Astr Live Mode on ChatUI & Desktop right now. Stay tuned!</span>
-
-        <div class="live-mode-content">
-            <div class="center-circle-container" @click="handleCircleClick">
-                <!-- 爆炸效果层 -->
-                <div v-if="isExploding" class="explosion-wave"></div>
-
-                <SiriOrb :energy="orbEnergy" :mode="isActive ? orbMode : 'idle'" :is-dark="isDark"
-                    :code-mode="isCodeMode" :nervous-mode="isNervousMode" class="siri-orb" />
-            </div>
-            <div class="status-text">
-                {{ statusText }}
-            </div>
-            <div class="messages-container" v-if="messages.length > 0">
-                <div v-for="(msg, index) in messages" :key="index" class="message-item" :class="msg.type">
-                    <div class="message-content">
-                        {{ msg.text }}
-                    </div>
-                </div>
-            </div>
-
-            <div class="metrics-container" v-if="Object.keys(metrics).length > 0">
-                <span v-if="metrics.wav_assemble_time">WAV Assemble: {{ (metrics.wav_assemble_time * 1000).toFixed(0)
-                    }}ms</span>
-                <span v-if="metrics.llm_ttft">LLM First Token Latency: {{ (metrics.llm_ttft * 1000).toFixed(0)
-                    }}ms</span>
-                <span v-if="metrics.llm_total_time">LLM Total Latency: {{ (metrics.llm_total_time * 1000).toFixed(0)
-                    }}ms</span>
-                <span v-if="metrics.tts_first_frame_time">TTS First Frame Latency: {{ (metrics.tts_first_frame_time *
-                    1000).toFixed(0) }}ms</span>
-                <span v-if="metrics.tts_total_time">TTS Total Larency: {{ (metrics.tts_total_time * 1000).toFixed(0)
-                    }}ms</span>
-                <span v-if="metrics.speak_to_first_frame">Speak -> First TTS Frame: {{ (metrics.speak_to_first_frame *
-                    1000).toFixed(0) }}ms</span>
-                <span v-if="metrics.wav_to_tts_total_time">Speak -> End: {{ (metrics.wav_to_tts_total_time *
-                    1000).toFixed(0) }}ms</span>
-                <span v-if="metrics.stt">STT Provider: {{ metrics.stt }}</span>
-                <span v-if="metrics.tts">TTS Provider: {{ metrics.tts }}</span>
-                <span v-if="metrics.chat_model">Chat Model: {{ metrics.chat_model }}</span>
-            </div>
-        </div>
+  <div class="live-mode-container">
+    <div class="header-controls">
+      <v-btn
+        icon="mdi-close"
+        flat
+        variant="text"
+        @click="handleClose"
+      />
+      <v-btn
+        :icon="isCodeMode ? 'mdi-code-tags-check' : 'mdi-code-tags'"
+        flat
+        variant="text"
+        :color="isCodeMode ? 'primary' : ''"
+        @click="toggleCodeMode"
+      />
+      <v-btn
+        :icon="isNervousMode ? 'mdi-emoticon-confused' : 'mdi-emoticon-confused-outline'"
+        flat
+        variant="text"
+        :color="isNervousMode ? 'primary' : ''"
+        @click="toggleNervousMode"
+      />
     </div>
+
+    <span class="live-mode-hint">We're developing Astr Live Mode on ChatUI & Desktop right now. Stay tuned!</span>
+
+    <div class="live-mode-content">
+      <div
+        class="center-circle-container"
+        @click="handleCircleClick"
+      >
+        <!-- 爆炸效果层 -->
+        <div
+          v-if="isExploding"
+          class="explosion-wave"
+        />
+
+        <SiriOrb
+          :energy="orbEnergy"
+          :mode="isActive ? orbMode : 'idle'"
+          :is-dark="isDark"
+          :code-mode="isCodeMode"
+          :nervous-mode="isNervousMode"
+          class="siri-orb"
+        />
+      </div>
+      <div class="status-text">
+        {{ statusText }}
+      </div>
+      <div
+        v-if="messages.length > 0"
+        class="messages-container"
+      >
+        <div
+          v-for="(msg, index) in messages"
+          :key="index"
+          class="message-item"
+          :class="msg.type"
+        >
+          <div class="message-content">
+            {{ msg.text }}
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="Object.keys(metrics).length > 0"
+        class="metrics-container"
+      >
+        <span v-if="metrics.wav_assemble_time">WAV Assemble: {{ (metrics.wav_assemble_time * 1000).toFixed(0)
+        }}ms</span>
+        <span v-if="metrics.llm_ttft">LLM First Token Latency: {{ (metrics.llm_ttft * 1000).toFixed(0)
+        }}ms</span>
+        <span v-if="metrics.llm_total_time">LLM Total Latency: {{ (metrics.llm_total_time * 1000).toFixed(0)
+        }}ms</span>
+        <span v-if="metrics.tts_first_frame_time">TTS First Frame Latency: {{ (metrics.tts_first_frame_time *
+          1000).toFixed(0) }}ms</span>
+        <span v-if="metrics.tts_total_time">TTS Total Larency: {{ (metrics.tts_total_time * 1000).toFixed(0)
+        }}ms</span>
+        <span v-if="metrics.speak_to_first_frame">Speak -> First TTS Frame: {{ (metrics.speak_to_first_frame *
+          1000).toFixed(0) }}ms</span>
+        <span v-if="metrics.wav_to_tts_total_time">Speak -> End: {{ (metrics.wav_to_tts_total_time *
+          1000).toFixed(0) }}ms</span>
+        <span v-if="metrics.stt">STT Provider: {{ metrics.stt }}</span>
+        <span v-if="metrics.tts">TTS Provider: {{ metrics.tts }}</span>
+        <span v-if="metrics.chat_model">Chat Model: {{ metrics.chat_model }}</span>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -122,20 +160,6 @@ const statusText = computed(() => {
     if (isSpeaking.value) return '正在说话...';
     if (isListening.value) return '正在听...';
     return '准备就绪';
-});
-
-const getIcon = computed(() => {
-    if (!isActive.value) return 'mdi-microphone';
-    if (isSpeaking.value) return 'mdi-account-voice';
-    if (isProcessing.value) return 'mdi-loading';
-    return 'mdi-check';
-});
-
-const getIconColor = computed(() => {
-    if (!isActive.value) return isDark.value ? 'white' : 'black';
-    if (isSpeaking.value) return 'success';
-    if (isProcessing.value) return 'warning';
-    return 'primary';
 });
 
 const orbEnergy = computed(() => {
@@ -476,7 +500,7 @@ function stopAudioPlayback() {
         try {
             currentSource.stop();
             currentSource.disconnect();
-        } catch (e) {
+        } catch (_e) {
             // ignore
         }
         currentSource = null;
@@ -555,7 +579,16 @@ onBeforeUnmount(() => {
     flex-direction: column;
     height: 100%;
     width: 100%;
-    background: linear-gradient(135deg, rgba(103, 58, 183, 0.05) 0%, rgba(63, 81, 181, 0.05) 100%);
+    background: linear-gradient(
+        135deg,
+        rgba(var(--v-theme-primary), 0.05) 0%,
+        rgba(var(--v-theme-primary), 0.05) 100%
+    );
+}
+
+.live-mode-hint {
+    color: rgba(var(--v-theme-on-surface), 0.6);
+    padding-left: 16px;
 }
 
 .header-controls {
@@ -617,7 +650,12 @@ onBeforeUnmount(() => {
     height: 150px;
     border-radius: 50%;
     opacity: 0.8;
-    background: radial-gradient(circle, transparent 50%, rgba(125, 80, 201, 0.8) 70%, transparent 100%);
+    background: radial-gradient(
+        circle,
+        transparent 50%,
+        rgba(var(--v-theme-primary), 0.8) 70%,
+        transparent 100%
+    );
     animation: explode 3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     filter: blur(30px);
     z-index: 0;

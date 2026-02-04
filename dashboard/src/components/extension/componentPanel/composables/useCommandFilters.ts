@@ -2,7 +2,7 @@
  * 指令过滤逻辑 Composable
  */
 import { ref, computed, type Ref } from 'vue';
-import type { CommandItem, FilterState } from '../types';
+import type { CommandItem } from '../types';
 
 export function useCommandFilters(commands: Ref<CommandItem[]>) {
   // 过滤状态

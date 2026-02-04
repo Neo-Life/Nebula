@@ -231,6 +231,7 @@ class WebChatAdapter(Platform):
         )
 
         _, _, payload = message.raw_message  # type: ignore
+        message_event.set_extra("stream_id", payload.get("stream_id"))
         message_event.set_extra("selected_provider", payload.get("selected_provider"))
         message_event.set_extra("selected_model", payload.get("selected_model"))
         message_event.set_extra(

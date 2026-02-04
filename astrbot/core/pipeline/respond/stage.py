@@ -165,9 +165,14 @@ class RespondStage(Stage):
             event.set_extra("_streaming_finished", True)
             return
 
-        logger.info(
-            f"Prepare to send - {event.get_sender_name()}/{event.get_sender_id()}: {event._outline_chain(result.chain)}",
-        )
+        if result.result_content_type == ResultContentType.STREAMING_RESULT:
+            logger.info(
+                f"Prepare to send [STREAMING] - {event.get_sender_name()}/{event.get_sender_id()}"
+            )
+        else:
+            logger.info(
+                f"Prepare to send - {event.get_sender_name()}/{event.get_sender_id()}: {event._outline_chain(result.chain)}",
+            )
 
         if result.result_content_type == ResultContentType.STREAMING_RESULT:
             if result.async_stream is None:

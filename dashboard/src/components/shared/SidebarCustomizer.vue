@@ -4,13 +4,16 @@
       color="primary" 
       variant="outlined"
       size="small"
-      @click="openDialog"
       style="margin-bottom: 8px;"
+      @click="openDialog"
     >
       {{ t('features.settings.sidebar.customize.title') }}
     </v-btn>
 
-    <v-dialog v-model="dialog" max-width="700px">
+    <v-dialog
+      v-model="dialog"
+      max-width="700px"
+    >
       <v-card>
         <v-card-title class="d-flex justify-space-between align-center">
           <span>{{ t('features.settings.sidebar.customize.title') }}</span>
@@ -18,15 +21,22 @@
             icon="mdi-close"
             variant="text"
             @click="dialog = false"
-          ></v-btn>
+          />
         </v-card-title>
         
         <v-card-text>
-          <p class="text-body-2 mb-4">{{ t('features.settings.sidebar.customize.subtitle') }}</p>
+          <p class="text-body-2 mb-4">
+            {{ t('features.settings.sidebar.customize.subtitle') }}
+          </p>
           
           <v-row>
-            <v-col cols="12" md="6">
-              <div class="mb-2 font-weight-medium">{{ t('features.settings.sidebar.customize.mainItems') }}</div>
+            <v-col
+              cols="12"
+              md="6"
+            >
+              <div class="mb-2 font-weight-medium">
+                {{ t('features.settings.sidebar.customize.mainItems') }}
+              </div>
               <v-list 
                 density="compact"
                 class="custom-list"
@@ -42,24 +52,33 @@
                   @dragover.prevent
                   @drop.stop="handleDrop($event, 'main', index)"
                 >
-                  <template v-slot:prepend>
-                    <v-icon :icon="item.icon" size="small" class="mr-2"></v-icon>
+                  <template #prepend>
+                    <v-icon
+                      :icon="item.icon"
+                      size="small"
+                      class="mr-2"
+                    />
                   </template>
                   <v-list-item-title>{{ t(item.title) }}</v-list-item-title>
-                  <template v-slot:append>
+                  <template #append>
                     <v-btn
                       icon="mdi-arrow-right"
                       variant="text"
                       size="x-small"
                       @click="moveToMore(index)"
-                    ></v-btn>
+                    />
                   </template>
                 </v-list-item>
               </v-list>
             </v-col>
             
-            <v-col cols="12" md="6">
-              <div class="mb-2 font-weight-medium">{{ t('features.settings.sidebar.customize.moreItems') }}</div>
+            <v-col
+              cols="12"
+              md="6"
+            >
+              <div class="mb-2 font-weight-medium">
+                {{ t('features.settings.sidebar.customize.moreItems') }}
+              </div>
               <v-list 
                 density="compact"
                 class="custom-list"
@@ -75,17 +94,21 @@
                   @dragover.prevent
                   @drop.stop="handleDrop($event, 'more', index)"
                 >
-                  <template v-slot:prepend>
-                    <v-icon :icon="item.icon" size="small" class="mr-2"></v-icon>
+                  <template #prepend>
+                    <v-icon
+                      :icon="item.icon"
+                      size="small"
+                      class="mr-2"
+                    />
                   </template>
                   <v-list-item-title>{{ t(item.title) }}</v-list-item-title>
-                  <template v-slot:append>
+                  <template #append>
                     <v-btn
                       icon="mdi-arrow-left"
                       variant="text"
                       size="x-small"
                       @click="moveToMain(index)"
-                    ></v-btn>
+                    />
                   </template>
                 </v-list-item>
               </v-list>
@@ -101,7 +124,7 @@
           >
             {{ t('features.settings.sidebar.customize.reset') }}
           </v-btn>
-          <v-spacer></v-spacer>
+          <v-spacer />
           <v-btn
             color="primary"
             @click="saveCustomization"
@@ -114,7 +137,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useI18n } from '@/i18n/composables';
 import sidebarItems from '@/layouts/full/vertical-sidebar/sidebarItem';
@@ -122,15 +145,27 @@ import {
   getSidebarCustomization, 
   setSidebarCustomization, 
   clearSidebarCustomization,
-  resolveSidebarItems
+  resolveSidebarItems,
+  type SidebarItem
 } from '@/utils/sidebarCustomization';
 
 const { t } = useI18n();
 
 const dialog = ref(false);
-const mainItems = ref([]);
-const moreItems = ref([]);
-const draggedItem = ref(null);
+
+type SidebarListType = 'main' | 'more'
+
+type SidebarItemWithTitle = SidebarItem & { title: string }
+
+type DraggedSidebarItem = {
+  type: SidebarListType
+  index: number
+  item: SidebarItemWithTitle
+}
+
+const mainItems = ref<SidebarItemWithTitle[]>([]);
+const moreItems = ref<SidebarItemWithTitle[]>([]);
+const draggedItem = ref<DraggedSidebarItem | null>(null);
 
 function initializeItems() {
   const customization = getSidebarCustomization();
@@ -138,8 +173,10 @@ function initializeItems() {
     sidebarItems,
     customization
   );
-  mainItems.value = resolvedMain;
-  moreItems.value = resolvedMore;
+  const hasTitle = (item: SidebarItem): item is SidebarItemWithTitle =>
+    typeof item.title === 'string' && item.title.length > 0
+  mainItems.value = resolvedMain.filter(hasTitle)
+  moreItems.value = resolvedMore.filter(hasTitle)
 }
 
 function openDialog() {
@@ -147,16 +184,16 @@ function openDialog() {
   dialog.value = true;
 }
 
-function handleDragStart(event, listType, index) {
+function handleDragStart(event: DragEvent, listType: SidebarListType, index: number) {
   draggedItem.value = {
     type: listType,
     index: index,
     item: listType === 'main' ? mainItems.value[index] : moreItems.value[index]
   };
-  event.dataTransfer.effectAllowed = 'move';
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
 }
 
-function handleDrop(event, targetListType, targetIndex) {
+function handleDrop(event: DragEvent, targetListType: SidebarListType, targetIndex: number) {
   event.preventDefault();
   
   if (!draggedItem.value) return;
@@ -182,7 +219,7 @@ function handleDrop(event, targetListType, targetIndex) {
   draggedItem.value = null;
 }
 
-function handleDropToList(event, targetListType) {
+function handleDropToList(event: DragEvent, targetListType: SidebarListType) {
   event.preventDefault();
   
   if (!draggedItem.value) return;
@@ -208,14 +245,14 @@ function handleDropToList(event, targetListType) {
   draggedItem.value = null;
 }
 
-function moveToMore(index) {
+function moveToMore(index: number) {
   const item = mainItems.value.splice(index, 1)[0];
-  moreItems.value.push(item);
+  if (item) moreItems.value.push(item);
 }
 
-function moveToMain(index) {
+function moveToMain(index: number) {
   const item = moreItems.value.splice(index, 1)[0];
-  mainItems.value.push(item);
+  if (item) mainItems.value.push(item);
 }
 
 function saveCustomization() {

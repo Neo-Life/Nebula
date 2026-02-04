@@ -2,28 +2,31 @@
   <div class="logo-container">
     <div class="logo-content">
       <div class="logo-image">
-        <img width="110" src="@/assets/images/astrbot_logo_mini.webp" alt="AstrBot Logo">
+        <img
+          width="110"
+          src="@/assets/images/nebula_logo_mini.webp"
+          alt="Nebula Logo"
+        >
       </div>
       <div class="logo-text">
         <h2 
-          :style="{color: useCustomizerStore().uiTheme === 'PurpleTheme' ? '#5e35b1' : '#d7c5fa'}"
+          class="logo-title"
           v-html="formatTitle(title || t('core.header.logoTitle'))"
-        ></h2>
-        <!-- 父子组件传递css变量可能会出错，暂时使用十六进制颜色值 -->
-        <h4 :style="{color: useCustomizerStore().uiTheme === 'PurpleTheme' ? '#000000aa' : '#ffffffcc'}"
-            class="hint-text">{{ subtitle || t('core.header.accountDialog.title') }}</h4>
+        />
+        <h4 class="hint-text logo-subtitle">
+          {{ subtitle || t('core.header.accountDialog.title') }}
+        </h4>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useCustomizerStore } from "@/stores/customizer";
 import { useI18n } from '@/i18n/composables';
 
 const { t } = useI18n();
 
-const props = withDefaults(defineProps<{
+withDefaults(defineProps<{
   title?: string;
   subtitle?: string;
 }>(), {
@@ -33,10 +36,10 @@ const props = withDefaults(defineProps<{
 
 // 智能格式化标题，在小屏幕上允许在合适位置换行
 const formatTitle = (title: string) => {
-  // 如果标题包含 "AstrBot" 和其他文字，在它们之间添加换行机会
-  if (title.includes('AstrBot ') || title.includes('AstrBot')) {
-    // 处理 "AstrBot 仪表盘" 或 "AstrBot Dashboard" 等格式
-    return title.replace(/(AstrBot)\s+(.+)/, '$1<wbr> $2');
+  // 如果标题包含 "Nebula" 和其他文字，在它们之间添加换行机会
+  if (title.includes('Nebula ') || title.includes('Nebula')) {
+    // 处理 "Nebula 仪表盘" 或 "Nebula Dashboard" 等格式
+    return title.replace(/(Nebula)\s+(.+)/, '$1<wbr> $2');
   }
   return title;
 }
@@ -87,6 +90,10 @@ const formatTitle = (title: string) => {
   min-width: fit-content;
 }
 
+.logo-title {
+  color: rgb(var(--v-theme-primary));
+}
+
 /* 在小屏幕上允许在指定位置换行 */
 @media (max-width: 420px) {
   .logo-text h2 {
@@ -100,6 +107,10 @@ const formatTitle = (title: string) => {
   font-weight: 400;
   letter-spacing: 0.3px;
   white-space: nowrap;
+}
+
+.logo-subtitle {
+  color: rgba(var(--v-theme-on-surface), 0.7);
 }
 
 /* 响应式处理 */

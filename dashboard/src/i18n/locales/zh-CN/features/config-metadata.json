@@ -3,7 +3,7 @@
     "name": "AI 配置",
     "agent_runner": {
       "description": "Agent 执行方式",
-      "hint": "选择 AI 对话的执行器,默认为 AstrBot 内置 Agent 执行器,可使用 AstrBot 内的知识库、人格、工具调用功能。如果不打算接入 Dify 或 Coze 等第三方 Agent 执行器,不需要修改此节。",
+      "hint": "选择 AI 对话的执行器,默认为 Nebula 内置 Agent 执行器,可使用 Nebula 内的知识库、人格、工具调用功能。如果不打算接入 Dify 或 Coze 等第三方 Agent 执行器,不需要修改此节。",
       "provider_settings": {
         "enable": {
           "description": "启用",
@@ -70,7 +70,7 @@
     },
     "persona": {
       "description": "人格",
-      "hint": "赋予 AstrBot 人格。",
+      "hint": "赋予 Nebula 人格。",
       "provider_settings": {
         "default_personality": {
           "description": "默认采用的人格"
@@ -79,7 +79,7 @@
     },
     "knowledgebase": {
       "description": "知识库",
-      "hint": "AstrBot 的 “外置大脑”。",
+      "hint": "Nebula 的 “外置大脑”。",
       "kb_names": {
         "description": "知识库列表",
         "hint": "支持多选"
@@ -99,7 +99,7 @@
     },
     "websearch": {
       "description": "网页搜索",
-      "hint": "让 AstrBot 能够访问互联网，获悉时讯。",
+      "hint": "让 Nebula 能够访问互联网，获悉时讯。",
       "provider_settings": {
         "web_search": {
           "description": "启用网页搜索"
@@ -138,7 +138,7 @@
     },
     "agent_computer_use": {
       "description": "使用电脑能力",
-      "hint": "让 AstrBot 访问和使用你的电脑或者隔离的沙盒环境，以执行更复杂的任务。详见: [沙盒模式](https://docs.astrbot.app/use/astrbot-agent-sandbox.html), [Skills](https://docs.astrbot.app/use/skills.html)。",
+      "hint": "让 Nebula 访问和使用你的电脑或者隔离的沙盒环境，以执行更复杂的任务。详见: [沙盒模式](https://docs.astrbot.app/use/astrbot-agent-sandbox.html), [Skills](https://docs.astrbot.app/use/skills.html)。",
       "provider_settings": {
         "computer_use_runtime": {
           "description": "运行环境",
@@ -169,18 +169,18 @@
     },
     "proactive_capability": {
       "description": "主动型能力",
-      "hint": "让 AstrBot 能够在某一时刻自动唤醒，帮你完成任务。详见: [主动型 Agent](https://docs.astrbot.app/use/proactive-agent.html)。",
+      "hint": "让 Nebula 能够在某一时刻自动唤醒，帮你完成任务。详见: [主动型 Agent](https://docs.astrbot.app/use/proactive-agent.html)。",
       "provider_settings": {
         "proactive_capability": {
           "add_cron_tools": {
             "description": "启用",
-            "hint": "启用后，将会传递给 Agent 相关工具来实现主动型 Agent。你可以告诉 AstrBot 未来某个时间要做的事情，它将被定时触发然后执行任务，然后将结果发送给你。"
+            "hint": "启用后，将会传递给 Agent 相关工具来实现主动型 Agent。你可以告诉 Nebula 未来某个时间要做的事情，它将被定时触发然后执行任务，然后将结果发送给你。"
           }
         }
       }
     },
     "truncate_and_compress": {
-      "hint": "AstrBot 如何管理工作记忆。详见: [上下文管理策略](https://docs.astrbot.app/use/context-compress.html)。",
+      "hint": "Nebula 如何管理工作记忆。详见: [上下文管理策略](https://docs.astrbot.app/use/context-compress.html)。",
       "description": "上下文管理策略",
       "provider_settings": {
         "max_context_length": {
@@ -325,7 +325,7 @@
       },
       "disable_builtin_commands": {
         "description": "禁用自带指令",
-        "hint": "禁用所有 AstrBot 自带指令,如 help, provider, model 等"
+        "hint": "禁用所有 Nebula 自带指令,如 help, provider, model 等"
       }
     },
     "whitelist": {
@@ -494,7 +494,8 @@
             ]
           },
           "regex": {
-            "description": "分段正则表达式"
+            "description": "分段正则表达式",
+            "hint": "用于将消息分割成多段的正则表达式。"
           },
           "split_words": {
             "description": "分段词列表",
@@ -547,6 +548,16 @@
     "name": "系统配置",
     "system": {
       "description": "系统配置",
+      "dashboard": {
+        "channel": {
+          "description": "WebUI 下载渠道",
+          "hint": "用于启动时自动下载/更新 WebUI。official 为官方发布版；nebula 为 Nebula 版本。",
+          "labels": [
+            "AstrBot 官方渠道",
+            "Nebula 渠道"
+          ]
+        }
+      },
       "t2i_strategy": {
         "description": "文本转图像策略",
         "hint": "文本转图像策略。`remote` 为使用远程基于 HTML 的渲染服务,`local` 为使用 PIL 本地渲染。当使用 local 时,将 ttf 字体命名为 'font.ttf' 放在 data/ 目录下可自定义字体。"
@@ -601,7 +612,7 @@
       },
       "callback_api_base": {
         "description": "对外可达的回调接口地址",
-        "hint": "外部服务可能会通过 AstrBot 生成的回调链接(如文件下载链接)访问 AstrBot 后端。由于 AstrBot 无法自动判断部署环境中对外可达的主机地址(host),因此需要通过此配置项显式指定外部服务如何访问 AstrBot 的地址。如 [http://localhost:6185](http://localhost:6185),[https://example.com](https://example.com) 等。"
+        "hint": "外部服务可能会通过 Nebula 生成的回调链接(如文件下载链接)访问 Nebula 后端。由于 Nebula 无法自动判断部署环境中对外可达的主机地址(host),因此需要通过此配置项显式指定外部服务如何访问 Nebula 的地址。如 http://localhost:6185,https://example.com 等。"
       },
       "timezone": {
         "description": "时区",

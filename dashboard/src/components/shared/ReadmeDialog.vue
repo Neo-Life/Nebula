@@ -1,5 +1,5 @@
-<script setup>
-import { ref, watch, computed, onUnmounted } from "vue";
+<script setup lang="ts">
+import { ref, watch, computed } from "vue";
 import MarkdownIt from "markdown-it";
 import hljs from "highlight.js";
 import axios from "axios";
@@ -7,7 +7,6 @@ import DOMPurify from "dompurify";
 import "highlight.js/styles/github-dark.css";
 import { useI18n } from "@/i18n/composables";
 
-// 1. 在 setup 作用域创建 MarkdownIt 实例
 const md = new MarkdownIt({
   html: true,
   linkify: true,
@@ -19,14 +18,28 @@ md.enable(["table", "strikethrough"]);
 md.renderer.rules.table_open = () => '<div class="table-container"><table>';
 md.renderer.rules.table_close = () => "</table></div>";
 
-// 2. 复制按钮的 SVG 图标常量
-const ICONS = {
-  SUCCESS:
-    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"></polyline></svg>',
-  ERROR:
-    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
-  COPY: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>',
+md.renderer.rules.fence = (
+  tokens: Array<{ info: string; content: string }>,
+  idx: number,
+  _options: unknown,
+  _env: unknown,
+  _self: unknown,
+) => {
+  const token = tokens[idx];
+  const lang = token.info.trim() || "";
+  const code = token.content;
+
+  const highlighted =
+    lang && hljs.getLanguage(lang)
+      ? hljs.highlight(code, { language: lang }).value
+      : md.utils.escapeHtml(code);
+
+  return `<div class="code-block-wrapper">
+    ${lang ? `<span class="code-lang-label">${lang}</span>` : ""}
+    <pre class="hljs"><code class="language-${lang}">${highlighted}</code></pre>
+  </div>`;
 };
+
 
 const props = defineProps({
   show: { type: Boolean, default: false },
@@ -35,51 +48,22 @@ const props = defineProps({
   mode: {
     type: String,
     default: "readme",
-    validator: (value) => ["readme", "changelog"].includes(value),
+    validator: (value: string) => ["readme", "changelog"].includes(value),
   },
 });
 
 const emit = defineEmits(["update:show"]);
 const { t, locale } = useI18n();
 
-const content = ref(null);
-const error = ref(null);
+const content = ref<string | null>(null);
+const error = ref<string | null>(null);
 const loading = ref(false);
 const isEmpty = ref(false);
-const copyFeedbackTimer = ref(null);
+const renderedHtml = ref("");
 const lastRequestId = ref(0);
 
-onUnmounted(() => {
-  if (copyFeedbackTimer.value) clearTimeout(copyFeedbackTimer.value);
-});
-
-// 渲染后的 HTML
-const renderedHtml = computed(() => {
-  // 强制依赖 locale，确保语言切换时重新渲染
-  const _ = locale?.value;
-  if (!content.value) return "";
-
-  // 设置 fence 规则，直接使用当前作用域的 t 函数
-  md.renderer.rules.fence = (tokens, idx) => {
-    const token = tokens[idx];
-    const lang = token.info.trim() || "";
-    const code = token.content;
-
-    const highlighted =
-      lang && hljs.getLanguage(lang)
-        ? hljs.highlight(code, { language: lang }).value
-        : md.utils.escapeHtml(code);
-
-    return `<div class="code-block-wrapper">
-      ${lang ? `<span class="code-lang-label">${lang}</span>` : ""}
-      <button class="copy-code-btn" title="${t("core.common.copy")}">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-      </button>
-      <pre class="hljs"><code class="language-${lang}">${highlighted}</code></pre>
-    </div>`;
-  };
-
-  const rawHtml = md.render(content.value);
+function renderMarkdown(markdown: string): string {
+  const rawHtml = md.render(markdown);
 
   const cleanHtml = DOMPurify.sanitize(rawHtml, {
     ALLOWED_TAGS: [
@@ -150,12 +134,10 @@ const renderedHtml = computed(() => {
     ],
   });
 
-  // 3. 后处理方案：完全隔离，安全性最高
   const tempDiv = document.createElement("div");
   tempDiv.innerHTML = cleanHtml;
   tempDiv.querySelectorAll("a").forEach((link) => {
     const href = link.getAttribute("href");
-    // 强制所有外部链接使用安全的 _blank 策略
     if (href && (href.startsWith("http") || href.startsWith("//"))) {
       link.setAttribute("target", "_blank");
       link.setAttribute("rel", "noopener noreferrer");
@@ -163,7 +145,15 @@ const renderedHtml = computed(() => {
   });
 
   return tempDiv.innerHTML;
-});
+}
+
+watch(
+  [() => content.value, () => locale?.value],
+  ([markdown]) => {
+    renderedHtml.value = markdown ? renderMarkdown(markdown) : "";
+  },
+  { immediate: true },
+);
 
 const modeConfig = computed(() => {
   const isChangelog = props.mode === "changelog";
@@ -191,14 +181,16 @@ async function fetchContent() {
     );
     if (requestId !== lastRequestId.value) return;
 
-    if (res.data.status === "ok") {
-      if (res.data.data.content) content.value = res.data.data.content;
+    if (res.data?.status === "ok") {
+      if (res.data?.data?.content) content.value = res.data.data.content;
       else isEmpty.value = true;
     } else {
-      error.value = res.data.message;
+      error.value = String(res.data?.message ?? "Unknown error");
     }
-  } catch (err) {
-    if (requestId === lastRequestId.value) error.value = err.message;
+  } catch (err: unknown) {
+    if (requestId === lastRequestId.value) {
+      error.value = err instanceof Error ? err.message : String(err);
+    }
   } finally {
     if (requestId === lastRequestId.value) loading.value = false;
   }
@@ -206,85 +198,44 @@ async function fetchContent() {
 
 watch(
   [() => props.show, () => props.pluginName, () => props.mode],
-  ([show, name]) => {
+  ([show, name]: [boolean, string, string]) => {
     if (show && name) fetchContent();
   },
   { immediate: true },
 );
 
-function handleContainerClick(event) {
-  const btn = event.target.closest(".copy-code-btn");
-  if (!btn) return;
-  const code = btn.closest(".code-block-wrapper")?.querySelector("code");
-  if (code) {
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard
-        .writeText(code.textContent)
-        .then(() => showCopyFeedback(btn, true))
-        .catch(() => tryFallbackCopy(code.textContent, btn));
-    } else {
-      tryFallbackCopy(code.textContent, btn);
-    }
-  }
-}
-
-function tryFallbackCopy(text, btn) {
-  try {
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-    Object.assign(textArea.style, {
-      position: "absolute",
-      opacity: "0",
-      zIndex: "-1",
-    });
-    btn.parentNode.appendChild(textArea);
-    textArea.select();
-    const success = document.execCommand("copy");
-    btn.parentNode.removeChild(textArea);
-    showCopyFeedback(btn, success);
-  } catch (err) {
-    showCopyFeedback(btn, false);
-  }
-}
-
-function showCopyFeedback(btn, success) {
-  if (copyFeedbackTimer.value) clearTimeout(copyFeedbackTimer.value);
-  btn.setAttribute("title", t(`core.common.${success ? "copied" : "error"}`));
-  btn.innerHTML = success ? ICONS.SUCCESS : ICONS.ERROR;
-  btn.style.color = success ? "var(--v-theme-success)" : "var(--v-theme-error)";
-
-  copyFeedbackTimer.value = setTimeout(() => {
-    if (document.body.contains(btn)) {
-      btn.innerHTML = ICONS.COPY;
-      btn.style.color = "";
-      btn.setAttribute("title", t("core.common.copy"));
-    }
-    copyFeedbackTimer.value = null;
-  }, 2000);
+function handleContainerClick(_event: MouseEvent) {
+  // Copy button removed by design.
 }
 
 const _show = computed({
   get: () => props.show,
-  set: (val) => emit("update:show", val),
+  set: (val: boolean) => emit("update:show", val),
 });
 
-// 安全打开外部链接
-function openExternalLink(url) {
+function openExternalLink(url: string | null) {
   if (!url) return;
   window.open(url, "_blank", "noopener,noreferrer");
 }
 </script>
 
 <template>
-  <v-dialog v-model="_show" width="800">
+  <v-dialog
+    v-model="_show"
+    width="800"
+  >
     <v-card>
       <v-card-title class="d-flex justify-space-between align-center">
         <span class="text-h5">{{ modeConfig.title }}</span>
-        <v-btn icon @click="_show = false" variant="text">
+        <v-btn
+          icon
+          variant="text"
+          @click="_show = false"
+        >
           <v-icon>mdi-close</v-icon>
         </v-btn>
       </v-card-title>
-      <v-divider></v-divider>
+      <v-divider />
       <v-card-text style="height: 70vh; overflow-y: auto">
         <div class="d-flex justify-space-between mb-4">
           <v-btn
@@ -314,25 +265,31 @@ function openExternalLink(url) {
             color="primary"
             size="64"
             class="mb-4"
-          ></v-progress-circular>
-          <p class="text-body-1 text-center">{{ modeConfig.loading }}</p>
+          />
+          <p class="text-body-1 text-center">
+            {{ modeConfig.loading }}
+          </p>
         </div>
 
         <div
           v-else-if="renderedHtml"
           class="markdown-body"
-          v-html="renderedHtml"
           @click="handleContainerClick"
-        ></div>
+          v-html="renderedHtml"
+        />
 
         <div
           v-else-if="error"
           class="d-flex flex-column align-center justify-center"
           style="height: 100%"
         >
-          <v-icon size="64" color="error" class="mb-4"
-            >mdi-alert-circle-outline</v-icon
+          <v-icon
+            size="64"
+            color="error"
+            class="mb-4"
           >
+            mdi-alert-circle-outline
+          </v-icon>
           <p class="text-body-1 text-center mb-2">
             {{ t("core.common.error") }}
           </p>
@@ -346,9 +303,13 @@ function openExternalLink(url) {
           class="d-flex flex-column align-center justify-center"
           style="height: 100%"
         >
-          <v-icon size="64" color="warning" class="mb-4"
-            >mdi-file-question-outline</v-icon
+          <v-icon
+            size="64"
+            color="warning"
+            class="mb-4"
           >
+            mdi-file-question-outline
+          </v-icon>
           <p class="text-body-1 text-center mb-2">
             {{ modeConfig.emptyTitle }}
           </p>
@@ -357,10 +318,14 @@ function openExternalLink(url) {
           </p>
         </div>
       </v-card-text>
-      <v-divider></v-divider>
+      <v-divider />
       <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn color="primary" variant="tonal" @click="_show = false">
+        <v-spacer />
+        <v-btn
+          color="primary"
+          variant="tonal"
+          @click="_show = false"
+        >
           {{ t("core.common.close") }}
         </v-btn>
       </v-card-actions>
@@ -427,29 +392,6 @@ function openExternalLink(url) {
   z-index: 1;
 }
 
-:deep(.markdown-body .copy-code-btn) {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: rgba(110, 118, 129, 0.4);
-  border: none;
-  border-radius: 6px;
-  padding: 6px;
-  cursor: pointer;
-  color: #c9d1d9;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition:
-    background-color 0.2s,
-    color 0.2s;
-  z-index: 1;
-}
-
-:deep(.markdown-body .copy-code-btn:hover) {
-  background: rgba(110, 118, 129, 0.6);
-  color: #fff;
-}
 
 :deep(.markdown-body code) {
   padding: 0.2em 0.4em;

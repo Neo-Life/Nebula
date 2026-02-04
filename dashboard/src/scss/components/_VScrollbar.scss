@@ -1,4 +1,4 @@
-/* 自定义滚动条样式 - 紫色主题 */
+/* 自定义滚动条样式 - 天蓝色主题 */
 
 /* 全局滚动条样式 */
 ::-webkit-scrollbar {
@@ -12,20 +12,20 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(160, 60, 254, 0.75);
+  background: rgba(56, 189, 248, 0.75);
   border-radius: 5px;
   transition: all 0.3s ease;
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(147, 51, 234, 0.85);
+  background: rgba(14, 165, 233, 0.85);
   transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(147, 51, 234, 0.3);
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
 }
 
 ::-webkit-scrollbar-thumb:active {
-  background: rgba(147, 51, 234, 0.95);
+  background: rgba(14, 165, 233, 0.95);
 }
 
 ::-webkit-scrollbar-corner {
@@ -39,17 +39,17 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(192, 132, 252, 0.75);
+    background: rgba(56, 189, 248, 0.75);
     border: 1px solid rgba(0, 0, 0, 0.2);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(192, 132, 252, 0.85);
-    box-shadow: 0 2px 8px rgba(192, 132, 252, 0.4);
+    background: rgba(14, 165, 233, 0.85);
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.4);
   }
 
   ::-webkit-scrollbar-thumb:active {
-    background: rgba(192, 132, 252, 0.95);
+    background: rgba(14, 165, 233, 0.95);
   }
 }
 
@@ -61,14 +61,14 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(147, 51, 234, 0.75);
+    background: rgba(56, 189, 248, 0.75);
     border: none;
   }
 }
 
 .v-theme--PurpleThemeDark .thin-scrollbar {
   ::-webkit-scrollbar-thumb {
-    background: rgba(192, 132, 252, 0.75);
+    background: rgba(56, 189, 248, 0.75);
   }
 }
 
@@ -79,33 +79,33 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: rgba(147, 51, 234, 0.08);
+    background: rgba(56, 189, 248, 0.08);
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(147, 51, 234, 0.75);
+    background: rgba(56, 189, 248, 0.75);
     border-radius: 4px;
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(147, 51, 234, 0.85);
+    background: rgba(14, 165, 233, 0.85);
   }
 }
 
 .v-theme--PurpleThemeDark .chat-scrollbar {
   ::-webkit-scrollbar-track {
-    background: rgba(192, 132, 252, 0.08);
+    background: rgba(56, 189, 248, 0.08);
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(192, 132, 252, 0.75);
+    background: rgba(56, 189, 248, 0.75);
     border: 1px solid rgba(0, 0, 0, 0.1);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(192, 132, 252, 0.85);
+    background: rgba(14, 165, 233, 0.85);
   }
 }
 
@@ -123,11 +123,11 @@
 /* Firefox 兼容性 */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(147, 51, 234, 0.75) rgba(0, 0, 0, 0.05);
+  scrollbar-color: rgba(56, 189, 248, 0.75) rgba(0, 0, 0, 0.05);
 }
 
 .v-theme--PurpleThemeDark * {
-  scrollbar-color: rgba(192, 132, 252, 0.75) rgba(255, 255, 255, 0.05);
+  scrollbar-color: rgba(56, 189, 248, 0.75) rgba(255, 255, 255, 0.05);
 }
 
 /* 平滑滚动 */

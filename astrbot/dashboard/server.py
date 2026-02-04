@@ -240,7 +240,7 @@ class AstrBotDashboard:
         parts.append(f"   ➜  本地: http://localhost:{port}\n")
         for ip in ip_addr:
             parts.append(f"   ➜  网络: http://{ip}:{port}\n")
-        parts.append("   ➜  默认用户名和密码: astrbot\n ✨✨✨\n")
+        parts.append("   ➜  默认用户名和密码: nebula\n ✨✨✨\n")
         display = "".join(parts)
 
         if not ip_addr:
