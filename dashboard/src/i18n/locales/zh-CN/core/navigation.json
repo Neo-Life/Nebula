@@ -6,9 +6,9 @@
   "persona": "人格设定",
   "subagent": "SubAgent 编排",
   "toolUse": "MCP",
-  "extension": "插件",
+  "extension": "扩展功能",
   "extensionTabs": {
-    "installed": "AstrBot 插件",
+    "installed": "插件",
     "market": "插件市场",
     "mcp": "MCP",
     "skills": "Skills",

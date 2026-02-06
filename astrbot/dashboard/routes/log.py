@@ -63,6 +63,7 @@ class LogRoute(Route):
 
     async def log(self) -> QuartResponse:
         last_event_id = request.headers.get("Last-Event-ID")
+        heartbeat_interval_seconds = 25
 
         async def stream():
             queue = None
@@ -73,9 +74,14 @@ class LogRoute(Route):
 
                 queue = self.log_broker.register()
                 while True:
-                    message = await queue.get()
-                    current_ts = message.get("time", time.time())
-                    yield _format_log_sse(message, current_ts)
+                    try:
+                        message = await asyncio.wait_for(
+                            queue.get(), timeout=heartbeat_interval_seconds
+                        )
+                        current_ts = message.get("time", time.time())
+                        yield _format_log_sse(message, current_ts)
+                    except asyncio.TimeoutError:
+                        yield f": ping {time.time()}\n\n"
 
             except asyncio.CancelledError:
                 pass
@@ -91,9 +97,10 @@ class LogRoute(Route):
                 stream(),
                 {
                     "Content-Type": "text/event-stream",
-                    "Cache-Control": "no-cache",
-                    "Connection": "keep-alive",
-                    "Transfer-Encoding": "chunked",
+                    # Avoid hop-by-hop headers that break under HTTP/2.
+                    "Cache-Control": "no-cache, no-transform",
+                    # Disable proxy buffering (nginx etc.) for SSE.
+                    "X-Accel-Buffering": "no",
                 },
             ),
         )

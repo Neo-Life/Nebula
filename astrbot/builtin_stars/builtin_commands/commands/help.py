@@ -77,7 +77,7 @@ class HelpCommand:
         )
 
         msg_parts = [
-            f"AstrBot v{VERSION}(WebUI: {dashboard_version})",
+            f"Nebula v{VERSION}(WebUI: {dashboard_version})",
             "内置指令:",
             commands_section,
         ]

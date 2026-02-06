@@ -10,14 +10,15 @@ import { translations } from './translations';
 export const translationData = translations;
 
 // 从实际的翻译数据推断完整的翻译结构类型
-export type TranslationSchema = typeof translations[keyof typeof translations];
+export type TranslationSchema =
+  (typeof translations)[keyof typeof translations];
 
 // TypeScript 助手：递归提取嵌套键路径
-type NestedKeyOf<T> = T extends object 
+type NestedKeyOf<T> = T extends object
   ? {
       [K in keyof T & string]: T[K] extends object
         ? `${K}` | `${K}.${NestedKeyOf<T[K]>}`
-        : `${K}`
+        : `${K}`;
     }[keyof T & string]
   : never;
 
@@ -126,4 +127,4 @@ declare module '@vue/runtime-core' {
 declare module 'vue-i18n' {
   export interface DefineLocaleMessage extends TranslationSchema {}
 }
-*/ 
+*/

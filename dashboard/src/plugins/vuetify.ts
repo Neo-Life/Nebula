@@ -3,7 +3,7 @@ import '@mdi/font/css/materialdesignicons.css';
 import * as components from 'vuetify/components';
 import * as directives from 'vuetify/directives';
 import { PurpleTheme } from '@/theme/LightTheme';
-import { PurpleThemeDark } from "@/theme/DarkTheme";
+import { PurpleThemeDark } from '@/theme/DarkTheme';
 
 export default createVuetify({
   components,
@@ -13,20 +13,20 @@ export default createVuetify({
     defaultTheme: 'PurpleTheme',
     themes: {
       PurpleTheme,
-      PurpleThemeDark
-    }
+      PurpleThemeDark,
+    },
   },
   defaults: {
     VBtn: {},
     VCard: {
-      rounded: 'lg'
+      rounded: 'lg',
     },
     VTextField: {
-      rounded: 'lg'
+      rounded: 'lg',
     },
     VTooltip: {
       // set v-tooltip default location to top
-      location: 'top'
-    }
-  }
+      location: 'top',
+    },
+  },
 });

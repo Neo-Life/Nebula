@@ -22,6 +22,17 @@ class AstrBotUpdator(RepoZipUpdator):
         super().__init__(repo_mirror)
         self.MAIN_PATH = get_astrbot_path()
         self.ASTRBOT_RELEASE_API = "https://api.soulter.top/releases"
+        self.NEBULA_REPO_URL = "https://github.com/Neo-Revaea/Nebula"
+
+    async def update_from_nebula_source(self, proxy: str = "") -> None:
+        repo_url = self.NEBULA_REPO_URL
+        await self.download_from_repo_url(
+            target_path="temp",
+            repo_url=repo_url,
+            proxy=proxy or "",
+        )
+        logger.info("下载 AstrBot Core 更新文件完成，正在执行解压...")
+        self.unzip_file("temp.zip", self.MAIN_PATH)
 
     def terminate_child_processes(self):
         """终止当前进程的所有子进程
@@ -85,12 +96,34 @@ class AstrBotUpdator(RepoZipUpdator):
     async def get_releases(self) -> list:
         return await self.fetch_release_info(self.ASTRBOT_RELEASE_API)
 
-    async def update(self, reboot=False, latest=True, version=None, proxy=""):
-        update_data = await self.fetch_release_info(self.ASTRBOT_RELEASE_API, latest)
+    async def update(
+        self,
+        reboot: bool = False,
+        latest: bool = True,
+        version: str | None = None,
+        proxy: str = "",
+        channel: str = "official",
+    ):
         file_url = None
 
         if os.environ.get("ASTRBOT_CLI"):
             raise Exception("不支持更新CLI启动的AstrBot")  # 避免版本管理混乱
+
+        if proxy:
+            proxy = proxy.removesuffix("/")
+
+        if channel == "nebula":
+            logger.info("准备从 Nebula 源码渠道更新 AstrBot Core")
+            try:
+                await self.update_from_nebula_source(proxy=proxy)
+            except BaseException as e:
+                raise e
+
+            if reboot:
+                self._reboot()
+            return
+
+        update_data = await self.fetch_release_info(self.ASTRBOT_RELEASE_API, latest)
 
         if latest:
             latest_version = update_data[0]["tag_name"]
@@ -111,7 +144,6 @@ class AstrBotUpdator(RepoZipUpdator):
         logger.info(f"准备更新至指定版本的 AstrBot Core: {version}")
 
         if proxy:
-            proxy = proxy.removesuffix("/")
             file_url = f"{proxy}/{file_url}"
 
         try:
