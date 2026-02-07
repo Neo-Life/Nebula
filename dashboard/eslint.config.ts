@@ -139,6 +139,7 @@ export default [
       'src/views/knowledge-base/components/DocumentsTab.vue',
       'src/views/ConversationPage.vue',
       'src/components/header/UpdateDialog.vue',
+      'src/composables/useConversations.ts',
     ],
     plugins: {
       '@typescript-eslint': tseslint,
