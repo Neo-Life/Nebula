@@ -10,6 +10,12 @@ import type {
   TranslationStats,
 } from './types';
 
+type ObjectLike = Record<string, unknown> | unknown[];
+
+function isObjectLike(value: unknown): value is ObjectLike {
+  return typeof value === 'object' && value !== null;
+}
+
 export class I18nValidator {
   private baseLocale: string = 'zh-CN';
   private supportedLocales: string[] = ['zh-CN', 'en-US'];
@@ -17,7 +23,7 @@ export class I18nValidator {
   /**
    * 验证翻译完整性
    */
-  validateCompleteness(localeData: Record<string, any>): ValidationResult {
+  validateCompleteness(localeData: Record<string, unknown>): ValidationResult {
     const errors: ValidationError[] = [];
     const missingKeys: string[] = [];
     const extraKeys: string[] = [];
@@ -93,7 +99,7 @@ export class I18nValidator {
   /**
    * 验证翻译值的有效性
    */
-  validateValues(localeData: Record<string, any>): ValidationError[] {
+  validateValues(localeData: Record<string, unknown>): ValidationError[] {
     const errors: ValidationError[] = [];
 
     for (const [locale, data] of Object.entries(localeData)) {
@@ -107,12 +113,14 @@ export class I18nValidator {
    * 递归验证嵌套值
    */
   private validateNestedValues(
-    obj: any,
+    obj: unknown,
     locale: string,
     parentKey: string,
     errors: ValidationError[],
   ): void {
-    for (const [key, value] of Object.entries(obj)) {
+    if (!isObjectLike(obj)) return;
+
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
       const fullKey = parentKey ? `${parentKey}.${key}` : key;
 
       if (typeof value === 'object' && value !== null) {
@@ -172,7 +180,7 @@ export class I18nValidator {
   /**
    * 生成翻译统计信息
    */
-  generateStats(localeData: Record<string, any>): TranslationStats {
+  generateStats(localeData: Record<string, unknown>): TranslationStats {
     const stats: TranslationStats = {
       modules: {},
       locales: {},
@@ -214,11 +222,15 @@ export class I18nValidator {
    * 分析模块统计
    */
   private analyzeModules(
-    data: any,
+    data: unknown,
     locale: string,
     modules: TranslationStats['modules'],
   ): void {
-    for (const [moduleName, moduleData] of Object.entries(data)) {
+    if (!isObjectLike(data)) return;
+
+    for (const [moduleName, moduleData] of Object.entries(
+      data as Record<string, unknown>,
+    )) {
       if (typeof moduleData === 'object' && moduleData !== null) {
         const moduleKey = `${locale}.${moduleName}`;
         const keys = this.getAllKeys(moduleData);
@@ -245,10 +257,12 @@ export class I18nValidator {
   /**
    * 获取对象的所有键路径
    */
-  private getAllKeys(obj: any, prefix: string = ''): string[] {
+  private getAllKeys(obj: unknown, prefix: string = ''): string[] {
     const keys: string[] = [];
 
-    for (const [key, value] of Object.entries(obj)) {
+    if (!isObjectLike(obj)) return keys;
+
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
       const fullKey = prefix ? `${prefix}.${key}` : key;
 
       if (typeof value === 'object' && value !== null) {
@@ -264,16 +278,22 @@ export class I18nValidator {
   /**
    * 根据键路径获取值
    */
-  private getValueByKey(obj: any, keyPath: string): any {
-    return keyPath.split('.').reduce((current, key) => {
-      return current && current[key];
+  private getValueByKey(obj: unknown, keyPath: string): unknown {
+    return keyPath.split('.').reduce<unknown>((current, key) => {
+      if (!isObjectLike(current)) return undefined;
+
+      const record = current as Record<string, unknown>;
+      if (!(key in record)) return undefined;
+      return record[key];
     }, obj);
   }
 
   /**
    * 检查插值一致性
    */
-  validateInterpolation(localeData: Record<string, any>): ValidationError[] {
+  validateInterpolation(
+    localeData: Record<string, unknown>,
+  ): ValidationError[] {
     const errors: ValidationError[] = [];
     const baseData = localeData[this.baseLocale];
 
@@ -320,7 +340,7 @@ export class I18nValidator {
   /**
    * 验证键命名规范
    */
-  validateKeyNaming(localeData: Record<string, any>): ValidationError[] {
+  validateKeyNaming(localeData: Record<string, unknown>): ValidationError[] {
     const errors: ValidationError[] = [];
     const keyNamingPattern = /^[a-z][a-zA-Z0-9]*$/;
 
@@ -341,13 +361,17 @@ export class I18nValidator {
    * 递归验证键命名
    */
   private validateKeyNamingRecursive(
-    obj: any,
+    obj: unknown,
     locale: string,
     parentKey: string,
     pattern: RegExp,
     errors: ValidationError[],
   ): void {
-    for (const key of Object.keys(obj)) {
+    if (!isObjectLike(obj)) return;
+
+    const record = obj as Record<string, unknown>;
+
+    for (const key of Object.keys(record)) {
       const fullKey = parentKey ? `${parentKey}.${key}` : key;
 
       if (!pattern.test(key)) {
@@ -359,9 +383,9 @@ export class I18nValidator {
         });
       }
 
-      if (typeof obj[key] === 'object' && obj[key] !== null) {
+      if (typeof record[key] === 'object' && record[key] !== null) {
         this.validateKeyNamingRecursive(
-          obj[key],
+          record[key],
           locale,
           fullKey,
           pattern,
@@ -444,7 +468,7 @@ export class I18nValidator {
    * 生成验证报告
    */
   generateReport(
-    localeData: Record<string, any>,
+    localeData: Record<string, unknown>,
     usedKeys: string[] = [],
   ): {
     completeness: ValidationResult;

@@ -151,6 +151,7 @@ export default [
       'src/components/platform/AddNewPlatform.vue',
       'src/i18n/loader.ts',
       'src/i18n/composables.ts',
+      'src/i18n/validator.ts',
       'src/composables/useMessages.ts',
       'src/stores/common.ts',
     ],
