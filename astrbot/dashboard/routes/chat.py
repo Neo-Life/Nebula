@@ -355,12 +355,15 @@ class ChatRoute(Route):
 
         webchat_conv_id = session_id
         stream_id = uuid.uuid4().hex
-        back_queue = webchat_queue_mgr.get_or_create_back_queue(stream_id)
 
         # 构建用户消息段（包含 path 用于传递给 adapter）
         message_parts = await self._build_user_message_parts(message)
 
         message_id = str(uuid.uuid4())
+        back_queue = webchat_queue_mgr.get_or_create_back_queue(
+            stream_id,
+            webchat_conv_id,
+        )
 
         async def stream():
             client_disconnected = False
