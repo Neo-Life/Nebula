@@ -426,7 +426,11 @@ const dialogModel = computed({
         </v-tabs>
 
         <div class="update-dialog-main">
-          <v-window v-model="updateTab" class="update-dialog-window">
+          <v-window
+            v-model="updateTab"
+            class="update-dialog-window"
+            :touch="!isPhoneLayout"
+          >
             <v-window-item value="source" class="update-dialog-window-item">
               <div class="update-pane">
                 <template v-if="sourceUpdateChannel === 'official'">
