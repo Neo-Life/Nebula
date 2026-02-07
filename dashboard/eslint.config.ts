@@ -124,6 +124,7 @@ export default [
       'src/views/Settings.vue',
       'src/views/ProviderPage.vue',
       'src/views/PlatformPage.vue',
+      'src/views/ConfigPage.vue',
     ],
     plugins: {
       '@typescript-eslint': tseslint,
