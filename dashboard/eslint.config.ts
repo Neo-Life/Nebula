@@ -148,6 +148,7 @@ export default [
       'src/components/provider/ProviderModelsPanel.vue',
       'src/components/provider/AddNewProvider.vue',
       'src/composables/useMessages.ts',
+      'src/stores/common.ts',
     ],
     plugins: {
       '@typescript-eslint': tseslint,

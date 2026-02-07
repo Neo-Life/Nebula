@@ -3,6 +3,12 @@ import axios from 'axios';
 
 import type { PluginMarketItem } from '@/types/extension';
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
 type CommonState = {
   startTime: number;
   pluginMarketData: PluginMarketItem[];
@@ -46,26 +52,42 @@ export const useCommonStore = defineStore('common', {
         .get(url)
         .then((res) => {
           const data: PluginMarketItem[] = [];
-          if (res.data.data && typeof res.data.data === 'object') {
-            for (const key in res.data.data as Record<string, any>) {
-              const pluginData = (res.data.data as any)[key];
+          const payload: unknown = res.data?.data;
+          if (isRecord(payload)) {
+            for (const key in payload) {
+              const pluginData = payload[key];
+              const plugin = isRecord(pluginData) ? pluginData : {};
 
               data.push({
-                name: pluginData.name || key, // 优先使用插件数据中的name字段，否则使用键名
-                desc: pluginData.desc,
-                author: pluginData.author,
-                repo: pluginData.repo,
+                name: typeof plugin.name === 'string' ? plugin.name : key, // 优先使用插件数据中的name字段，否则使用键名
+                desc: typeof plugin.desc === 'string' ? plugin.desc : undefined,
+                author:
+                  typeof plugin.author === 'string' ? plugin.author : undefined,
+                repo: typeof plugin.repo === 'string' ? plugin.repo : undefined,
                 installed: false,
-                version: pluginData?.version ? pluginData.version : '未知',
-                social_link: pluginData?.social_link,
-                tags: pluginData?.tags ? pluginData.tags : [],
-                logo: pluginData?.logo ? pluginData.logo : '',
-                pinned: pluginData?.pinned ? pluginData.pinned : false,
-                stars: pluginData?.stars ? pluginData.stars : 0,
-                updated_at: pluginData?.updated_at ? pluginData.updated_at : '',
-                display_name: pluginData?.display_name
-                  ? pluginData.display_name
-                  : '',
+                version:
+                  typeof plugin.version === 'string' ? plugin.version : '未知',
+                social_link:
+                  typeof plugin.social_link === 'string'
+                    ? plugin.social_link
+                    : undefined,
+                tags: Array.isArray(plugin.tags)
+                  ? plugin.tags.filter(
+                      (tag): tag is string => typeof tag === 'string',
+                    )
+                  : [],
+                logo: typeof plugin.logo === 'string' ? plugin.logo : '',
+                pinned:
+                  typeof plugin.pinned === 'boolean' ? plugin.pinned : false,
+                stars: typeof plugin.stars === 'number' ? plugin.stars : 0,
+                updated_at:
+                  typeof plugin.updated_at === 'string'
+                    ? plugin.updated_at
+                    : '',
+                display_name:
+                  typeof plugin.display_name === 'string'
+                    ? plugin.display_name
+                    : '',
               });
             }
           }
