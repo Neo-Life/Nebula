@@ -136,6 +136,7 @@ export default [
       'src/views/knowledge-base/components/RetrievalTab.vue',
       'src/views/knowledge-base/KBList.vue',
       'src/views/knowledge-base/components/SettingsTab.vue',
+      'src/views/knowledge-base/components/DocumentsTab.vue',
     ],
     plugins: {
       '@typescript-eslint': tseslint,
