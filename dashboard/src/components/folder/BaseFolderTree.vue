@@ -68,7 +68,7 @@
     <!-- 右键菜单 -->
     <v-menu
       v-model="contextMenu.show"
-      :target="contextMenu.target as any"
+      :target="contextMenu.target"
       location="end"
       :close-on-content-click="true"
     >
@@ -121,7 +121,7 @@ import BaseFolderTreeNode from './BaseFolderTreeNode.vue';
 
 interface ContextMenuState {
   show: boolean;
-  target: [number, number] | null;
+  target: [number, number] | undefined;
   folder: FolderTreeNode | null;
 }
 
@@ -195,7 +195,7 @@ export default defineComponent({
       isRootDragOver: false,
       contextMenu: {
         show: false,
-        target: null,
+        target: undefined,
         folder: null,
       } as ContextMenuState,
     };

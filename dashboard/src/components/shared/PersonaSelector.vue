@@ -2,7 +2,7 @@
   <BaseFolderItemSelector
     :model-value="modelValue"
     :folder-tree="folderTree"
-    :items="currentPersonas as any"
+    :items="selectablePersonas"
     :tree-loading="treeLoading"
     :items-loading="itemsLoading"
     :labels="labels"
@@ -38,11 +38,11 @@ import PersonaForm from './PersonaForm.vue';
 import { useI18n, useModuleI18n } from '@/i18n/composables';
 import type { FolderTreeNode, SelectableItem } from '@/components/folder/types';
 
-interface Persona {
+interface PersonaApiRecord {
   persona_id: string;
   system_prompt: string;
   folder_id?: string | null;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 const props = defineProps({
@@ -61,11 +61,11 @@ const { t } = useI18n();
 const { tm } = useModuleI18n('core.shared');
 
 const folderTree = ref<FolderTreeNode[]>([]);
-const currentPersonas = ref<Persona[]>([]);
+const currentPersonas = ref<PersonaApiRecord[]>([]);
 const treeLoading = ref(false);
 const itemsLoading = ref(false);
 const showPersonaDialog = ref(false);
-const editingPersona = ref<Persona | null>(null);
+const editingPersona = ref<PersonaApiRecord | null>(null);
 const currentFolderId = ref<string | null>(null);
 
 // 默认人格
@@ -100,6 +100,15 @@ const currentFolderName = computed(() => {
   }
   return findFolderName(folderTree.value, currentFolderId.value);
 });
+
+const selectablePersonas = computed<SelectableItem[]>(() =>
+  currentPersonas.value.map((persona) => ({
+    ...persona,
+    id: persona.persona_id,
+    name: persona.persona_id,
+    description: persona.system_prompt ?? null,
+  })),
+);
 
 // 标签配置
 const labels = computed(() => ({
@@ -174,7 +183,7 @@ function openCreatePersona() {
   showPersonaDialog.value = true;
 }
 // 打开编辑人格对话框
-function openEditPersona(persona: Persona) {
+function openEditPersona(persona: PersonaApiRecord) {
   editingPersona.value = persona;
   showPersonaDialog.value = true;
 }

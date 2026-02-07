@@ -4,9 +4,16 @@
       <v-breadcrumbs-item
         :disabled="item.disabled"
         :class="{ 'breadcrumb-link': !item.disabled }"
-        @click="!item.disabled && handleClick((item as any).folderId)"
+        @click="
+          !item.disabled &&
+          handleClick((item as unknown as BreadcrumbItem).folderId)
+        "
       >
-        <v-icon v-if="(item as any).isRoot" size="small" class="mr-1">
+        <v-icon
+          v-if="(item as unknown as BreadcrumbItem).isRoot"
+          size="small"
+          class="mr-1"
+        >
           mdi-home
         </v-icon>
         {{ item.title }}

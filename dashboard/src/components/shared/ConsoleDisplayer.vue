@@ -180,9 +180,8 @@ export default {
 
       eventSource.onmessage = (event: MessageEvent) => {
         try {
-          const lastId = (event as any)?.lastEventId as unknown;
-          if (typeof lastId === 'string' && lastId) {
-            this.lastEventId = lastId;
+          if (typeof event.lastEventId === 'string' && event.lastEventId) {
+            this.lastEventId = event.lastEventId;
           }
 
           const payload = JSON.parse(String(event.data));
@@ -193,7 +192,12 @@ export default {
       };
 
       eventSource.onerror = (err: unknown) => {
-        const status = (err as any)?.status;
+        const status = (() => {
+          if (!err || typeof err !== 'object') return undefined;
+          if (!('status' in err)) return undefined;
+          const value = (err as Record<string, unknown>).status;
+          return typeof value === 'number' ? value : undefined;
+        })();
         if (status === 401 || status === 403) {
           console.error(
             `鉴权失败 (${status})，停止重连。请重新登录/刷新页面。`,

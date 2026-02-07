@@ -138,6 +138,15 @@ import axios from 'axios';
 import { useRouter } from 'vue-router';
 import { useModuleI18n } from '@/i18n/composables';
 
+interface KnowledgeBase {
+  kb_id: string;
+  kb_name: string;
+  emoji?: string | null;
+  description?: string | null;
+  doc_count?: number;
+  chunk_count?: number;
+}
+
 const props = defineProps({
   modelValue: {
     type: Array as PropType<string[]>,
@@ -154,7 +163,7 @@ const router = useRouter();
 const { tm } = useModuleI18n('core.shared');
 
 const dialog = ref(false);
-const knowledgeBaseList = ref<any[]>([]);
+const knowledgeBaseList = ref<KnowledgeBase[]>([]);
 const loading = ref(false);
 const selectedKnowledgeBases = ref<string[]>([]);
 

@@ -3,6 +3,10 @@ import axios from 'axios';
 import { EventSourcePolyfill } from 'event-source-polyfill';
 import { defineComponent } from 'vue';
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
 type TracePayload = {
   type?: string;
   span_id?: string;
@@ -104,11 +108,17 @@ export default defineComponent({
     },
     async fetchTraceHistory() {
       try {
-        const res = await axios.get('/api/log-history');
-        const logs = (res as any)?.data?.data?.logs || [];
-        const traces = (logs as TracePayload[]).filter(
-          (item) => item.type === 'trace',
-        );
+        const res = await axios.get<unknown>('/api/log-history');
+        const logs = (() => {
+          const root = res.data;
+          if (!isRecord(root)) return [];
+          const data = root.data;
+          if (!isRecord(data)) return [];
+          const logsValue = data.logs;
+          return Array.isArray(logsValue) ? (logsValue as TracePayload[]) : [];
+        })();
+
+        const traces = logs.filter((item) => item.type === 'trace');
         this.processNewTraces(traces);
       } catch (err) {
         console.error('Failed to fetch trace history:', err);
@@ -284,11 +294,11 @@ export default defineComponent({
       }
       this.highlightMap = { ...this.highlightMap, [spanId]: true };
       const remove = setTimeout(() => {
-        const next = { ...this.highlightMap };
-        delete (next as any)[spanId];
+        const next: HighlightMap = { ...this.highlightMap };
+        delete next[spanId];
         this.highlightMap = next;
-        const timers = { ...this.highlightTimers };
-        delete (timers as any)[spanId];
+        const timers: HighlightTimers = { ...this.highlightTimers };
+        delete timers[spanId];
         this.highlightTimers = timers;
       }, 1200);
       this.highlightTimers = { ...this.highlightTimers, [spanId]: remove };

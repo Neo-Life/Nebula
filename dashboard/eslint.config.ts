@@ -99,4 +99,29 @@ export default [
       'vue/valid-v-slot': ['error', { allowModifiers: true }],
     },
   },
+
+  // Gradual rollout: forbid explicit `any` in selected areas first.
+  {
+    files: [
+      'src/components/folder/**/*.{ts,tsx,vue}',
+      'src/views/persona/**/*.{ts,tsx,vue}',
+      'src/components/shared/AstrBotConfigV4.vue',
+      'src/components/shared/AstrBotConfig.vue',
+      'src/components/shared/ChangelogDialog.vue',
+      'src/components/shared/PersonaSelector.vue',
+      'src/components/shared/KnowledgeBaseSelector.vue',
+      'src/components/shared/ItemCardGrid.vue',
+      'src/components/shared/ConsoleDisplayer.vue',
+      'src/components/shared/TraceDisplayer.vue',
+      'src/components/shared/T2ITemplateEditor.vue',
+      'src/components/shared/MigrationDialog.vue',
+      'src/components/shared/ConfigItemRenderer.vue',
+    ],
+    plugins: {
+      '@typescript-eslint': tseslint,
+    },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'error',
+    },
+  },
 ];

@@ -1,11 +1,49 @@
 <script setup lang="ts">
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
-import { ref, computed } from 'vue';
+import { ref, computed, type WritableComputedRef } from 'vue';
 import ConfigItemRenderer from './ConfigItemRenderer.vue';
 import TemplateListEditor from './TemplateListEditor.vue';
 import { useI18n, useModuleI18n } from '@/i18n/composables';
 
-type AnyRecord = Record<string, any>;
+type UnknownRecord = Record<string, unknown>;
+
+type TemplateMeta = {
+  name?: string;
+  hint?: string;
+  description?: string;
+  items?: Record<string, unknown>;
+};
+
+type ConfigItemMeta = UnknownRecord & {
+  type?: string;
+  description?: unknown;
+  hint?: unknown;
+  obvious_hint?: boolean;
+  invisible?: boolean;
+  condition?: Record<string, unknown>;
+  items?: Record<string, ConfigItemMeta>;
+  templates?: Record<string, TemplateMeta>;
+  editor_mode?: boolean;
+  editor_theme?: string;
+  editor_language?: string;
+  _special?: string;
+};
+
+type ConfigItemModelValue =
+  | string
+  | number
+  | boolean
+  | UnknownRecord
+  | unknown[]
+  | undefined;
+
+type TemplateEntry = Record<string, unknown> & {
+  __template_key?: string;
+};
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
 
 const props = defineProps({
   metadata: {
@@ -54,18 +92,14 @@ const currentEditingLanguage = ref('json');
 const currentEditingTheme = ref('vs-light');
 const editingValue = ref('');
 const editorError = ref('');
-let currentEditingKeyIterable: AnyRecord = {};
+let currentEditingKeyIterable: UnknownRecord = {};
 
 function getValueBySelector(obj: unknown, selector: string): unknown {
   const keys = selector.split('.');
   let current: unknown = obj;
   for (const key of keys) {
-    if (
-      current &&
-      typeof current === 'object' &&
-      key in (current as AnyRecord)
-    ) {
-      current = (current as AnyRecord)[key];
+    if (isRecord(current) && key in current) {
+      current = current[key];
     } else {
       return undefined;
     }
@@ -73,17 +107,22 @@ function getValueBySelector(obj: unknown, selector: string): unknown {
   return current;
 }
 
-function setValueBySelector(obj: AnyRecord, selector: string, value: unknown) {
+function setValueBySelector(
+  obj: UnknownRecord,
+  selector: string,
+  value: unknown,
+) {
   const keys = selector.split('.');
-  let current: AnyRecord = obj;
+  let current: UnknownRecord = obj;
 
   // 创建嵌套对象路径
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i];
-    if (!current[key] || typeof current[key] !== 'object') {
+    const next = current[key];
+    if (!isRecord(next)) {
       current[key] = {};
     }
-    current = current[key];
+    current = current[key] as UnknownRecord;
   }
 
   // 设置最终值
@@ -91,15 +130,51 @@ function setValueBySelector(obj: AnyRecord, selector: string, value: unknown) {
 }
 
 // 创建一个计算属性来处理 JSON selector 的获取和设置
-function createSelectorModel(selector: string) {
-  return computed<any>({
+function createSelectorConfigModel(selector: string) {
+  return computed<ConfigItemModelValue>({
     get() {
-      return getValueBySelector(props.iterable, selector);
+      const value = getValueBySelector(props.iterable, selector);
+      if (
+        value === null ||
+        value === undefined ||
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean'
+      ) {
+        return value ?? undefined;
+      }
+      if (Array.isArray(value)) return value;
+      if (isRecord(value)) return value;
+      return undefined;
     },
     set(value) {
-      setValueBySelector(props.iterable as AnyRecord, selector, value);
+      setValueBySelector(props.iterable as UnknownRecord, selector, value);
     },
-  });
+  }) as WritableComputedRef<ConfigItemModelValue>;
+}
+
+function createSelectorTemplateListModel(selector: string) {
+  return computed<TemplateEntry[]>({
+    get() {
+      const value = getValueBySelector(props.iterable, selector);
+      return Array.isArray(value) ? (value as TemplateEntry[]) : [];
+    },
+    set(value) {
+      setValueBySelector(props.iterable as UnknownRecord, selector, value);
+    },
+  }) as WritableComputedRef<TemplateEntry[]>;
+}
+
+function createSelectorStringArrayModel(selector: string) {
+  return computed<string[]>({
+    get() {
+      const value = getValueBySelector(props.iterable, selector);
+      return Array.isArray(value) ? (value as string[]) : [];
+    },
+    set(value) {
+      setValueBySelector(props.iterable as UnknownRecord, selector, value);
+    },
+  }) as WritableComputedRef<string[]>;
 }
 
 function openEditorDialog(
@@ -111,8 +186,7 @@ function openEditorDialog(
   currentEditingKey.value = key;
   currentEditingLanguage.value = language || 'json';
   currentEditingTheme.value = theme || 'vs-light';
-  currentEditingKeyIterable =
-    value && typeof value === 'object' ? (value as AnyRecord) : {};
+  currentEditingKeyIterable = isRecord(value) ? (value as UnknownRecord) : {};
   editorError.value = '';
 
   const rawValue = getValueBySelector(currentEditingKeyIterable, key);
@@ -142,7 +216,7 @@ function saveEditedContent() {
   }
 
   setValueBySelector(
-    props.iterable as AnyRecord,
+    props.iterable as UnknownRecord,
     currentEditingKey.value,
     finalValue,
   );
@@ -156,12 +230,16 @@ function closeEditorDialog() {
   editingValue.value = '';
 }
 
-function shouldShowItem(itemMeta: unknown, _itemKey: string) {
-  const meta = itemMeta as AnyRecord | null | undefined;
-  if (!meta?.condition) {
+function shouldShowItem(
+  itemMeta: ConfigItemMeta | null | undefined,
+  _itemKey: string,
+) {
+  if (!itemMeta?.condition) {
     return true;
   }
-  for (const [conditionKey, expectedValue] of Object.entries(meta.condition)) {
+  for (const [conditionKey, expectedValue] of Object.entries(
+    itemMeta.condition,
+  )) {
     const actualValue = getValueBySelector(props.iterable, conditionKey);
     if (actualValue !== expectedValue) {
       return false;
@@ -188,7 +266,7 @@ function shouldShowSection() {
 }
 
 function hasVisibleItemsAfter(
-  items: Record<string, unknown>,
+  items: Record<string, ConfigItemMeta>,
   currentIndex: number,
 ) {
   const itemEntries = Object.entries(items);
@@ -244,7 +322,7 @@ function hasVisibleItemsAfter(
       >
         <div
           v-for="(itemMeta, itemKey, index) in metadata[metadataKey]
-            .items as Record<string, any>"
+            .items as Record<string, ConfigItemMeta>"
           :key="itemKey"
           class="config-item"
         >
@@ -272,14 +350,14 @@ function hasVisibleItemsAfter(
               <v-col cols="12" sm="6" class="config-input">
                 <TemplateListEditor
                   v-if="itemMeta?.type === 'template_list'"
-                  v-model="createSelectorModel(itemKey).value"
+                  v-model="createSelectorTemplateListModel(itemKey).value"
                   :templates="itemMeta?.templates || {}"
                   class="config-field"
                 />
                 <ConfigItemRenderer
                   v-else
-                  v-model="createSelectorModel(itemKey).value"
-                  :item-meta="itemMeta || null"
+                  v-model="createSelectorConfigModel(itemKey).value"
+                  :item-meta="itemMeta || undefined"
                   :show-fullscreen-btn="!!itemMeta?.editor_mode"
                   @open-fullscreen="
                     openEditorDialog(
@@ -304,8 +382,7 @@ function hasVisibleItemsAfter(
               <v-col cols="12" class="plugin-set-display">
                 <div
                   v-if="
-                    createSelectorModel(itemKey).value &&
-                    createSelectorModel(itemKey).value.length > 0
+                    createSelectorStringArrayModel(itemKey).value.length > 0
                   "
                   class="selected-plugins-full-width"
                 >
@@ -316,7 +393,8 @@ function hasVisibleItemsAfter(
                   </div>
                   <div class="d-flex flex-wrap ga-2 mt-2">
                     <v-chip
-                      v-for="plugin in createSelectorModel(itemKey).value || []"
+                      v-for="plugin in createSelectorStringArrayModel(itemKey)
+                        .value"
                       :key="plugin"
                       size="small"
                       label
@@ -337,7 +415,10 @@ function hasVisibleItemsAfter(
           <v-divider
             v-if="
               shouldShowItem(itemMeta, itemKey) &&
-              hasVisibleItemsAfter(metadata[metadataKey].items, index)
+              hasVisibleItemsAfter(
+                metadata[metadataKey].items as Record<string, ConfigItemMeta>,
+                index,
+              )
             "
             class="config-divider"
           />

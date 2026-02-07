@@ -64,7 +64,7 @@
     <!-- 右键菜单 -->
     <v-menu
       v-model="contextMenu.show"
-      :target="contextMenu.target as any"
+      :target="contextMenu.target"
       location="end"
       :close-on-content-click="true"
     >
@@ -187,7 +187,7 @@ import type { FolderTreeNode as FolderTreeNodeType } from '@/components/folder/t
 
 interface ContextMenuState {
   show: boolean;
-  target: [number, number] | null;
+  target: [number, number] | undefined;
   folder: FolderTreeNodeType | null;
 }
 
@@ -220,7 +220,7 @@ export default defineComponent({
       isRootDragOver: false,
       contextMenu: {
         show: false,
-        target: null,
+        target: undefined,
         folder: null,
       } as ContextMenuState,
       renameDialog: {
@@ -255,6 +255,21 @@ export default defineComponent({
     },
   },
   methods: {
+    getErrorMessage(error: unknown): string | null {
+      if (error instanceof Error) {
+        return error.message;
+      }
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'message' in error &&
+        typeof (error as { message?: unknown }).message === 'string'
+      ) {
+        return (error as { message: string }).message;
+      }
+      return null;
+    },
+
     ...mapActions(usePersonaStore, [
       'navigateToFolder',
       'updateFolder',
@@ -349,10 +364,10 @@ export default defineComponent({
         });
         this.$emit('success', this.tm('folder.messages.renameSuccess'));
         this.renameDialog.show = false;
-      } catch (error: any) {
+      } catch (error: unknown) {
         this.$emit(
           'error',
-          error.message || this.tm('folder.messages.renameError'),
+          this.getErrorMessage(error) || this.tm('folder.messages.renameError'),
         );
       } finally {
         this.renameDialog.loading = false;
@@ -374,10 +389,10 @@ export default defineComponent({
         await this.deleteFolder(this.deleteDialog.folder.folder_id);
         this.$emit('success', this.tm('folder.messages.deleteSuccess'));
         this.deleteDialog.show = false;
-      } catch (error: any) {
+      } catch (error: unknown) {
         this.$emit(
           'error',
-          error.message || this.tm('folder.messages.deleteError'),
+          this.getErrorMessage(error) || this.tm('folder.messages.deleteError'),
         );
       } finally {
         this.deleteDialog.loading = false;

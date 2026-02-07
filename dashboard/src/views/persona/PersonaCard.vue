@@ -152,7 +152,7 @@ interface Persona {
   created_at?: string;
   updated_at?: string;
   folder_id?: string | null;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export default defineComponent({

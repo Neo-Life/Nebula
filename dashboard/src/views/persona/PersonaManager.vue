@@ -480,7 +480,7 @@ interface Persona {
   created_at?: string;
   updated_at?: string;
   folder_id?: string | null;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface RenameFolderData {
@@ -596,6 +596,21 @@ export default defineComponent({
     await this.initialize();
   },
   methods: {
+    getErrorMessage(error: unknown): string | null {
+      if (error instanceof Error) {
+        return error.message;
+      }
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'message' in error &&
+        typeof (error as { message?: unknown }).message === 'string'
+      ) {
+        return (error as { message: string }).message;
+      }
+      return null;
+    },
+
     ...mapActions(usePersonaStore, [
       'loadFolderTree',
       'navigateToFolder',
@@ -641,8 +656,10 @@ export default defineComponent({
       try {
         await this.deletePersona(persona.persona_id);
         this.showSuccess(this.tm('messages.deleteSuccess'));
-      } catch (error: any) {
-        this.showError(error.message || this.tm('messages.deleteError'));
+      } catch (error: unknown) {
+        this.showError(
+          this.getErrorMessage(error) || this.tm('messages.deleteError'),
+        );
       }
     },
 
@@ -664,8 +681,10 @@ export default defineComponent({
         this.showSuccess(this.tm('persona.messages.moveSuccess'));
         // Navigate to the target folder
         await this.navigateToFolder(target_folder_id);
-      } catch (error: any) {
-        this.showError(error.message || this.tm('persona.messages.moveError'));
+      } catch (error: unknown) {
+        this.showError(
+          this.getErrorMessage(error) || this.tm('persona.messages.moveError'),
+        );
       }
     },
 
@@ -686,8 +705,10 @@ export default defineComponent({
         });
         this.showSuccess(this.tm('folder.messages.renameSuccess'));
         this.showRenameFolderDialog = false;
-      } catch (error: any) {
-        this.showError(error.message || this.tm('folder.messages.renameError'));
+      } catch (error: unknown) {
+        this.showError(
+          this.getErrorMessage(error) || this.tm('folder.messages.renameError'),
+        );
       } finally {
         this.renameLoading = false;
       }
@@ -712,8 +733,10 @@ export default defineComponent({
         await this.deleteFolder(this.deleteFolderData.folder_id);
         this.showSuccess(this.tm('folder.messages.deleteSuccess'));
         this.showDeleteFolderDialog = false;
-      } catch (error: any) {
-        this.showError(error.message || this.tm('folder.messages.deleteError'));
+      } catch (error: unknown) {
+        this.showError(
+          this.getErrorMessage(error) || this.tm('folder.messages.deleteError'),
+        );
       } finally {
         this.deleteLoading = false;
       }

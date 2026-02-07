@@ -100,6 +100,10 @@
 <script lang="ts">
 import { useI18n } from '@/i18n/composables';
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
 export default {
   name: 'ItemCardGrid',
   props: {
@@ -140,12 +144,20 @@ export default {
   },
   methods: {
     getItemTitle(item: unknown) {
-      const record = item as Record<string, any>;
-      return record[this.titleField as string];
+      const field = String(this.titleField);
+      if (!isRecord(item)) return '';
+
+      const value = item[field];
+      if (typeof value === 'string') return value;
+      if (typeof value === 'number') return String(value);
+      return '';
     },
     getItemEnabled(item: unknown) {
-      const record = item as Record<string, any>;
-      return record[this.enabledField as string];
+      const field = String(this.enabledField);
+      if (!isRecord(item)) return false;
+
+      const value = item[field];
+      return Boolean(value);
     },
     toggleEnabled(item: unknown) {
       this.$emit('toggle-enabled', item);

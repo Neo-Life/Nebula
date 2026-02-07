@@ -65,7 +65,7 @@ export default defineComponent({
       item_id: string;
       item_type: string;
       target_folder_id: string | null;
-      source_data: any;
+      source_data: unknown;
     }) {
       if (data.item_type === 'persona') {
         this.$emit('persona-dropped', {

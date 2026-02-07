@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
-import { ref, computed } from 'vue';
+import { ref, computed, type WritableComputedRef } from 'vue';
 import ConfigItemRenderer from './ConfigItemRenderer.vue';
 import TemplateListEditor from './TemplateListEditor.vue';
 import { useI18n } from '@/i18n/composables';
 import axios from 'axios';
 import { useToast } from '@/utils/toast';
 
-type AnyRecord = Record<string, any>;
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
 
 const props = defineProps({
   metadata: {
@@ -48,8 +52,24 @@ const dialog = ref(false);
 const currentEditingKey = ref('');
 const currentEditingLanguage = ref('json');
 const currentEditingTheme = ref('vs-light');
-let currentEditingKeyIterable: AnyRecord = {};
+let currentEditingKeyIterable: UnknownRecord = {};
 const loadingEmbeddingDim = ref(false);
+
+const monacoModel = computed<string>({
+  get() {
+    const value = currentEditingKeyIterable[currentEditingKey.value];
+    if (typeof value === 'string') return value;
+    if (value === null || value === undefined) return '';
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
+  },
+  set(value) {
+    currentEditingKeyIterable[currentEditingKey.value] = value;
+  },
+}) as WritableComputedRef<string>;
 
 function openEditorDialog(
   key: string | number,
@@ -60,8 +80,7 @@ function openEditorDialog(
   currentEditingKey.value = String(key);
   currentEditingLanguage.value = language || 'json';
   currentEditingTheme.value = theme || 'vs-light';
-  currentEditingKeyIterable =
-    value && typeof value === 'object' ? (value as AnyRecord) : {};
+  currentEditingKeyIterable = isRecord(value) ? (value as UnknownRecord) : {};
   dialog.value = true;
 }
 
@@ -69,7 +88,7 @@ function saveEditedContent() {
   dialog.value = false;
 }
 
-async function getEmbeddingDimensions(providerConfig: AnyRecord) {
+async function getEmbeddingDimensions(providerConfig: UnknownRecord) {
   if (loadingEmbeddingDim.value) return;
 
   loadingEmbeddingDim.value = true;
@@ -86,7 +105,7 @@ async function getEmbeddingDimensions(providerConfig: AnyRecord) {
       response.data.data?.embedding_dimensions
     ) {
       console.log(response.data.data.embedding_dimensions);
-      providerConfig.embedding_dimensions =
+      providerConfig['embedding_dimensions'] =
         response.data.data.embedding_dimensions;
       useToast().success(
         '获取成功: ' + response.data.data.embedding_dimensions,
@@ -105,12 +124,8 @@ function getValueBySelector(obj: unknown, selector: string): unknown {
   const keys = selector.split('.');
   let current: unknown = obj;
   for (const key of keys) {
-    if (
-      current &&
-      typeof current === 'object' &&
-      key in (current as AnyRecord)
-    ) {
-      current = (current as AnyRecord)[key];
+    if (isRecord(current) && key in current) {
+      current = current[key];
     } else {
       return undefined;
     }
@@ -120,11 +135,11 @@ function getValueBySelector(obj: unknown, selector: string): unknown {
 
 function setIterableValueByKey(key: string | number, value: unknown) {
   // This config editor intentionally mutates the provided config object in-place.
-  (props.iterable as AnyRecord)[key] = value;
+  (props.iterable as UnknownRecord)[String(key)] = value;
 }
 
 function shouldShowItem(
-  itemMeta: AnyRecord | null | undefined,
+  itemMeta: UnknownRecord | null | undefined,
   _itemKey: string | number,
 ) {
   if (!itemMeta?.condition) {
@@ -432,7 +447,7 @@ function hasVisibleItemsAfter(
         </v-toolbar>
         <v-card-text class="pa-0">
           <VueMonacoEditor
-            v-model:value="currentEditingKeyIterable[currentEditingKey]"
+            v-model:value="monacoModel"
             :theme="currentEditingTheme"
             :language="currentEditingLanguage"
             style="height: calc(100vh - 64px)"

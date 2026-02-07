@@ -78,14 +78,14 @@ import type { FolderTreeNode } from '@/components/folder/types';
 interface PersonaItem {
   persona_id: string;
   folder_id?: string | null;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface FolderItem {
   folder_id: string;
   name: string;
   parent_id?: string | null;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export default defineComponent({
@@ -165,6 +165,21 @@ export default defineComponent({
     },
   },
   methods: {
+    getErrorMessage(error: unknown): string | null {
+      if (error instanceof Error) {
+        return error.message;
+      }
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'message' in error &&
+        typeof (error as { message?: unknown }).message === 'string'
+      ) {
+        return (error as { message: string }).message;
+      }
+      return null;
+    },
+
     ...mapActions(usePersonaStore, [
       'movePersonaToFolder',
       'moveFolderToFolder',
@@ -198,8 +213,11 @@ export default defineComponent({
         }
         this.$emit('moved', this.tm('moveDialog.success'));
         this.closeDialog();
-      } catch (error: any) {
-        this.$emit('error', error.message || this.tm('moveDialog.error'));
+      } catch (error: unknown) {
+        this.$emit(
+          'error',
+          this.getErrorMessage(error) || this.tm('moveDialog.error'),
+        );
       } finally {
         this.loading = false;
       }

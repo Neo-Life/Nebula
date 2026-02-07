@@ -59,6 +59,21 @@ export default defineComponent({
   methods: {
     ...mapActions(usePersonaStore, ['createFolder']),
 
+    getErrorMessage(error: unknown): string | null {
+      if (error instanceof Error) {
+        return error.message;
+      }
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'message' in error &&
+        typeof (error as { message?: unknown }).message === 'string'
+      ) {
+        return (error as { message: string }).message;
+      }
+      return null;
+    },
+
     async handleCreate(data: CreateFolderData) {
       const baseDialog = this.$refs.baseDialog as InstanceType<
         typeof BaseCreateFolderDialog
@@ -73,10 +88,10 @@ export default defineComponent({
         });
         this.$emit('created', this.tm('folder.messages.createSuccess'));
         this.showDialog = false;
-      } catch (error: any) {
+      } catch (error: unknown) {
         this.$emit(
           'error',
-          error.message || this.tm('folder.messages.createError'),
+          this.getErrorMessage(error) || this.tm('folder.messages.createError'),
         );
       } finally {
         baseDialog.setLoading(false);
