@@ -1845,18 +1845,18 @@ CONFIG_METADATA_2 = {
                         },
                     },
                     "gm_thinking_config": {
-                        "description": "Thinking Config",
+                        "description": "思考配置",
                         "type": "object",
                         "items": {
                             "budget": {
-                                "description": "Thinking Budget",
+                                "description": "思考预算",
                                 "type": "int",
-                                "hint": "Guides the model on the specific number of thinking tokens to use for reasoning. See: https://ai.google.dev/gemini-api/docs/thinking#set-budget",
+                                "hint": "用于引导模型在推理时使用的思考 token 数量预算。详见：https://ai.google.dev/gemini-api/docs/thinking#set-budget",
                             },
                             "level": {
-                                "description": "Thinking Level",
+                                "description": "思考等级",
                                 "type": "string",
-                                "hint": "Recommended for Gemini 3 models and onwards, lets you control reasoning behavior.See: https://ai.google.dev/gemini-api/docs/thinking#thinking-levels",
+                                "hint": "建议用于 Gemini 3 及之后的模型，用于控制推理行为。详见：https://ai.google.dev/gemini-api/docs/thinking#thinking-levels",
                                 "options": [
                                     "MINIMAL",
                                     "LOW",
@@ -1867,13 +1867,13 @@ CONFIG_METADATA_2 = {
                         },
                     },
                     "anth_thinking_config": {
-                        "description": "Thinking Config",
+                        "description": "思考配置",
                         "type": "object",
                         "items": {
                             "budget": {
-                                "description": "Thinking Budget",
+                                "description": "思考预算",
                                 "type": "int",
-                                "hint": "Anthropic thinking.budget_tokens param. Must >= 1024. See: https://platform.claude.com/docs/en/build-with-claude/extended-thinking",
+                                "hint": "Anthropic 的 thinking.budget_tokens 参数，必须 >= 1024。详见：https://platform.claude.com/docs/en/build-with-claude/extended-thinking",
                             },
                         },
                     },
