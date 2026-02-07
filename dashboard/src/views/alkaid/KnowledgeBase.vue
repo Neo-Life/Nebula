@@ -764,6 +764,31 @@ import ConsoleDisplayer from '@/components/shared/ConsoleDisplayer.vue';
 import { useModuleI18n } from '@/i18n/composables';
 import { getSelectedGitHubProxy as getSelectedGitHubProxyUtil } from '@/utils/githubProxy';
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data;
+    if (isRecord(data) && typeof data.message === 'string' && data.message) {
+      return data.message;
+    }
+
+    if (typeof error.message === 'string' && error.message) {
+      return error.message;
+    }
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}
+
 type ProviderConfig = {
   id: string;
   provider_type?: string;
@@ -773,12 +798,17 @@ type ProviderConfig = {
   rerank_model?: string;
 };
 
+type EmbeddingProviderConfig = {
+  embedding_model?: string;
+  embedding_dimensions?: number;
+};
+
 type KnowledgeBaseCollection = {
   collection_name: string;
   emoji?: string;
   description?: string;
-  _embedding_provider_config?: unknown;
-  rerank_provider_id?: unknown;
+  _embedding_provider_config?: EmbeddingProviderConfig | null;
+  rerank_provider_id?: string | null;
   [key: string]: unknown;
 };
 
@@ -970,7 +1000,7 @@ export default {
         emoji: '',
         _embedding_provider_config: null,
         rerank_provider_id: null,
-      } as any,
+      } as KnowledgeBaseCollection,
       activeTab: 'import',
       dataSource: 'file',
       dataSourceOptions: [
@@ -1627,11 +1657,10 @@ export default {
         const taskId = addTaskResponse.data.task_id;
         this.pollTaskStatus(taskId);
       } catch (error) {
-        const err = error as any;
-        const errorMessage =
-          err?.response?.data?.message ||
-          err?.message ||
-          'An unknown error occurred.';
+        const errorMessage = getErrorMessage(
+          error,
+          'An unknown error occurred.',
+        );
         this.showSnackbar(`Error: ${errorMessage}`, 'error');
         this.importing = false;
       }
@@ -1671,23 +1700,38 @@ export default {
             clearInterval(this.pollingInterval);
           }
           this.pollingInterval = null;
-          const err = error as any;
-          const errorMessage =
-            err?.response?.data?.message ||
-            err?.message ||
-            'An unknown error occurred during polling.';
+          const errorMessage = getErrorMessage(
+            error,
+            'An unknown error occurred during polling.',
+          );
           this.showSnackbar(`Polling Error: ${errorMessage}`, 'error');
           this.importing = false;
         }
       }, 3000);
     },
 
-    async handleImportResult(data: any) {
+    async handleImportResult(data: unknown) {
       const chunks: Array<{ content: string; filename: string }> = [];
-      const result = data.result;
+
+      const result =
+        isRecord(data) && isRecord(data.result)
+          ? (data.result as UnknownRecord)
+          : null;
+
+      if (!result) {
+        this.showSnackbar(
+          'URL processed, but no text chunks were extracted.',
+          'info',
+        );
+        this.importing = false;
+        return;
+      }
 
       // 1. Handle overall summary
-      if (result.overall_summary) {
+      if (
+        typeof result.overall_summary === 'string' &&
+        result.overall_summary
+      ) {
         chunks.push({
           content: result.overall_summary,
           filename: 'overall_summary.txt',
@@ -1695,23 +1739,35 @@ export default {
       }
 
       // 2. Handle topic summaries
-      if (result.topics && result.topics.length > 0) {
-        result.topics.forEach((topic: any) => {
-          if (topic.topic_summary) {
-            chunks.push({
-              content: topic.topic_summary,
-              filename: `topic_${topic.topic_id}_summary.txt`,
-            });
+      if (Array.isArray(result.topics) && result.topics.length > 0) {
+        result.topics.forEach((topic) => {
+          if (!isRecord(topic)) {
+            return;
           }
+          if (typeof topic.topic_summary !== 'string' || !topic.topic_summary) {
+            return;
+          }
+          const topicId =
+            typeof topic.topic_id === 'string' ||
+            typeof topic.topic_id === 'number'
+              ? String(topic.topic_id)
+              : 'unknown';
+          chunks.push({
+            content: topic.topic_summary,
+            filename: `topic_${topicId}_summary.txt`,
+          });
         });
       }
 
       // 3. Handle noise points
-      if (result.noise_points && result.noise_points.length > 0) {
-        result.noise_points.forEach((point: any, index: number) => {
+      if (
+        Array.isArray(result.noise_points) &&
+        result.noise_points.length > 0
+      ) {
+        result.noise_points.forEach((point, index: number) => {
           const content =
-            typeof point === 'object' && point && 'text' in point
-              ? String((point as any).text)
+            isRecord(point) && typeof point.text === 'string'
+              ? point.text
               : String(point);
           chunks.push({ content, filename: `noise_${index + 1}.txt` });
         });
