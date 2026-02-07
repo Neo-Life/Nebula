@@ -3,19 +3,25 @@
  * 动态国际化加载器，支持按需加载和缓存机制
  */
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
 export interface LoaderCache {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ModuleInfo {
   name: string;
   path: string;
   loaded: boolean;
-  data?: any;
+  data?: UnknownRecord;
 }
 
 export class I18nLoader {
-  private cache: Map<string, any> = new Map();
+  private cache: Map<string, UnknownRecord> = new Map();
   private moduleRegistry: Map<string, ModuleInfo> = new Map();
 
   constructor() {
@@ -87,12 +93,12 @@ export class I18nLoader {
   /**
    * 加载单个模块
    */
-  async loadModule(locale: string, moduleName: string): Promise<any> {
+  async loadModule(locale: string, moduleName: string): Promise<UnknownRecord> {
     const cacheKey = `${locale}:${moduleName}`;
 
     // 检查缓存
     if (this.cache.has(cacheKey)) {
-      return this.cache.get(cacheKey);
+      return this.cache.get(cacheKey) ?? {};
     }
 
     const moduleInfo = this.moduleRegistry.get(moduleName);
@@ -104,8 +110,12 @@ export class I18nLoader {
     try {
       // 使用动态import加载JSON文件，兼容构建和开发环境
       const modulePath = `../locales/${locale}/${moduleInfo.path}`;
-      const module = await import(/* @vite-ignore */ modulePath);
-      const data = module.default || module;
+      const module: unknown = await import(/* @vite-ignore */ modulePath);
+      const candidate: unknown =
+        isRecord(module) && 'default' in module
+          ? (module as UnknownRecord).default
+          : module;
+      const data: UnknownRecord = isRecord(candidate) ? candidate : {};
 
       // 缓存结果
       this.cache.set(cacheKey, data);
@@ -127,7 +137,8 @@ export class I18nLoader {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
-        const data = await response.json();
+        const json: unknown = await response.json();
+        const data: UnknownRecord = isRecord(json) ? json : {};
 
         // 缓存结果
         this.cache.set(cacheKey, data);
@@ -151,7 +162,7 @@ export class I18nLoader {
     locale: string,
     prefix: string,
     overrideList: string[] = [],
-  ): Promise<any> {
+  ): Promise<UnknownRecord> {
     // 使用覆盖列表或从注册表中筛选符合前缀的模块名
     const moduleNames =
       overrideList.length > 0
@@ -170,28 +181,31 @@ export class I18nLoader {
   /**
    * 加载核心模块（最高优先级）
    */
-  async loadCoreModules(locale: string): Promise<any> {
+  async loadCoreModules(locale: string): Promise<UnknownRecord> {
     return this.loadModules(locale, 'core');
   }
 
   /**
    * 加载功能模块
    */
-  async loadFeatureModules(locale: string, features?: string[]): Promise<any> {
+  async loadFeatureModules(
+    locale: string,
+    features?: string[],
+  ): Promise<UnknownRecord> {
     return this.loadModules(locale, 'features', features || []);
   }
 
   /**
    * 加载消息模块
    */
-  async loadMessageModules(locale: string): Promise<any> {
+  async loadMessageModules(locale: string): Promise<UnknownRecord> {
     return this.loadModules(locale, 'messages');
   }
 
   /**
    * 加载所有模块
    */
-  async loadAllModules(locale: string): Promise<any> {
+  async loadAllModules(locale: string): Promise<UnknownRecord> {
     const [core, features, messages] = await Promise.all([
       this.loadCoreModules(locale),
       this.loadFeatureModules(locale),
@@ -208,15 +222,18 @@ export class I18nLoader {
   /**
    * 加载完整语言包（所有模块合并）
    */
-  async loadLocale(locale: string): Promise<any> {
+  async loadLocale(locale: string): Promise<UnknownRecord> {
     return this.loadAllModules(locale);
   }
 
   /**
    * 合并多个模块数据
    */
-  private mergeModules(modules: any[], moduleNames: string[]): any {
-    const result: any = {};
+  private mergeModules(
+    modules: UnknownRecord[],
+    moduleNames: string[],
+  ): UnknownRecord {
+    const result: UnknownRecord = {};
     const pathRegistry = new Map<string, string>();
 
     modules.forEach((module, index) => {
@@ -224,12 +241,14 @@ export class I18nLoader {
       const nameParts = moduleName.split('/');
 
       // 构建嵌套对象结构（对所有模块统一处理）
-      let current = result;
+      let current: UnknownRecord = result;
       for (let i = 0; i < nameParts.length - 1; i++) {
-        if (!current[nameParts[i]]) {
-          current[nameParts[i]] = {};
+        const key = nameParts[i];
+        const existing = current[key];
+        if (!isRecord(existing)) {
+          current[key] = {};
         }
-        current = current[nameParts[i]];
+        current = current[key] as UnknownRecord;
       }
 
       // 冲突检测：检查最终键是否已存在
@@ -247,7 +266,9 @@ export class I18nLoader {
       pathRegistry.set(fullPath, moduleName);
 
       // 设置最终值（保持原有的浅合并行为）
-      current[finalKey] = { ...current[finalKey], ...module };
+      const existingValue = current[finalKey];
+      const existingRecord = isRecord(existingValue) ? existingValue : {};
+      current[finalKey] = { ...existingRecord, ...module };
     });
 
     return result;
@@ -297,7 +318,10 @@ export class I18nLoader {
   /**
    * 热重载模块
    */
-  async reloadModule(locale: string, moduleName: string): Promise<any> {
+  async reloadModule(
+    locale: string,
+    moduleName: string,
+  ): Promise<UnknownRecord> {
     const cacheKey = `${locale}:${moduleName}`;
     this.cache.delete(cacheKey);
 
