@@ -24,6 +24,11 @@ class PlatformManager:
         self._reload_debounce_tasks: dict[str, asyncio.Task] = {}
         self._reload_debounce_state: dict[str, dict] = {}
 
+        # Track background tasks created for each platform so we can gracefully
+        # cancel/await them on shutdown and avoid "Task was destroyed but it is pending!".
+        self._platform_run_tasks: dict[str, asyncio.Task] = {}
+        self._platform_wrapper_tasks: dict[str, asyncio.Task] = {}
+
         self.astrbot_config = config
         self.platforms_config = config["platform"]
         self.settings = config["platform_settings"]
@@ -31,6 +36,61 @@ class PlatformManager:
         这个配置中的 unique_session 需要特殊处理，
         约定整个项目中对 unique_session 的引用都从 default 的配置中获取"""
         self.event_queue = event_queue
+
+    def _platform_key(self, platform: Platform, fallback: str) -> str:
+        try:
+            meta_id = platform.meta().id
+        except Exception:
+            meta_id = None
+        return meta_id or platform.config.get("id") or fallback
+
+    async def _stop_platform_tasks(self, platform_id: str, timeout_sec: float = 10.0):
+        run_task = self._platform_run_tasks.pop(platform_id, None)
+        wrapper_task = self._platform_wrapper_tasks.pop(platform_id, None)
+
+        if run_task and not run_task.done():
+            run_task.cancel()
+
+        if wrapper_task:
+            try:
+                await asyncio.wait_for(wrapper_task, timeout=timeout_sec)
+            except asyncio.TimeoutError:
+                logger.warning(
+                    "平台 %s 的后台任务未能在 %.1fs 内停止，强制取消。",
+                    platform_id,
+                    timeout_sec,
+                )
+                if not wrapper_task.done():
+                    wrapper_task.cancel()
+            except asyncio.CancelledError:
+                return
+            except Exception:
+                logger.error(traceback.format_exc())
+
+        if run_task:
+            try:
+                await asyncio.wait_for(run_task, timeout=timeout_sec)
+            except (asyncio.TimeoutError, asyncio.CancelledError):
+                return
+            except Exception:
+                logger.error(traceback.format_exc())
+
+    def _start_platform_task(self, platform_id: str, inst: Platform, task_name: str):
+        # Cancel any leftover tasks for the same id (best-effort).
+        old_run = self._platform_run_tasks.get(platform_id)
+        if old_run and not old_run.done():
+            old_run.cancel()
+        old_wrapper = self._platform_wrapper_tasks.get(platform_id)
+        if old_wrapper and not old_wrapper.done():
+            old_wrapper.cancel()
+
+        run_task = asyncio.create_task(inst.run(), name=task_name)
+        wrapper_task = asyncio.create_task(
+            self._task_wrapper(run_task, platform=inst),
+            name=f"wrapper_{task_name}",
+        )
+        self._platform_run_tasks[platform_id] = run_task
+        self._platform_wrapper_tasks[platform_id] = wrapper_task
 
     def _is_valid_platform_id(self, platform_id: str | None) -> bool:
         if not platform_id:
@@ -63,12 +123,8 @@ class PlatformManager:
         # 网页聊天
         webchat_inst = WebChatAdapter({}, self.settings, self.event_queue)
         self.platform_insts.append(webchat_inst)
-        asyncio.create_task(
-            self._task_wrapper(
-                asyncio.create_task(webchat_inst.run(), name="webchat"),
-                platform=webchat_inst,
-            ),
-        )
+        webchat_id = self._platform_key(webchat_inst, fallback="webchat")
+        self._start_platform_task(webchat_id, webchat_inst, task_name="webchat")
 
     async def _load_platform_unlocked(self, platform_config: dict):
         """实例化一个平台（调用方需确保已获取平台锁）"""
@@ -174,14 +230,11 @@ class PlatformManager:
         }
         self.platform_insts.append(inst)
 
-        asyncio.create_task(
-            self._task_wrapper(
-                asyncio.create_task(
-                    inst.run(),
-                    name=f"platform_{platform_config['type']}_{platform_config['id']}",
-                ),
-                platform=inst,
-            ),
+        platform_id = platform_config["id"]
+        self._start_platform_task(
+            platform_id,
+            inst,
+            task_name=f"platform_{platform_config['type']}_{platform_config['id']}",
         )
         handlers = star_handlers_registry.get_handlers_by_event_type(
             EventType.OnPlatformLoadedEvent,
@@ -310,14 +363,24 @@ class PlatformManager:
         if getattr(inst, "terminate", None):
             await inst.terminate()
 
+        # Ensure background run task is stopped.
+        await self._stop_platform_tasks(platform_id)
+
     async def terminate_platform(self, platform_id: str):
         async with self._get_platform_lock(platform_id):
             await self._terminate_platform_unlocked(platform_id)
 
     async def terminate(self):
-        for inst in self.platform_insts:
+        # Best-effort terminate adapters first, then cancel/await their run tasks.
+        for inst in list(self.platform_insts):
             if getattr(inst, "terminate", None):
-                await inst.terminate()
+                try:
+                    await inst.terminate()
+                except Exception:
+                    logger.error(traceback.format_exc())
+
+        for platform_id in list(self._platform_run_tasks.keys()):
+            await self._stop_platform_tasks(platform_id)
 
     def get_insts(self):
         return self.platform_insts
