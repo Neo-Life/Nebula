@@ -532,7 +532,7 @@ function hasVisibleItemsAfter(
   }
 
   .config-row {
-    padding: 8px 0;
+    padding: 8px 12px;
   }
 
   .property-info,
