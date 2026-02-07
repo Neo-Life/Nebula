@@ -121,6 +121,7 @@ export default [
       'src/components/shared/PersonaForm.vue',
       'src/views/SubAgentPage.vue',
       'src/views/CronJobPage.vue',
+      'src/views/Settings.vue',
     ],
     plugins: {
       '@typescript-eslint': tseslint,
