@@ -122,6 +122,7 @@ export default [
       'src/views/SubAgentPage.vue',
       'src/views/CronJobPage.vue',
       'src/views/Settings.vue',
+      'src/views/ProviderPage.vue',
     ],
     plugins: {
       '@typescript-eslint': tseslint,
