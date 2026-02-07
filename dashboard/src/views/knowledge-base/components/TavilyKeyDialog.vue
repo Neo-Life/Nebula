@@ -40,6 +40,27 @@
 import { ref, watch } from 'vue';
 import axios from 'axios';
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data;
+    if (isRecord(data)) {
+      const message = data.message;
+      if (typeof message === 'string' && message.length > 0) return message;
+    }
+    if (typeof error.message === 'string' && error.message.length > 0)
+      return error.message;
+  }
+
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+}
+
 const props = defineProps<{
   modelValue: boolean;
 }>();
@@ -110,9 +131,8 @@ const saveKey = async () => {
       errorMessage.value =
         saveResponse.data.message || '保存失败，请检查 Key 是否正确';
     }
-  } catch (error: any) {
-    errorMessage.value =
-      error.response?.data?.message || '保存失败，发生未知错误';
+  } catch (error: unknown) {
+    errorMessage.value = getErrorMessage(error, '保存失败，发生未知错误');
   } finally {
     saving.value = false;
   }

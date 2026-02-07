@@ -130,6 +130,7 @@ export default [
       'src/views/authentication/auth/LoginPage.vue',
       'src/views/dashboards/default/DefaultDashboard.vue',
       'src/views/dashboards/default/components/MessageStat.vue',
+      'src/views/knowledge-base/components/TavilyKeyDialog.vue',
     ],
     plugins: {
       '@typescript-eslint': tseslint,
