@@ -1,8 +1,5 @@
 <template>
   <v-breadcrumbs :items="breadcrumbItems" class="folder-breadcrumb pa-0">
-    <template #prepend>
-      <v-icon size="small" class="mr-1"> mdi-folder-outline </v-icon>
-    </template>
     <template #item="{ item }">
       <v-breadcrumbs-item
         :disabled="item.disabled"
@@ -79,7 +76,12 @@ export default defineComponent({
 
 <style scoped>
 .folder-breadcrumb {
-  font-size: 14px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.folder-breadcrumb :deep(.v-icon) {
+  font-size: 18px;
 }
 
 .breadcrumb-link {
