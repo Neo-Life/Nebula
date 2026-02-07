@@ -6,10 +6,16 @@ import { useToast } from '@/utils/toast';
 export interface ToolCall {
   id: string;
   name: string;
-  args: Record<string, any>;
+  args: Record<string, unknown>;
   ts: number; // 开始时间戳
   result?: string; // 工具调用结果
   finished_ts?: number; // 完成时间戳
+}
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
 // Token 使用统计
@@ -171,7 +177,7 @@ export function useMessages(
   }
 
   // 解析消息内容，填充 embedded 字段 (保持原始顺序)
-  async function parseMessageContent(content: any): Promise<void> {
+  async function parseMessageContent(content: UnknownRecord): Promise<void> {
     const message = content.message;
 
     // 如果 message 是字符串 (旧格式)，转换为数组格式
@@ -224,8 +230,9 @@ export function useMessages(
     }
 
     // 处理 agent_stats (snake_case -> camelCase)
-    if (content.agent_stats) {
-      content.agentStats = content.agent_stats;
+    const agentStats = content.agent_stats;
+    if (agentStats !== undefined) {
+      content.agentStats = agentStats;
       delete content.agent_stats;
     }
   }
@@ -283,8 +290,10 @@ export function useMessages(
           sessionId !== currSessionId.value
         )
           return;
-        let content = history[i].content;
-        await parseMessageContent(content);
+        const content: unknown = history[i].content;
+        if (isRecord(content)) {
+          await parseMessageContent(content);
+        }
       }
 
       if (
