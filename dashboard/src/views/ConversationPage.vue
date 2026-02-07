@@ -526,6 +526,21 @@ import { useI18n, useModuleI18n } from '@/i18n/composables';
 import MessageList from '@/components/chat/MessageList.vue';
 
 type SessionInfo = { platform: string; messageType: string; sessionId: string };
+
+type PlatformFilterItem = {
+  title: string;
+  value: string;
+};
+
+type MonacoLikeEditor = {
+  onDidChangeModelContent: (cb: () => void) => void;
+  getAction: (id: string) => { run: () => void };
+};
+
+type DataTableOptions = {
+  itemsPerPage?: number;
+};
+
 type ConversationItem = {
   user_id: string;
   cid: string;
@@ -533,13 +548,13 @@ type ConversationItem = {
   created_at?: number | string;
   updated_at?: number | string;
   sessionInfo: SessionInfo;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 type HistoryMessage = {
   role?: string;
   content?: unknown;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 export default {
@@ -571,7 +586,7 @@ export default {
       selectedItems: [] as ConversationItem[], // 批量选择的项目
 
       // 筛选条件
-      platformFilter: [] as any[],
+      platformFilter: [] as PlatformFilterItem[],
       messageTypeFilter: [] as string[],
       lastAppliedFilters: null, // 记录上次应用的筛选条件
 
@@ -614,11 +629,11 @@ export default {
       isEditingHistory: false,
       editedHistory: '',
       savingHistory: false,
-      monacoEditor: null as any,
+      monacoEditor: null as MonacoLikeEditor | null,
 
       commonStore: useCommonStore(),
 
-      debouncedApplyFilters: null as any,
+      debouncedApplyFilters: (() => {}) as () => void,
     };
   },
 
@@ -704,9 +719,7 @@ export default {
 
     // 当前的筛选条件对象
     currentFilters() {
-      const platforms = (this.platformFilter as any[]).map((item: any) =>
-        typeof item === 'object' && item !== null ? item.value : item,
-      );
+      const platforms = this.platformFilter.map((item) => item.value);
       return {
         platforms: platforms,
         messageTypes: this.messageTypeFilter,
@@ -750,13 +763,13 @@ export default {
   watch: {
     // 监听筛选条件变化，使用防抖处理
     platformFilter() {
-      this.debouncedApplyFilters();
+      this.debouncedApplyFilters?.();
     },
     messageTypeFilter() {
-      this.debouncedApplyFilters();
+      this.debouncedApplyFilters?.();
     },
     search() {
-      this.debouncedApplyFilters();
+      this.debouncedApplyFilters?.();
     },
   },
 
@@ -774,7 +787,7 @@ export default {
 
   methods: {
     // Monaco编辑器挂载后的回调
-    onMonacoMounted(editor: any) {
+    onMonacoMounted(editor: MonacoLikeEditor) {
       this.monacoEditor = editor;
       // 添加JSON格式校验
       editor.onDidChangeModelContent(() => {
@@ -789,10 +802,14 @@ export default {
     },
 
     // 处理表格选项变更（页面大小等）
-    handleTableOptions(options: any) {
+    handleTableOptions(options: DataTableOptions) {
       // 处理页面大小变更
-      if (options.itemsPerPage !== this.pagination.page_size) {
-        this.pagination.page_size = options.itemsPerPage;
+      const itemsPerPage = options.itemsPerPage;
+      if (
+        typeof itemsPerPage === 'number' &&
+        itemsPerPage !== this.pagination.page_size
+      ) {
+        this.pagination.page_size = itemsPerPage;
         this.pagination.page = 1; // 重置到第一页
         this.fetchConversations();
       }
