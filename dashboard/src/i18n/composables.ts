@@ -2,8 +2,18 @@ import { ref, computed } from 'vue';
 import { translations as staticTranslations } from './translations';
 import type { Locale } from './types';
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function ensureRecord(value: unknown): UnknownRecord {
+  return isRecord(value) ? value : {};
+}
+
 const currentLocale = ref<Locale>('zh-CN');
-const translations = ref<Record<string, any>>({});
+const translations = ref<UnknownRecord>({});
 
 /**
  * 初始化i18n系统
@@ -18,21 +28,21 @@ export async function initI18n(locale: Locale = 'zh-CN') {
  */
 function loadTranslations(locale: Locale) {
   try {
-    const data = staticTranslations[locale];
+    const data: unknown = staticTranslations[locale];
     if (data) {
-      translations.value = data;
+      translations.value = ensureRecord(data);
     } else {
       console.warn(`Translations not found for locale: ${locale}`);
       if (locale !== 'zh-CN') {
         console.log('Falling back to zh-CN');
-        translations.value = staticTranslations['zh-CN'];
+        translations.value = ensureRecord(staticTranslations['zh-CN']);
       }
     }
   } catch (error) {
     console.error(`Failed to load translations for ${locale}:`, error);
     if (locale !== 'zh-CN') {
       console.log('Falling back to zh-CN');
-      translations.value = staticTranslations['zh-CN'];
+      translations.value = ensureRecord(staticTranslations['zh-CN']);
     }
   }
 }
@@ -43,10 +53,10 @@ function loadTranslations(locale: Locale) {
 export function useI18n() {
   const t = (key: string, params?: Record<string, string | number>): string => {
     const keys = key.split('.');
-    let value: any = translations.value;
+    let value: unknown = translations.value;
 
     for (const k of keys) {
-      if (value && typeof value === 'object' && k in value) {
+      if (isRecord(value) && k in value) {
         value = value[k];
       } else {
         console.warn(`Translation key not found: ${key}`);
@@ -108,14 +118,14 @@ export function useModuleI18n(moduleName: string) {
     return t(`${normalizedModuleName}.${key}`, params);
   };
 
-  const getRaw = (key: string): any => {
+  const getRaw = (key: string): unknown => {
     const normalizedModuleName = moduleName.replace(/\//g, '.');
     const fullKey = `${normalizedModuleName}.${key}`;
     const keys = fullKey.split('.');
-    let value: any = translations.value;
+    let value: unknown = translations.value;
 
     for (const k of keys) {
-      if (value && typeof value === 'object' && k in value) {
+      if (isRecord(value) && k in value) {
         value = value[k];
       } else {
         return null;

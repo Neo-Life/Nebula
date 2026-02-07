@@ -31,6 +31,9 @@ const showChatPage = computed(() => {
 
 const migrationDialog = ref<InstanceType<typeof MigrationDialog> | null>(null);
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
 // 检查是否需要迁移
 const checkMigration = async () => {
   try {
@@ -41,10 +44,15 @@ const checkMigration = async () => {
         migrationDialog.value &&
         typeof migrationDialog.value.open === 'function'
       ) {
-        const result = (await migrationDialog.value.open()) as any;
-        if (result?.success) {
+        const result = await migrationDialog.value.open();
+        if (isRecord(result) && result.success === true) {
           // 迁移成功，可以显示成功消息
-          console.log('Migration completed successfully:', result.message);
+          console.log(
+            'Migration completed successfully:',
+            isRecord(result) && 'message' in result
+              ? result.message
+              : undefined,
+          );
           // 可以考虑刷新页面或显示成功通知
           window.location.reload();
         }

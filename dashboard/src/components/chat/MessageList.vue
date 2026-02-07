@@ -194,25 +194,32 @@
                       }}</span>
                     </div>
                     <div
-                      v-if="msg.content.agentStats.token_usage.input_cached > 0"
+                      v-if="
+                        (msg.content.agentStats.token_usage.input_cached ?? 0) >
+                        0
+                      "
                       class="stats-menu-row"
                     >
                       <span class="stats-menu-label">{{
                         tm('stats.cachedTokens')
                       }}</span>
                       <span class="stats-menu-value">{{
-                        msg.content.agentStats.token_usage.input_cached
+                        msg.content.agentStats.token_usage.input_cached ?? 0
                       }}</span>
                     </div>
                     <div
-                      v-if="msg.content.agentStats.time_to_first_token > 0"
+                      v-if="
+                        (msg.content.agentStats.time_to_first_token ?? 0) > 0
+                      "
                       class="stats-menu-row"
                     >
                       <span class="stats-menu-label">{{
                         tm('stats.ttft')
                       }}</span>
                       <span class="stats-menu-value">{{
-                        formatTTFT(msg.content.agentStats.time_to_first_token)
+                        formatTTFT(
+                          msg.content.agentStats.time_to_first_token ?? 0,
+                        )
                       }}</span>
                     </div>
                     <div class="stats-menu-row">
@@ -299,6 +306,140 @@ import ActionRef from '@/components/chat/message_list_comps/ActionRef.vue';
 import { shikiWasmReady } from '@/composables/shikiWasm';
 import { useCustomizerStore } from '@/stores/customizer';
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+type RefItem = {
+  title?: string;
+  url?: string;
+  favicon?: string;
+};
+
+type RefsPayload = {
+  used?: RefItem[];
+} | null;
+
+type ToolCall = {
+  id: string;
+  name: string;
+  args?: unknown;
+  result?: unknown;
+  ts: number;
+  finished_ts?: number | null;
+} & UnknownRecord;
+
+type TokenUsage = {
+  input?: number;
+  input_other?: number;
+  output?: number;
+  input_cached?: number;
+} & UnknownRecord;
+
+type MessagePart = {
+  type: string;
+  text?: string;
+  message_id?: string | number;
+  embedded_url?: string;
+  embedded_file?:
+    | ({
+        attachment_id?: string | number;
+        filename?: string;
+        url?: string;
+      } & UnknownRecord)
+    | undefined;
+  tool_calls?: ToolCall[];
+} & UnknownRecord;
+
+type AgentStats = {
+  token_usage: TokenUsage;
+  time_to_first_token?: number;
+  started_ts?: number;
+  finished_ts?: number | null;
+  start_time?: number;
+  end_time?: number;
+} & UnknownRecord;
+
+type ChatMessageContent = {
+  type: string;
+  isLoading?: boolean;
+  message: MessagePart[];
+  reasoning?: string;
+  refs?: RefsPayload;
+  agentStats?: AgentStats;
+} & UnknownRecord;
+
+type ChatMessage = {
+  id?: string | number;
+  created_at?: string | number;
+  content: ChatMessageContent;
+} & UnknownRecord;
+
+type PlainPart = MessagePart & { type: 'plain'; text: string };
+type ReplyPart = MessagePart & { type: 'reply'; message_id: string | number };
+type RecordPart = MessagePart & { type: 'record'; embedded_url: string };
+type ImagePart = MessagePart & { type: 'image'; embedded_url: string };
+type ToolCallPart = MessagePart & { type: 'tool_call'; tool_calls: ToolCall[] };
+
+function isPlainPart(value: unknown): value is PlainPart {
+  return (
+    isRecord(value) &&
+    value.type === 'plain' &&
+    typeof value.text === 'string' &&
+    value.text.length > 0
+  );
+}
+
+function isReplyPart(value: unknown): value is ReplyPart {
+  if (!isRecord(value) || value.type !== 'reply') return false;
+  const messageId = value.message_id;
+  return typeof messageId === 'string' || typeof messageId === 'number';
+}
+
+function isRecordPart(value: unknown): value is RecordPart {
+  return (
+    isRecord(value) &&
+    value.type === 'record' &&
+    typeof value.embedded_url === 'string' &&
+    value.embedded_url.length > 0
+  );
+}
+
+function isImagePart(value: unknown): value is ImagePart {
+  return (
+    isRecord(value) &&
+    value.type === 'image' &&
+    typeof value.embedded_url === 'string' &&
+    value.embedded_url.length > 0
+  );
+}
+
+function isToolCallPart(value: unknown): value is ToolCallPart {
+  return (
+    isRecord(value) &&
+    value.type === 'tool_call' &&
+    Array.isArray(value.tool_calls)
+  );
+}
+
+type DownloadableFile = {
+  attachment_id?: string | number;
+  filename?: string;
+  [key: string]: unknown;
+};
+
+function isHTMLElement(value: unknown): value is HTMLElement {
+  return typeof HTMLElement !== 'undefined' && value instanceof HTMLElement;
+}
+
+function getMaybeElement(value: unknown): HTMLElement | null {
+  if (isHTMLElement(value)) return value;
+  if (isRecord(value) && isHTMLElement(value.$el)) return value.$el;
+  return null;
+}
+
 // 注册自定义 ref 组件
 setCustomComponents('message-list', {
   ref: RefNode,
@@ -320,7 +461,7 @@ export default {
   },
   props: {
     messages: {
-      type: Array as PropType<any[]>,
+      type: Array as PropType<ChatMessage[]>,
       required: true,
     },
     isDark: {
@@ -359,10 +500,10 @@ export default {
       copiedMessages: new Set(),
       isUserNearBottom: true,
       scrollThreshold: 1,
-      scrollTimer: null as any,
+      scrollTimer: null as ReturnType<typeof setTimeout> | null,
       expandedReasoning: new Set(), // Track which reasoning blocks are expanded
       downloadingFiles: new Set<string | number>(), // Track which files are being downloaded
-      elapsedTimeTimer: null as any, // Timer for updating elapsed time
+      elapsedTimeTimer: null as ReturnType<typeof setTimeout> | null, // Timer for updating elapsed time
       currentTime: Date.now() / 1000, // Current time for elapsed time calculation
       expandedUserMessages: new Set<number>(), // Track which user messages are expanded
       // 选中文本相关状态
@@ -395,16 +536,18 @@ export default {
     this.extractWebSearchResults();
   },
   methods: {
-    isBotMessageActionable(msg: any): boolean {
+    isBotMessageActionable(msg: ChatMessage): boolean {
+      const content = msg.content;
+      const hasReasoning =
+        typeof content.reasoning === 'string' &&
+        content.reasoning.trim().length > 0;
       return (
-        msg?.content?.type === 'bot' &&
-        !msg?.content?.isLoading &&
-        ((Array.isArray(msg.content.message) &&
-          msg.content.message.length > 0) ||
-          (typeof msg.content.reasoning === 'string' &&
-            msg.content.reasoning.trim()) ||
-          (Array.isArray(msg.content.refs) && msg.content.refs.length > 0) ||
-          !!msg.content.agentStats)
+        content.type === 'bot' &&
+        !content.isLoading &&
+        ((Array.isArray(content.message) && content.message.length > 0) ||
+          hasReasoning ||
+          (Array.isArray(content.refs) && content.refs.length > 0) ||
+          !!content.agentStats)
       );
     },
 
@@ -417,20 +560,19 @@ export default {
       return false;
     },
 
-    shouldCollapseUserMsg(msg: any): boolean {
-      if (!msg || msg?.content?.type !== 'user') return false;
-      const parts = msg?.content?.message;
+    shouldCollapseUserMsg(msg: ChatMessage): boolean {
+      const content = msg.content;
+      if (content.type !== 'user') return false;
+      const parts = content.message;
       if (!Array.isArray(parts) || parts.length === 0) return false;
 
       const text = parts
-        .filter(
-          (p: any) => (p?.type === 'plain' && p?.text) || p?.type === 'reply',
-        )
-        .map((p: any) =>
-          p?.type === 'reply'
-            ? this.getReplyContent(p.message_id)
-            : String(p.text ?? ''),
-        )
+        .filter((p: unknown) => isPlainPart(p) || isReplyPart(p))
+        .map((p: unknown) => {
+          if (isReplyPart(p)) return this.getReplyContent(p.message_id);
+          if (isPlainPart(p)) return p.text;
+          return '';
+        })
         .join('\n');
 
       const trimmed = text.trim();
@@ -461,17 +603,17 @@ export default {
         { url?: string; title?: string; snippet?: string }
       > = {};
 
-      this.messages.forEach((msg: any) => {
+      this.messages.forEach((msg: ChatMessage) => {
         if (msg.content.type !== 'bot' || !Array.isArray(msg.content.message)) {
           return;
         }
 
-        msg.content.message.forEach((part: any) => {
-          if (part.type !== 'tool_call' || !Array.isArray(part.tool_calls)) {
+        msg.content.message.forEach((part: MessagePart) => {
+          if (!isToolCallPart(part)) {
             return;
           }
 
-          part.tool_calls.forEach((toolCall: any) => {
+          part.tool_calls.forEach((toolCall: ToolCall) => {
             // 检查是否是 web_search_tavily 工具调用
             if (toolCall.name !== 'web_search_tavily' || !toolCall.result) {
               return;
@@ -484,16 +626,20 @@ export default {
                   ? JSON.parse(toolCall.result)
                   : toolCall.result;
 
-              if (resultData.results && Array.isArray(resultData.results)) {
-                resultData.results.forEach((item: any) => {
-                  if (item.index != null) {
-                    const key = String(item.index);
-                    results[key] = {
-                      url: item.url,
-                      title: item.title,
-                      snippet: item.snippet,
-                    };
-                  }
+              if (isRecord(resultData) && Array.isArray(resultData.results)) {
+                resultData.results.forEach((item: unknown) => {
+                  if (!isRecord(item) || item.index == null) return;
+
+                  const key = String(item.index);
+                  results[key] = {
+                    url: typeof item.url === 'string' ? item.url : undefined,
+                    title:
+                      typeof item.title === 'string' ? item.title : undefined,
+                    snippet:
+                      typeof item.snippet === 'string'
+                        ? item.snippet
+                        : undefined,
+                  };
                 });
               }
             } catch (e) {
@@ -546,7 +692,7 @@ export default {
 
       const range = selection.getRangeAt(0);
       const startContainer = range.startContainer;
-      let node = (startContainer as any)?.parentElement as HTMLElement | null;
+      let node = startContainer.parentElement;
 
       while (node && !node.classList.contains('message-item')) {
         node = node.parentElement;
@@ -670,16 +816,16 @@ export default {
     },
 
     getMessageContainerEl(): HTMLElement | null {
-      const containerRef: any = this.$refs.messageContainer;
-      return (containerRef?.$el ?? containerRef) as HTMLElement | null;
+      const containerRef = (
+        this.$refs as unknown as { messageContainer?: unknown }
+      ).messageContainer;
+      return getMaybeElement(containerRef);
     },
 
     // 检查 message 中是否有音频
     hasAudio(messageParts: unknown) {
       if (!Array.isArray(messageParts)) return false;
-      return messageParts.some(
-        (part: any) => part.type === 'record' && part.embedded_url,
-      );
+      return messageParts.some((part: unknown) => isRecordPart(part));
     },
 
     // 获取被引用消息的内容
@@ -691,8 +837,8 @@ export default {
       let content = '';
       if (Array.isArray(replyMsg.content.message)) {
         const textParts = replyMsg.content.message
-          .filter((part: any) => part.type === 'plain' && part.text)
-          .map((part: any) => part.text);
+          .filter((part: unknown) => isPlainPart(part))
+          .map((part: PlainPart) => part.text);
         content = textParts.join('');
       }
       // 截断过长内容
@@ -749,7 +895,7 @@ export default {
     },
 
     // 下载文件
-    async downloadFile(file: any) {
+    async downloadFile(file: DownloadableFile) {
       if (!file.attachment_id) return;
 
       // 标记为下载中
@@ -797,13 +943,13 @@ export default {
       if (Array.isArray(messageParts)) {
         // 提取所有文本内容
         const textContents = messageParts
-          .filter((part: any) => part.type === 'plain' && part.text)
-          .map((part: any) => part.text);
+          .filter((part: unknown): part is PlainPart => isPlainPart(part))
+          .map((part) => part.text);
         textToCopy = textContents.join('\n');
 
         // 检查是否有图片
-        const imageCount = messageParts.filter(
-          (part: any) => part.type === 'image' && part.embedded_url,
+        const imageCount = messageParts.filter((part: unknown) =>
+          isImagePart(part),
         ).length;
         if (imageCount > 0) {
           if (textToCopy) textToCopy += '\n\n';
@@ -811,8 +957,8 @@ export default {
         }
 
         // 检查是否有音频
-        const hasAudio = messageParts.some(
-          (part: any) => part.type === 'record' && part.embedded_url,
+        const hasAudio = messageParts.some((part: unknown) =>
+          isRecordPart(part),
         );
         if (hasAudio) {
           if (textToCopy) textToCopy += '\n\n';
@@ -906,7 +1052,7 @@ export default {
     addScrollListener() {
       const container = this.getMessageContainerEl();
       if (container) {
-        container.addEventListener('scroll', this.throttledHandleScroll as any);
+        container.addEventListener('scroll', this.throttledHandleScroll);
       }
     },
 
@@ -922,10 +1068,9 @@ export default {
 
     // 处理滚动事件
     handleScroll() {
-      const containerRef: any = this.$refs.messageContainer;
-      const container: any = containerRef?.$el || containerRef;
+      const container = this.getMessageContainerEl();
       if (container) {
-        const { scrollTop, scrollHeight, clientHeight } = container as any;
+        const { scrollTop, scrollHeight, clientHeight } = container;
         const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
 
         // 判断用户是否在底部附近
@@ -935,8 +1080,7 @@ export default {
 
     // 组件销毁时移除监听器
     beforeUnmount() {
-      const containerRef: any = this.$refs.messageContainer;
-      const container: any = containerRef?.$el || containerRef;
+      const container = this.getMessageContainerEl();
       if (container && typeof container.removeEventListener === 'function') {
         container.removeEventListener('scroll', this.throttledHandleScroll);
       }
@@ -947,7 +1091,7 @@ export default {
       }
       // 清理 elapsed time 计时器
       if (this.elapsedTimeTimer) {
-        clearInterval(this.elapsedTimeTimer);
+        clearTimeout(this.elapsedTimeTimer);
         this.elapsedTimeTimer = null;
       }
     },
@@ -1001,29 +1145,31 @@ export default {
         this.currentTime = Date.now() / 1000;
 
         // Check if there are any running tool calls
-        const hasRunningToolCalls = (this.messages as any[]).some(
-          (msg: any) =>
-            Array.isArray(msg?.content?.message) &&
-            msg.content.message.some(
-              (part: any) =>
-                part?.type === 'tool_call' &&
-                part.tool_calls?.some((tc: any) => !tc.finished_ts),
-            ),
-        );
+        const hasRunningToolCalls = this.messages.some((msg: ChatMessage) => {
+          if (!Array.isArray(msg.content.message)) return false;
+          return msg.content.message.some(
+            (part: MessagePart) =>
+              isToolCallPart(part) &&
+              part.tool_calls.some((tc: ToolCall) => !tc.finished_ts),
+          );
+        });
 
         if (hasRunningToolCalls) {
           // Check if any running tool call is under 1 second
-          const hasSubSecondToolCall = (this.messages as any[]).some(
-            (msg: any) =>
-              Array.isArray(msg?.content?.message) &&
-              msg.content.message.some(
-                (part: any) =>
-                  part?.type === 'tool_call' &&
-                  part.tool_calls?.some(
-                    (tc: any) =>
-                      !tc.finished_ts && this.currentTime - tc.ts < 1,
+          const hasSubSecondToolCall = this.messages.some(
+            (msg: ChatMessage) => {
+              if (!Array.isArray(msg.content.message)) return false;
+              return msg.content.message.some(
+                (part: MessagePart) =>
+                  isToolCallPart(part) &&
+                  part.tool_calls.some(
+                    (tc: ToolCall) =>
+                      !tc.finished_ts &&
+                      typeof tc.ts === 'number' &&
+                      this.currentTime - tc.ts < 1,
                   ),
-              ),
+              );
+            },
           );
 
           if (hasSubSecondToolCall) {
@@ -1054,15 +1200,30 @@ export default {
     },
 
     // Get input tokens (input_other + input_cached)
-    getInputTokens(tokenUsage: any) {
+    getInputTokens(tokenUsage: TokenUsage | null | undefined) {
       if (!tokenUsage) return 0;
-      return (tokenUsage.input_other || 0) + (tokenUsage.input_cached || 0);
+      const inputOther = tokenUsage.input_other ?? tokenUsage.input ?? 0;
+      const inputCached = tokenUsage.input_cached ?? 0;
+      return inputOther + inputCached;
     },
 
     // Format agent duration
-    formatAgentDuration(agentStats: any) {
+    formatAgentDuration(agentStats: AgentStats | null | undefined) {
       if (!agentStats) return '';
-      const duration = agentStats.end_time - agentStats.start_time;
+
+      const start =
+        typeof agentStats.start_time === 'number'
+          ? agentStats.start_time
+          : agentStats.started_ts;
+      const end =
+        typeof agentStats.end_time === 'number'
+          ? agentStats.end_time
+          : agentStats.finished_ts;
+
+      if (typeof start !== 'number' || typeof end !== 'number') return '';
+
+      const duration = end - start;
+      if (!Number.isFinite(duration) || duration < 0) return '';
       return this.formatDuration(duration);
     },
 

@@ -88,8 +88,20 @@
                     </div>
                     <div class="provider-card-logo">
                       <img
-                        v-if="getProviderIcon(template.provider)"
-                        :src="getProviderIcon(template.provider)"
+                        v-if="
+                          getProviderIcon(
+                            typeof template.provider === 'string'
+                              ? template.provider
+                              : '',
+                          )
+                        "
+                        :src="
+                          getProviderIcon(
+                            typeof template.provider === 'string'
+                              ? template.provider
+                              : '',
+                          )
+                        "
                         class="provider-logo-img"
                       />
                       <div v-else class="provider-logo-fallback">
@@ -128,6 +140,7 @@
 
 <script lang="ts">
 import { computed } from 'vue';
+import type { PropType } from 'vue';
 import { useTheme } from 'vuetify';
 import { useModuleI18n } from '@/i18n/composables';
 import {
@@ -135,6 +148,12 @@ import {
   getProviderDescription,
   type ProviderTemplate,
 } from '@/utils/providerUtils';
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
 
 export default {
   name: 'AddNewProvider',
@@ -144,7 +163,7 @@ export default {
       default: false,
     },
     metadata: {
-      type: Object,
+      type: Object as PropType<UnknownRecord>,
       default: () => ({}),
     },
   },
@@ -177,16 +196,21 @@ export default {
     },
 
     getTemplatesByType(type: string) {
-      const templates = (this.metadata as any)?.provider?.config_template || {};
-      const filtered: Record<string, any> = {};
+      const metadata: unknown = this.metadata;
+      if (!isRecord(metadata)) return {};
 
-      for (const [name, template] of Object.entries(
-        templates as Record<string, any>,
-      )) {
-        const tpl = template as any;
-        if (tpl?.provider_type === type) {
-          filtered[name] = tpl;
-        }
+      const provider = metadata.provider;
+      if (!isRecord(provider)) return {};
+
+      const configTemplate = provider.config_template;
+      if (!isRecord(configTemplate)) return {};
+
+      const filtered: Record<string, ProviderTemplate> = {};
+      for (const [name, template] of Object.entries(configTemplate)) {
+        if (!isRecord(template)) continue;
+        if (template.provider_type !== type) continue;
+        if (typeof template.type !== 'string') continue;
+        filtered[name] = template as ProviderTemplate;
       }
 
       return filtered;

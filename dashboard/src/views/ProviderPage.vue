@@ -208,7 +208,11 @@
                 actions-align="start"
                 style="min-height: 200px"
                 :loading="isProviderTesting(provider.id)"
-                :bglogo="getProviderIcon(provider.provider)"
+                :bglogo="
+                  typeof provider.provider === 'string'
+                    ? getProviderIcon(provider.provider)
+                    : ''
+                "
                 :show-copy-button="true"
                 @toggle-enabled="
                   toggleProviderEnable(provider, !provider.enable)
@@ -467,6 +471,27 @@ import type {
   ProviderStatusValue,
 } from '@/types/provider';
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data;
+    if (isRecord(data)) {
+      const message = data.message;
+      if (typeof message === 'string' && message.length > 0) return message;
+    }
+    if (typeof error.message === 'string' && error.message.length > 0)
+      return error.message;
+  }
+
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+}
+
 const props = defineProps({
   defaultTab: {
     type: String,
@@ -552,6 +577,13 @@ const showManualModelDialog = ref(false);
 
 const savingProviders = ref<string[]>([]);
 
+function getProviderConfigTemplates(): UnknownRecord {
+  const provider = (configSchema.value as UnknownRecord).provider;
+  if (!isRecord(provider)) return {};
+  const templates = provider.config_template;
+  return isRecord(templates) ? templates : {};
+}
+
 function openProviderEdit(provider: ProviderBase) {
   providerEditData.value = JSON.parse(JSON.stringify(provider));
   providerEditOriginalId.value = provider.id;
@@ -602,8 +634,10 @@ function selectProviderTemplate(name: string) {
   newProviderOriginalId.value = '';
   showProviderCfg.value = true;
   updatingMode.value = false;
+  const templates = getProviderConfigTemplates();
+  const template = templates[name];
   newSelectedProviderConfig.value = JSON.parse(
-    JSON.stringify(configSchema.value.provider.config_template[name] || {}),
+    JSON.stringify(isRecord(template) ? template : {}),
   );
 }
 
@@ -613,52 +647,65 @@ function configExistingProvider(provider: ProviderBase) {
   newSelectedProviderConfig.value = {};
 
   // 比对默认配置模版，看看是否有更新
-  const templates = configSchema.value.provider.config_template || {};
-  let defaultConfig: Record<string, any> = {};
+  const templates = getProviderConfigTemplates();
+  let defaultConfig: UnknownRecord = {};
   for (const key in templates) {
-    if (templates[key]?.type === provider.type) {
-      defaultConfig = templates[key];
+    const value = templates[key];
+    if (isRecord(value) && value.type === provider.type) {
+      defaultConfig = value;
       break;
     }
   }
 
   const mergeConfigWithOrder = (
-    target: Record<string, any>,
-    source: Record<string, any>,
-    reference: Record<string, any>,
+    target: UnknownRecord,
+    source: UnknownRecord,
+    reference: UnknownRecord,
   ) => {
-    if (source && typeof source === 'object' && !Array.isArray(source)) {
+    if (isRecord(source)) {
       for (const key in source) {
-        if (Object.prototype.hasOwnProperty.call(source, key)) {
-          if (typeof source[key] === 'object' && source[key] !== null) {
-            target[key] = Array.isArray(source[key])
-              ? [...source[key]]
-              : { ...source[key] };
+        if (!Object.prototype.hasOwnProperty.call(source, key)) continue;
+        const value = source[key];
+        if (value && typeof value === 'object') {
+          if (Array.isArray(value)) {
+            target[key] = [...(value as unknown[])];
+          } else if (isRecord(value)) {
+            target[key] = { ...value };
           } else {
-            target[key] = source[key];
+            target[key] = value;
           }
+        } else {
+          target[key] = value;
         }
       }
     }
 
     for (const key in reference) {
-      if (typeof reference[key] === 'object' && reference[key] !== null) {
+      const refValue = reference[key];
+      if (refValue && typeof refValue === 'object') {
         if (!(key in target)) {
-          if (Array.isArray(reference[key])) {
-            target[key] = [...reference[key]];
+          if (Array.isArray(refValue)) {
+            target[key] = [...(refValue as unknown[])];
           } else {
             target[key] = {};
           }
         }
-        if (!Array.isArray(reference[key])) {
+
+        if (!Array.isArray(refValue)) {
+          const targetChild = target[key];
+          if (!isRecord(targetChild)) {
+            target[key] = {};
+          }
+
+          const srcValue = isRecord(source) ? source[key] : undefined;
           mergeConfigWithOrder(
-            target[key],
-            source && source[key] ? source[key] : {},
-            reference[key],
+            target[key] as UnknownRecord,
+            isRecord(srcValue) ? srcValue : ({} as UnknownRecord),
+            isRecord(refValue) ? refValue : ({} as UnknownRecord),
           );
         }
       } else if (!(key in target)) {
-        target[key] = reference[key];
+        target[key] = refValue;
       }
     }
   };
@@ -704,11 +751,8 @@ async function newProvider() {
       showMessage(res.data.message || '添加成功!');
     }
     showProviderCfg.value = false;
-  } catch (err: any) {
-    showMessage(
-      err?.response?.data?.message || err?.message || '请求失败',
-      'error',
-    );
+  } catch (err: unknown) {
+    showMessage(getErrorMessage(err, '请求失败'), 'error');
   } finally {
     loading.value = false;
     await loadConfig();
@@ -733,13 +777,8 @@ async function saveEditedProvider() {
     showMessage(res.data.message || tm('providerSources.saveSuccess'));
     showProviderEditDialog.value = false;
     await loadConfig();
-  } catch (err: any) {
-    showMessage(
-      err?.response?.data?.message ||
-        err?.message ||
-        tm('providerSources.saveError'),
-      'error',
-    );
+  } catch (err: unknown) {
+    showMessage(getErrorMessage(err, tm('providerSources.saveError')), 'error');
   } finally {
     savingProviders.value = savingProviders.value.filter(
       (id) => id !== savingId,
@@ -753,7 +792,7 @@ async function copyProvider(providerToCopy: ProviderBase) {
   const generateUniqueId = (baseId: string) => {
     let newId = `${baseId}_copy`;
     let counter = 1;
-    const existingIds = providers.value.map((p: any) => p.id as string);
+    const existingIds = providers.value.map((p) => p.id);
     while (existingIds.includes(newId)) {
       newId = `${baseId}_copy_${counter}`;
       counter++;
@@ -768,11 +807,8 @@ async function copyProvider(providerToCopy: ProviderBase) {
     const res = await axios.post('/api/config/provider/new', newProviderConfig);
     showMessage(res.data.message || `成功复制并创建了 ${newProviderConfig.id}`);
     await loadConfig();
-  } catch (err: any) {
-    showMessage(
-      err?.response?.data?.message || err?.message || '请求失败',
-      'error',
-    );
+  } catch (err: unknown) {
+    showMessage(getErrorMessage(err, '请求失败'), 'error');
   } finally {
     loading.value = false;
   }
@@ -791,11 +827,9 @@ async function toggleProviderEnable(provider: ProviderBase, value: boolean) {
       throw new Error(res.data.message);
     }
     showMessage(res.data.message || tm('messages.success.statusUpdate'));
-  } catch (error: any) {
+  } catch (error: unknown) {
     showMessage(
-      error?.response?.data?.message ||
-        error?.message ||
-        tm('providerSources.saveError'),
+      getErrorMessage(error, tm('providerSources.saveError')),
       'error',
     );
   } finally {
@@ -862,9 +896,8 @@ async function testSingleProvider(provider: ProviderBase) {
         res.data?.message || `Failed to check status for ${provider.id}`,
       );
     }
-  } catch (err: any) {
-    const errorMessage =
-      err?.response?.data?.message || err?.message || 'Unknown error';
+  } catch (err: unknown) {
+    const errorMessage = getErrorMessage(err, 'Unknown error');
     const index = providerStatuses.value.findIndex((s) => s.id === provider.id);
     const failedStatus: ProviderStatus = {
       id: provider.id,

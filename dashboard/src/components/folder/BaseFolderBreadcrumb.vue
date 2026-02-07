@@ -5,14 +5,21 @@
     </template>
     <template #item="{ item }">
       <v-breadcrumbs-item
-        :disabled="(item as any).disabled"
-        :class="{ 'breadcrumb-link': !(item as any).disabled }"
-        @click="!(item as any).disabled && handleClick((item as any).folderId)"
+        :disabled="item.disabled"
+        :class="{ 'breadcrumb-link': !item.disabled }"
+        @click="
+          !item.disabled &&
+          handleClick((item as unknown as BreadcrumbItem).folderId)
+        "
       >
-        <v-icon v-if="(item as any).isRoot" size="small" class="mr-1">
+        <v-icon
+          v-if="(item as unknown as BreadcrumbItem).isRoot"
+          size="small"
+          class="mr-1"
+        >
           mdi-home
         </v-icon>
-        {{ (item as any).title }}
+        {{ item.title }}
       </v-breadcrumbs-item>
     </template>
     <template #divider>

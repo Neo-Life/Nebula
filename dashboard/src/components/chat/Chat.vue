@@ -344,7 +344,45 @@ const prompt = ref('');
 // 项目状态
 const projectDialog = ref(false);
 const editingProject = ref<Project | null>(null);
-const projectSessions = ref<any[]>([]);
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+interface ProjectSession {
+  session_id: string;
+  display_name?: string;
+  updated_at: string;
+}
+
+function normalizeProjectSessions(value: unknown): ProjectSession[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item): ProjectSession | null => {
+      if (!isRecord(item)) return null;
+      const sessionId = item.session_id;
+      const updatedAt = item.updated_at;
+      if (typeof sessionId !== 'string' || typeof updatedAt !== 'string') {
+        return null;
+      }
+
+      const displayName = item.display_name;
+      const normalized: ProjectSession = {
+        session_id: sessionId,
+        updated_at: updatedAt,
+      };
+      if (typeof displayName === 'string') {
+        normalized.display_name = displayName;
+      }
+      return normalized;
+    })
+    .filter((s): s is ProjectSession => s !== null);
+}
+
+const projectSessions = ref<ProjectSession[]>([]);
 const currentProject = computed(() =>
   projects.value.find((p) => p.project_id === selectedProjectId.value),
 );
@@ -404,14 +442,34 @@ async function handleSaveTitle() {
 
   // 如果在项目视图中，刷新项目会话列表
   if (selectedProjectId.value) {
-    const sessions = await getProjectSessions(selectedProjectId.value);
-    projectSessions.value = sessions;
+    const sessions: unknown = await getProjectSessions(selectedProjectId.value);
+    projectSessions.value = normalizeProjectSessions(sessions);
   }
 }
 
-function handleReplyMessage(msg: any, _index: number) {
+type PlainMessagePart = { type: 'plain'; text: string };
+
+function isPlainMessagePart(value: unknown): value is PlainMessagePart {
+  return (
+    isRecord(value) &&
+    value.type === 'plain' &&
+    typeof value.text === 'string' &&
+    value.text.trim() !== ''
+  );
+}
+
+function toMessageId(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function handleReplyMessage(msg: unknown, _index: number) {
   // 从消息中获取 id (PlatformSessionHistoryMessage 的 id)
-  const messageId = msg.id;
+  const messageId = isRecord(msg) && 'id' in msg ? toMessageId(msg.id) : null;
   if (!messageId) {
     console.warn('Message does not have an id');
     return;
@@ -419,13 +477,16 @@ function handleReplyMessage(msg: any, _index: number) {
 
   // 获取消息内容用于显示
   let messageContent = '';
-  if (typeof msg.content.message === 'string') {
-    messageContent = msg.content.message;
-  } else if (Array.isArray(msg.content.message)) {
+  const content = isRecord(msg) ? msg.content : undefined;
+  const message = isRecord(content) ? content.message : undefined;
+
+  if (typeof message === 'string') {
+    messageContent = message;
+  } else if (Array.isArray(message)) {
     // 从消息段数组中提取纯文本
-    const textParts = msg.content.message
-      .filter((part: any) => part.type === 'plain' && part.text)
-      .map((part: any) => part.text);
+    const textParts = message
+      .filter(isPlainMessagePart)
+      .map((part) => part.text);
     messageContent = textParts.join('');
   }
 
@@ -444,9 +505,16 @@ function clearReply() {
   replyTo.value = null;
 }
 
-function handleReplyWithText(replyData: any) {
+function handleReplyWithText(replyData: unknown) {
   // 处理选中文本的引用
-  const { messageId, selectedText } = replyData;
+  const messageId =
+    isRecord(replyData) && 'messageId' in replyData
+      ? toMessageId(replyData.messageId)
+      : null;
+  const selectedText =
+    isRecord(replyData) && typeof replyData.selectedText === 'string'
+      ? replyData.selectedText
+      : '';
 
   if (!messageId) {
     console.warn('Message does not have an id');
@@ -461,15 +529,52 @@ function handleReplyWithText(replyData: any) {
 
 // Refs Sidebar 状态
 const refsSidebarOpen = ref(false);
-const refsSidebarRefs = ref<any>(null);
+type RefItem = {
+  title?: string;
+  url?: string;
+  favicon?: string;
+  snippet?: string;
+};
 
-function handleOpenRefs(refs: any) {
+type RefsPayload = {
+  used?: RefItem[];
+} | null;
+
+function normalizeRefsPayload(value: unknown): RefsPayload {
+  if (value === null) return null;
+  if (!isRecord(value)) return null;
+
+  const used = value.used;
+  if (!Array.isArray(used)) return { used: [] };
+
+  const normalizedUsed = used
+    .map((item): RefItem | null => {
+      if (!isRecord(item)) return null;
+
+      const normalized: RefItem = {};
+      if (typeof item.title === 'string') normalized.title = item.title;
+      if (typeof item.url === 'string') normalized.url = item.url;
+      if (typeof item.favicon === 'string') normalized.favicon = item.favicon;
+      if (typeof item.snippet === 'string') normalized.snippet = item.snippet;
+      return normalized;
+    })
+    .filter((r): r is RefItem => r !== null);
+
+  return { used: normalizedUsed };
+}
+
+const refsSidebarRefsRaw = ref<unknown>(null);
+const refsSidebarRefs = computed<RefsPayload>(() =>
+  normalizeRefsPayload(refsSidebarRefsRaw.value),
+);
+
+function handleOpenRefs(refs: unknown) {
   // 如果sidebar已打开且点击的是同一个refs，则关闭
-  if (refsSidebarOpen.value && refsSidebarRefs.value === refs) {
+  if (refsSidebarOpen.value && refsSidebarRefsRaw.value === refs) {
     refsSidebarOpen.value = false;
   } else {
     // 否则打开sidebar并更新refs
-    refsSidebarRefs.value = refs;
+    refsSidebarRefsRaw.value = refs;
     refsSidebarOpen.value = true;
   }
 }

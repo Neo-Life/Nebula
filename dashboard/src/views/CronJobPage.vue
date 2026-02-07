@@ -215,14 +215,64 @@ import { useModuleI18n } from '@/i18n/composables';
 
 const { tm } = useModuleI18n('features/cron');
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data;
+    if (isRecord(data)) {
+      const message = data.message;
+      if (typeof message === 'string' && message.length > 0) return message;
+    }
+    if (typeof error.message === 'string' && error.message.length > 0)
+      return error.message;
+  }
+
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+}
+
+type CronJobItem = {
+  job_id: string;
+  name: string;
+  description: string;
+  run_once: boolean;
+  run_at: string;
+  cron_expression: string;
+  timezone: string;
+  session: string;
+  next_run_time: string;
+  last_run_at: string;
+  note: string;
+  enabled: boolean;
+  job_type: string;
+  payload?: UnknownRecord;
+  [key: string]: unknown;
+};
+
+type PlatformItem = { id: string; name: string; display_name?: string };
+
+type NewCronJob = {
+  run_once: boolean;
+  name: string;
+  note: string;
+  cron_expression: string;
+  run_at: string;
+  session: string;
+  timezone: string;
+  enabled: boolean;
+};
+
 const loading = ref(false);
-const jobs = ref<any[]>([]);
-const proactivePlatforms = ref<
-  { id: string; name: string; display_name?: string }[]
->([]);
+const jobs = ref<CronJobItem[]>([]);
+const proactivePlatforms = ref<PlatformItem[]>([]);
 const createDialog = ref(false);
 const creating = ref(false);
-const newJob = ref({
+const newJob = ref<NewCronJob>({
   run_once: false,
   name: '',
   note: '',
@@ -272,16 +322,19 @@ function toast(
   snackbar.value = { show: true, message, color };
 }
 
-function formatTime(val: any): string {
+function formatTime(val: unknown): string {
   if (!val) return tm('table.notAvailable');
   try {
-    return new Date(val).toLocaleString();
+    if (val instanceof Date) return val.toLocaleString();
+    if (typeof val === 'number' || typeof val === 'string')
+      return new Date(val).toLocaleString();
+    return new Date(String(val)).toLocaleString();
   } catch (_e) {
     return String(val);
   }
 }
 
-function jobTypeLabel(item: any): string {
+function jobTypeLabel(item: CronJobItem): string {
   if (item.run_once) return tm('table.type.once');
   const type = item.job_type || 'active_agent';
   const map: Record<string, string> = {
@@ -291,21 +344,70 @@ function jobTypeLabel(item: any): string {
   return map[type] || tm('table.type.unknown', { type });
 }
 
+function normalizeJob(raw: unknown): CronJobItem {
+  const r = isRecord(raw) ? raw : ({} as UnknownRecord);
+  const payload = isRecord(r.payload) ? r.payload : undefined;
+
+  const payloadSession = payload?.session;
+  const session =
+    typeof payloadSession === 'string'
+      ? payloadSession
+      : typeof r.session === 'string'
+        ? r.session
+        : '';
+
+  return {
+    ...r,
+    job_id: typeof r.job_id === 'string' ? r.job_id : String(r.job_id ?? ''),
+    name: typeof r.name === 'string' ? r.name : String(r.name ?? ''),
+    description:
+      typeof r.description === 'string'
+        ? r.description
+        : String(r.description ?? ''),
+    run_once: !!r.run_once,
+    run_at: typeof r.run_at === 'string' ? r.run_at : String(r.run_at ?? ''),
+    cron_expression:
+      typeof r.cron_expression === 'string'
+        ? r.cron_expression
+        : String(r.cron_expression ?? ''),
+    timezone:
+      typeof r.timezone === 'string' ? r.timezone : String(r.timezone ?? ''),
+    session,
+    next_run_time:
+      typeof r.next_run_time === 'string'
+        ? r.next_run_time
+        : String(r.next_run_time ?? ''),
+    last_run_at:
+      typeof r.last_run_at === 'string'
+        ? r.last_run_at
+        : String(r.last_run_at ?? ''),
+    note: typeof r.note === 'string' ? r.note : String(r.note ?? ''),
+    enabled: r.enabled !== false,
+    job_type:
+      typeof r.job_type === 'string' ? r.job_type : String(r.job_type ?? ''),
+    payload,
+  };
+}
+
 async function loadJobs() {
   loading.value = true;
   try {
     const res = await axios.get('/api/cron/jobs');
-    if (res.data.status === 'ok') {
-      const data = Array.isArray(res.data.data) ? res.data.data : [];
-      jobs.value = data.map((job: any) => ({
-        ...job,
-        session: job?.payload?.session || job?.session || '',
-      }));
+    const responseData: unknown = res.data;
+    if (isRecord(responseData) && responseData.status === 'ok') {
+      const data = Array.isArray(responseData.data)
+        ? (responseData.data as unknown[])
+        : [];
+      jobs.value = data.map(normalizeJob);
     } else {
-      toast(res.data.message || tm('messages.loadFailed'), 'error');
+      const message =
+        isRecord(responseData) && typeof responseData.message === 'string'
+          ? responseData.message
+          : '';
+      toast(message || tm('messages.loadFailed'), 'error');
     }
-  } catch (e: any) {
-    toast(e?.response?.data?.message || tm('messages.loadFailed'), 'error');
+  } catch (e: unknown) {
+    toast(getErrorMessage(e, tm('messages.loadFailed')), 'error');
   } finally {
     loading.value = false;
   }
@@ -314,21 +416,49 @@ async function loadJobs() {
 async function loadPlatforms() {
   try {
     const res = await axios.get('/api/platform/stats');
-    if (res.data.status === 'ok' && Array.isArray(res.data.data?.platforms)) {
-      proactivePlatforms.value = res.data.data.platforms
-        .filter((p: any) => p?.meta?.support_proactive_message)
-        .map((p: any) => ({
-          id: p?.id || p?.meta?.id || 'unknown',
-          name: p?.meta?.name || p?.type || '',
-          display_name: p?.meta?.display_name || p?.display_name,
-        }));
+    const responseData: unknown = res.data;
+    if (isRecord(responseData) && responseData.status === 'ok') {
+      const data = responseData.data;
+      const platforms =
+        isRecord(data) && Array.isArray(data.platforms)
+          ? (data.platforms as unknown[])
+          : [];
+
+      proactivePlatforms.value = platforms
+        .map((p) => (isRecord(p) ? p : ({} as UnknownRecord)))
+        .filter((p) => {
+          const meta = isRecord(p.meta) ? p.meta : ({} as UnknownRecord);
+          return !!meta.support_proactive_message;
+        })
+        .map((p) => {
+          const meta = isRecord(p.meta) ? p.meta : ({} as UnknownRecord);
+          const id =
+            typeof p.id === 'string'
+              ? p.id
+              : typeof meta.id === 'string'
+                ? meta.id
+                : 'unknown';
+          const name =
+            typeof meta.name === 'string'
+              ? meta.name
+              : typeof p.type === 'string'
+                ? p.type
+                : '';
+          const display_name =
+            typeof meta.display_name === 'string'
+              ? meta.display_name
+              : typeof p.display_name === 'string'
+                ? p.display_name
+                : undefined;
+          return { id, name, display_name };
+        });
     }
   } catch (_e) {
     // ignore platform fetch errors in UI; subtitle will show fallback
   }
 }
 
-async function toggleJob(job: any) {
+async function toggleJob(job: CronJobItem) {
   try {
     const res = await axios.patch(`/api/cron/jobs/${job.job_id}`, {
       enabled: job.enabled,
@@ -337,13 +467,13 @@ async function toggleJob(job: any) {
       toast(res.data.message || tm('messages.updateFailed'), 'error');
       await loadJobs();
     }
-  } catch (e: any) {
-    toast(e?.response?.data?.message || tm('messages.updateFailed'), 'error');
+  } catch (e: unknown) {
+    toast(getErrorMessage(e, tm('messages.updateFailed')), 'error');
     await loadJobs();
   }
 }
 
-async function deleteJob(job: any) {
+async function deleteJob(job: CronJobItem) {
   try {
     const res = await axios.delete(`/api/cron/jobs/${job.job_id}`);
     if (res.data.status === 'ok') {
@@ -352,8 +482,8 @@ async function deleteJob(job: any) {
     } else {
       toast(res.data.message || tm('messages.deleteFailed'), 'error');
     }
-  } catch (e: any) {
-    toast(e?.response?.data?.message || tm('messages.deleteFailed'), 'error');
+  } catch (e: unknown) {
+    toast(getErrorMessage(e, tm('messages.deleteFailed')), 'error');
   }
 }
 
@@ -394,7 +524,7 @@ async function createJob() {
   }
   creating.value = true;
   try {
-    const payload: any = { ...newJob.value };
+    const payload: NewCronJob = { ...newJob.value };
     const res = await axios.post('/api/cron/jobs', payload);
     if (res.data.status === 'ok') {
       toast(tm('messages.createSuccess'));
@@ -404,8 +534,8 @@ async function createJob() {
     } else {
       toast(res.data.message || tm('messages.createFailed'), 'error');
     }
-  } catch (e: any) {
-    toast(e?.response?.data?.message || tm('messages.createFailed'), 'error');
+  } catch (e: unknown) {
+    toast(getErrorMessage(e, tm('messages.createFailed')), 'error');
   } finally {
     creating.value = false;
   }

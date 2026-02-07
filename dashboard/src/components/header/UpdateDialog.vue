@@ -20,6 +20,20 @@ type UpdateFlags = {
   dashboardHasNewVersion: boolean;
 };
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+type Release = {
+  tag_name: string;
+  published_at: string;
+  zipball_url?: string;
+  body: string;
+  name?: string;
+};
+
 const props = defineProps<{
   modelValue: boolean;
   botCurrVersion: string;
@@ -81,7 +95,7 @@ const installLoading = ref(false);
 const updatingDashboardLoading = ref(false);
 
 const releaseMessage = ref('');
-const releases = ref<any[]>([]);
+const releases = ref<Release[]>([]);
 
 const releasesHeader = computed(() => [
   {
@@ -172,8 +186,8 @@ async function checkUpdate() {
       // 后端 message 可能是固定中文句子；这里用 i18n key，保证切换语言时能立即更新
       setUpdateStatusKey('core.header.updateDialog.dashboardUpdate.isLatest');
     }
-  } catch (err: any) {
-    if (err?.response && err.response.status == 401) {
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err) && err.response?.status === 401) {
       const authStore = useAuthStore();
       authStore.logout();
       router.push('/auth/login');
@@ -190,9 +204,41 @@ async function getReleases() {
     const res = await axios.get('/api/update/releases', {
       params: { channel: sourceUpdateChannel.value },
     });
-    releases.value = (res.data.data || []).map((item: any) => {
-      item.published_at = new Date(item.published_at).toLocaleString();
-      return item;
+
+    const data = res.data?.data;
+    const items: unknown[] = Array.isArray(data) ? data : [];
+
+    releases.value = items.map((itemUnknown): Release => {
+      const item = isRecord(itemUnknown) ? itemUnknown : {};
+
+      const tagNameRaw = item.tag_name;
+      const tag_name = typeof tagNameRaw === 'string' ? tagNameRaw : '';
+
+      const publishedAtRaw = item.published_at;
+      const published_at =
+        typeof publishedAtRaw === 'string' || typeof publishedAtRaw === 'number'
+          ? new Date(publishedAtRaw).toLocaleString()
+          : publishedAtRaw instanceof Date
+            ? publishedAtRaw.toLocaleString()
+            : new Date(Number.NaN).toLocaleString();
+
+      const zipballUrlRaw = item.zipball_url;
+      const zipball_url =
+        typeof zipballUrlRaw === 'string' ? zipballUrlRaw : undefined;
+
+      const bodyRaw = item.body;
+      const body = typeof bodyRaw === 'string' ? bodyRaw : '';
+
+      const nameRaw = item.name;
+      const name = typeof nameRaw === 'string' ? nameRaw : undefined;
+
+      return {
+        tag_name,
+        published_at,
+        zipball_url,
+        body,
+        name,
+      };
     });
   } catch (err) {
     console.log(err);
@@ -575,11 +621,7 @@ const dialogModel = computed({
                   </div>
 
                   <v-alert
-                    v-if="
-                      releases.some((item: any) =>
-                        isPreRelease(item['tag_name']),
-                      )
-                    "
+                    v-if="releases.some((item) => isPreRelease(item.tag_name))"
                     type="warning"
                     variant="tonal"
                     border="start"
@@ -623,7 +665,7 @@ const dialogModel = computed({
                       :fixed-header="!isPhoneLayout"
                       :height="isPhoneLayout ? undefined : '100%'"
                     >
-                      <template #item.tag_name="{ item }: { item: any }">
+                      <template #item.tag_name="{ item }: { item: Release }">
                         <span class="font-weight-medium">{{
                           item.tag_name
                         }}</span>

@@ -176,7 +176,7 @@ type Platform = {
   id: string;
   platform_type?: string;
   type?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 type PlatformGroup = {

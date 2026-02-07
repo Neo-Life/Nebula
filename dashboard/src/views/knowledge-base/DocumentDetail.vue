@@ -290,6 +290,21 @@ import { useRoute } from 'vue-router';
 import axios from 'axios';
 import { useModuleI18n } from '@/i18n/composables';
 
+type DocumentInfo = {
+  doc_name?: string;
+  file_type?: string;
+  file_size?: number;
+  chunk_count?: number;
+  created_at?: string;
+};
+
+type DocumentChunk = {
+  chunk_id: string;
+  chunk_index: number;
+  content: string;
+  char_count: number;
+};
+
 const { tm: t } = useModuleI18n('features/knowledge-base/document');
 const route = useRoute();
 
@@ -299,11 +314,11 @@ const docId = ref(route.params.docId as string);
 // 状态
 const loading = ref(true);
 const loadingChunks = ref(false);
-const document = ref<any>({});
-const chunks = ref<any[]>([]);
+const document = ref<DocumentInfo>({});
+const chunks = ref<DocumentChunk[]>([]);
 const searchQuery = ref('');
 const showViewDialog = ref(false);
-const selectedChunk = ref<any>(null);
+const selectedChunk = ref<DocumentChunk | null>(null);
 
 // 分页状态
 const page = ref(1);
@@ -394,13 +409,13 @@ const handlePageSizeChange = (newPageSize: number) => {
 };
 
 // 查看分块
-const viewChunk = (chunk: any) => {
+const viewChunk = (chunk: DocumentChunk) => {
   selectedChunk.value = chunk;
   showViewDialog.value = true;
 };
 
 // 删除分块
-const deleteChunk = async (chunk: any) => {
+const deleteChunk = async (chunk: DocumentChunk) => {
   if (!confirm(t('chunks.deleteConfirm'))) return;
   try {
     const response = await axios.post('/api/kb/chunk/delete', {
@@ -421,7 +436,7 @@ const deleteChunk = async (chunk: any) => {
 };
 
 // 工具函数
-const getFileIcon = (fileType: string) => {
+const getFileIcon = (fileType?: string) => {
   const type = fileType?.toLowerCase() || '';
   if (type.includes('pdf')) return 'mdi-file-pdf-box';
   if (type.includes('md')) return 'mdi-language-markdown';
@@ -429,7 +444,7 @@ const getFileIcon = (fileType: string) => {
   return 'mdi-file';
 };
 
-const getFileColor = (fileType: string) => {
+const getFileColor = (fileType?: string) => {
   const type = fileType?.toLowerCase() || '';
   if (type.includes('pdf')) return 'error';
   if (type.includes('md')) return 'info';
@@ -437,7 +452,7 @@ const getFileColor = (fileType: string) => {
   return 'grey';
 };
 
-const formatFileSize = (bytes: number) => {
+const formatFileSize = (bytes?: number) => {
   if (!bytes) return '-';
   const units = ['B', 'KB', 'MB', 'GB'];
   let size = bytes;
@@ -449,7 +464,7 @@ const formatFileSize = (bytes: number) => {
   return `${size.toFixed(2)} ${units[unitIndex]}`;
 };
 
-const formatDate = (dateStr: string) => {
+const formatDate = (dateStr?: string) => {
   if (!dateStr) return '-';
   return new Date(dateStr).toLocaleString('zh-CN', {
     year: 'numeric',

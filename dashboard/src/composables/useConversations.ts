@@ -44,8 +44,8 @@ export function useConversations(chatboxMode: boolean = false) {
         const firstConversation = conversations.value[0];
         selectedConversations.value = [firstConversation.cid];
       }
-    } catch (err: any) {
-      if (err.response?.status === 401) {
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
         router.push('/auth/login?redirect=/chatbox');
       }
       console.error(err);

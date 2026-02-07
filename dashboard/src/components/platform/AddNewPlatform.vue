@@ -47,7 +47,9 @@
                       <template #prepend>
                         <img
                           :src="
-                            getPlatformIcon(platformTemplates[item.raw].type)
+                            getPlatformIcon(
+                              platformTemplates[item.raw].type ?? '',
+                            )
                           "
                           style="
                             width: 32px;
@@ -73,7 +75,7 @@
                   <div class="mt-2">
                     <AstrBotConfig
                       :iterable="selectedPlatformConfig"
-                      :metadata="metadata['platform_group']?.metadata"
+                      :metadata="platformGroupMetadata"
                       metadata-key="platform"
                     />
                   </div>
@@ -94,7 +96,7 @@
                   <div class="mt-2">
                     <AstrBotConfig
                       :iterable="updatingPlatformConfig ?? {}"
-                      :metadata="metadata['platform_group']?.metadata"
+                      :metadata="platformGroupMetadata"
                       metadata-key="platform"
                     />
                   </div>
@@ -523,6 +525,69 @@ import AstrBotConfig from '@/components/shared/AstrBotConfig.vue';
 import AstrBotCoreConfigWrapper from '@/components/config/AstrBotCoreConfigWrapper.vue';
 import ConfigPage from '@/views/ConfigPage.vue';
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function getErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data;
+    if (isRecord(data) && typeof data.message === 'string' && data.message) {
+      return data.message;
+    }
+
+    if (typeof error.message === 'string' && error.message) {
+      return error.message;
+    }
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
+}
+
+type RouteTableHeader = {
+  title: string;
+  key: string;
+  sortable: boolean;
+  width?: string;
+  align?: 'center' | 'start' | 'end';
+};
+
+type ScrollContainer = {
+  scrollHeight: number;
+  scrollTop: number;
+  scrollTo?: (options: { top: number; behavior?: string }) => void;
+};
+
+function isScrollContainer(value: unknown): value is ScrollContainer {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.scrollHeight === 'number' &&
+    typeof value.scrollTop === 'number' &&
+    (value.scrollTo === undefined || typeof value.scrollTo === 'function')
+  );
+}
+
+function resolveScrollContainer(value: unknown): ScrollContainer | null {
+  if (isScrollContainer(value)) {
+    return value;
+  }
+
+  if (isRecord(value) && isScrollContainer(value.$el)) {
+    return value.$el;
+  }
+
+  return null;
+}
+
 type PlatformConfig = {
   id?: string;
   type?: string;
@@ -559,7 +624,7 @@ export default defineComponent({
       default: false,
     },
     metadata: {
-      type: Object as PropType<Record<string, any>>,
+      type: Object as PropType<UnknownRecord>,
       default: () => ({}),
     },
     config_data: {
@@ -628,7 +693,7 @@ export default defineComponent({
           align: 'center',
           width: '20%',
         },
-      ] as any,
+      ] as RouteTableHeader[],
       messageTypeOptions: [
         { label: '全部消息', value: '*' },
         { label: '群组消息(GroupMessage)', value: 'GroupMessage' },
@@ -669,10 +734,54 @@ export default defineComponent({
       },
     },
     platformTemplates() {
-      return (
-        (this.metadata as any)?.['platform_group']?.metadata?.platform
-          ?.config_template || ({} as PlatformTemplates)
-      );
+      const templates: PlatformTemplates = {};
+      if (!isRecord(this.metadata)) {
+        return templates;
+      }
+
+      const platformGroup = this.metadata['platform_group'];
+      if (!isRecord(platformGroup)) {
+        return templates;
+      }
+
+      const groupMetadata = platformGroup['metadata'];
+      if (!isRecord(groupMetadata)) {
+        return templates;
+      }
+
+      const platformMetadata = groupMetadata['platform'];
+      if (!isRecord(platformMetadata)) {
+        return templates;
+      }
+
+      const configTemplate = platformMetadata['config_template'];
+      if (!isRecord(configTemplate)) {
+        return templates;
+      }
+
+      for (const key in configTemplate) {
+        const template = configTemplate[key];
+        if (isRecord(template)) {
+          templates[key] = template as PlatformConfig;
+        }
+      }
+
+      return templates;
+    },
+
+    platformGroupMetadata(): UnknownRecord {
+      const empty: UnknownRecord = {};
+      if (!isRecord(this.metadata)) {
+        return empty;
+      }
+
+      const platformGroup = this.metadata['platform_group'];
+      if (!isRecord(platformGroup)) {
+        return empty;
+      }
+
+      const groupMetadata = platformGroup['metadata'];
+      return isRecord(groupMetadata) ? groupMetadata : empty;
     },
     canSave() {
       // 基本条件：必须选择平台类型
@@ -946,10 +1055,7 @@ export default defineComponent({
         this.showSuccess('更新成功');
       } catch (err) {
         this.loading = false;
-        const error = err as any;
-        this.showError(
-          error?.response?.data?.message || error?.message || String(error),
-        );
+        this.showError(getErrorMessage(err));
       }
     },
     async savePlatform() {
@@ -1005,10 +1111,7 @@ export default defineComponent({
         this.showSuccess(res.data.message || '平台添加成功，配置文件已更新');
       } catch (err) {
         this.loading = false;
-        const error = err as any;
-        this.showError(
-          error?.response?.data?.message || error?.message || String(error),
-        );
+        this.showError(getErrorMessage(err));
       }
     },
 
@@ -1054,10 +1157,7 @@ export default defineComponent({
         console.log(`成功更新路由表: ${umop} -> ${configId}`);
       } catch (err) {
         console.error('更新路由表失败:', err);
-        const error = err as any;
-        throw new Error(
-          `更新路由表失败: ${error?.response?.data?.message || error?.message || String(error)}`,
-        );
+        throw new Error(`更新路由表失败: ${getErrorMessage(err)}`);
       }
     },
 
@@ -1081,10 +1181,7 @@ export default defineComponent({
         return newConfigId;
       } catch (err) {
         console.error('创建新配置文件失败:', err);
-        const error = err as any;
-        throw new Error(
-          `创建新配置文件失败: ${error?.response?.data?.message || error?.message || String(error)}`,
-        );
+        throw new Error(`创建新配置文件失败: ${getErrorMessage(err)}`);
       }
     },
 
@@ -1273,10 +1370,7 @@ export default defineComponent({
         });
       } catch (err) {
         console.error('保存路由表失败:', err);
-        const error = err as any;
-        throw new Error(
-          `保存路由表失败: ${error?.response?.data?.message || error?.message || String(error)}`,
-        );
+        throw new Error(`保存路由表失败: ${getErrorMessage(err)}`);
       }
     },
 
@@ -1330,8 +1424,8 @@ export default defineComponent({
       }
     },
     scrollDialogToBottom() {
-      const containerRef = this.$refs.dialogScrollContainer;
-      const el = (containerRef as any)?.$el || containerRef;
+      const containerRef: unknown = this.$refs.dialogScrollContainer;
+      const el = resolveScrollContainer(containerRef);
       if (!el) {
         return;
       }

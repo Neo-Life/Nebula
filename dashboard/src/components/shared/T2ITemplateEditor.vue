@@ -354,14 +354,14 @@ const previewFrame = ref<HTMLIFrameElement | null>(null);
 
 // --- 编辑器配置 ---
 const editorTheme = computed(() => 'vs-light');
-const editorOptions: any = {
+const editorOptions = {
   automaticLayout: true,
   fontSize: 12,
   lineNumbers: 'on',
   wordWrap: 'on',
   minimap: { enabled: false },
   scrollBeyondLastLine: false,
-};
+} as const;
 
 // --- 预览逻辑 ---
 const previewText =

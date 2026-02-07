@@ -1,6 +1,6 @@
 declare global {
   interface Window {
-    monaco?: any;
+    monaco?: unknown;
   }
 }
 

@@ -137,7 +137,11 @@
                       color="primary"
                       class="mr-1"
                       @update:model-value="
-                        emit('toggle-provider-enable', entry.provider, $event)
+                        emit(
+                          'toggle-provider-enable',
+                          entry.provider,
+                          Boolean($event),
+                        )
                       "
                     />
                     <v-tooltip location="top" max-width="300">
@@ -267,9 +271,33 @@
 import { computed } from 'vue';
 import type { PropType } from 'vue';
 
+type ProviderLike = {
+  id: string;
+  model?: string;
+  enable?: boolean;
+};
+
+type ModelEntryConfigured = {
+  type: 'configured';
+  provider: ProviderLike;
+  metadata: unknown;
+};
+
+type ModelEntryAvailable = {
+  type: 'available';
+  model: string;
+  metadata: unknown;
+};
+
+type ModelEntry = ModelEntryConfigured | ModelEntryAvailable;
+
+type TmFn = (key: string, params?: Record<string, string | number>) => string;
+type SupportsFlagFn = (meta: unknown) => boolean;
+type FormatContextLimitFn = (meta: unknown) => string;
+
 const props = defineProps({
   entries: {
-    type: Array as PropType<any[]>,
+    type: Array as PropType<ModelEntry[]>,
     default: () => [],
   },
   availableCount: {
@@ -289,41 +317,41 @@ const props = defineProps({
     default: false,
   },
   supportsImageInput: {
-    type: Function,
+    type: Function as PropType<SupportsFlagFn>,
     required: true,
   },
   supportsToolCall: {
-    type: Function,
+    type: Function as PropType<SupportsFlagFn>,
     required: true,
   },
   supportsReasoning: {
-    type: Function,
+    type: Function as PropType<SupportsFlagFn>,
     required: true,
   },
   formatContextLimit: {
-    type: Function,
+    type: Function as PropType<FormatContextLimitFn>,
     required: true,
   },
   testingProviders: {
-    type: Array as PropType<any[]>,
+    type: Array as PropType<string[]>,
     default: () => [],
   },
   tm: {
-    type: Function,
+    type: Function as PropType<TmFn>,
     required: true,
   },
 });
 
-const emit = defineEmits([
-  'update:modelSearch',
-  'fetch-models',
-  'open-manual-model',
-  'open-provider-edit',
-  'toggle-provider-enable',
-  'test-provider',
-  'delete-provider',
-  'add-model-provider',
-]);
+const emit = defineEmits<{
+  (e: 'update:modelSearch', value: string): void;
+  (e: 'fetch-models'): void;
+  (e: 'open-manual-model'): void;
+  (e: 'open-provider-edit', provider: ProviderLike): void;
+  (e: 'toggle-provider-enable', provider: ProviderLike, enabled: boolean): void;
+  (e: 'test-provider', provider: ProviderLike): void;
+  (e: 'delete-provider', provider: ProviderLike): void;
+  (e: 'add-model-provider', model: string): void;
+}>();
 
 const modelSearchProxy = computed({
   get: () => props.modelSearch,

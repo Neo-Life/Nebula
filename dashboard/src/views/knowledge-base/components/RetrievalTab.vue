@@ -177,6 +177,15 @@ import { ref } from 'vue';
 import axios from 'axios';
 import { useModuleI18n } from '@/i18n/composables';
 
+type RetrievalResult = {
+  chunk_id: string;
+  chunk_index: number;
+  doc_name: string;
+  char_count: number;
+  score: number;
+  content: string;
+};
+
 const { tm: t } = useModuleI18n('features/knowledge-base/detail');
 
 const props = defineProps<{
@@ -189,7 +198,7 @@ const loading = ref(false);
 const query = ref('');
 const topK = ref(5);
 const debugMode = ref(false);
-const results = ref<any[]>([]);
+const results = ref<RetrievalResult[]>([]);
 const hasSearched = ref(false);
 const debugVisualize = ref<string | null>(null);
 

@@ -570,6 +570,27 @@ import WaitingForRestart from './WaitingForRestart.vue';
 
 const { t } = useI18n();
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data;
+    if (isRecord(data)) {
+      const message = data.message;
+      if (typeof message === 'string' && message.length > 0) return message;
+    }
+    if (typeof error.message === 'string' && error.message.length > 0)
+      return error.message;
+  }
+
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+}
+
 type BackupTab = 'export' | 'import' | 'list';
 type ExportStatus = 'idle' | 'processing' | 'completed' | 'failed';
 type ImportStatus =
@@ -730,13 +751,13 @@ const loadBackupList = async () => {
 
       backupList.value = items
         .map((item) => {
-          const it = item as any;
+          const it = isRecord(item) ? item : ({} as UnknownRecord);
           return {
-            filename: String(it?.filename ?? ''),
-            type: String(it?.type ?? ''),
-            size: Number(it?.size ?? 0),
-            created_at: Number(it?.created_at ?? 0),
-            astrbot_version: String(it?.astrbot_version ?? ''),
+            filename: String(it.filename ?? ''),
+            type: String(it.type ?? ''),
+            size: Number(it.size ?? 0),
+            created_at: Number(it.created_at ?? 0),
+            astrbot_version: String(it.astrbot_version ?? ''),
           } satisfies BackupListItem;
         })
         .filter((b) => b.filename.length > 0);
@@ -762,9 +783,8 @@ const startExport = async () => {
       throw new Error(response.data.message);
     }
   } catch (error) {
-    const err = error as any;
     exportStatus.value = 'failed';
-    exportError.value = err?.message || 'Export failed';
+    exportError.value = getErrorMessage(error, 'Export failed');
   }
 };
 
@@ -799,9 +819,8 @@ const pollExportProgress = async () => {
       }
     }
   } catch (error) {
-    const err = error as any;
     exportStatus.value = 'failed';
-    exportError.value = err?.message || 'Failed to get export progress';
+    exportError.value = getErrorMessage(error, 'Failed to get export progress');
   }
 };
 
@@ -982,7 +1001,6 @@ const uploadAndCheck = async () => {
     // 显示确认对话框
     importStatus.value = 'confirm';
   } catch (error) {
-    const err = error as any;
     // 上传失败时尝试清理已上传的分片
     if (uploadId.value) {
       try {
@@ -995,8 +1013,7 @@ const uploadAndCheck = async () => {
     }
 
     importStatus.value = 'failed';
-    importError.value =
-      err?.response?.data?.message || err?.message || 'Upload failed';
+    importError.value = getErrorMessage(error, 'Upload failed');
   }
 };
 
@@ -1020,10 +1037,8 @@ const confirmImport = async () => {
       throw new Error(response.data.message);
     }
   } catch (error) {
-    const err = error as any;
     importStatus.value = 'failed';
-    importError.value =
-      err?.response?.data?.message || err?.message || 'Import failed';
+    importError.value = getErrorMessage(error, 'Import failed');
   }
 };
 
@@ -1056,9 +1071,8 @@ const pollImportProgress = async () => {
       }
     }
   } catch (error) {
-    const err = error as any;
     importStatus.value = 'failed';
-    importError.value = err?.message || 'Failed to get import progress';
+    importError.value = getErrorMessage(error, 'Failed to get import progress');
   }
 };
 
@@ -1140,8 +1154,7 @@ const restoreFromList = async (filename: string) => {
     activeTab.value = 'import';
     importStatus.value = 'confirm';
   } catch (error) {
-    const err = error as any;
-    alert(err?.response?.data?.message || err?.message || 'Check failed');
+    alert(getErrorMessage(error, 'Check failed'));
   }
 };
 
@@ -1157,8 +1170,7 @@ const deleteBackup = async (filename: string) => {
       alert(response.data.message || 'Delete failed');
     }
   } catch (error) {
-    const err = error as any;
-    alert(err?.message || 'Delete failed');
+    alert(getErrorMessage(error, 'Delete failed'));
   }
 };
 
@@ -1221,10 +1233,8 @@ const confirmRename = async () => {
         t('features.settings.backup.list.renameFailed');
     }
   } catch (error) {
-    const err = error as any;
     renameError.value =
-      err?.response?.data?.message ||
-      err?.message ||
+      getErrorMessage(error, '') ||
       t('features.settings.backup.list.renameFailed');
   } finally {
     renameLoading.value = false;

@@ -440,12 +440,74 @@ import { useRouter } from 'vue-router';
 import axios from 'axios';
 import { useModuleI18n } from '@/i18n/composables';
 
+type UnknownRecord = Record<string, unknown>;
+
+const isRecord = (value: unknown): value is UnknownRecord =>
+  typeof value === 'object' && value !== null;
+
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data;
+    if (isRecord(data) && typeof data.message === 'string' && data.message) {
+      return data.message;
+    }
+    if (typeof error.message === 'string' && error.message) {
+      return error.message;
+    }
+  }
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return fallback;
+};
+
+type KnowledgeBaseForDocuments = {
+  kb_id: string;
+  chunk_size?: number;
+  chunk_overlap?: number;
+};
+
+type UploadProgress = {
+  stage?: string;
+  current?: number;
+  total?: number;
+  file_index?: number;
+};
+
+type DocumentItem = {
+  doc_id: string;
+  doc_name: string;
+  file_type?: string;
+  file_size?: number;
+  chunk_count?: number;
+  created_at?: string;
+  uploading?: boolean;
+  taskId?: string;
+  uploadProgress?: UploadProgress;
+};
+
+type LlmProvider = {
+  id: string;
+};
+
+type UploadFromUrlPayload = {
+  kb_id: string;
+  url: string;
+  batch_size: number;
+  tasks_limit: number;
+  max_retries: number;
+  chunk_size?: number;
+  chunk_overlap?: number;
+  enable_cleaning?: true;
+  cleaning_provider_id?: string;
+};
+
 const { tm: t } = useModuleI18n('features/knowledge-base/detail');
 const router = useRouter();
 
 const props = defineProps<{
   kbId: string;
-  kb: any;
+  kb: KnowledgeBaseForDocuments;
 }>();
 
 const emit = defineEmits(['refresh']);
@@ -454,17 +516,17 @@ const emit = defineEmits(['refresh']);
 const loading = ref(false);
 const uploading = ref(false);
 const deleting = ref(false);
-const documents = ref<any[]>([]);
+const documents = ref<DocumentItem[]>([]);
 const searchQuery = ref('');
 const showUploadDialog = ref(false);
 const showDeleteDialog = ref(false);
 const selectedFiles = ref<File[]>([]);
-const deleteTarget = ref<any>(null);
+const deleteTarget = ref<DocumentItem | null>(null);
 const isDragging = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 const uploadMode = ref('file'); // 'file' or 'url'
 const uploadUrl = ref('');
-const llmProviders = ref<any[]>([]);
+const llmProviders = ref<LlmProvider[]>([]);
 const progressPollingInterval = ref<number | null>(null);
 const tavilyConfigStatus = ref('loading'); // 'loading', 'configured', 'not_configured', 'error'
 const showTavilyDialog = ref(false);
@@ -550,7 +612,7 @@ const loadDocuments = async () => {
       params: { kb_id: props.kbId },
     });
     if (response.data.status === 'ok') {
-      documents.value = response.data.data.items || [];
+      documents.value = (response.data.data.items || []) as DocumentItem[];
     }
   } catch (error) {
     console.error('Failed to load documents:', error);
@@ -644,21 +706,24 @@ const uploadFiles = async () => {
       showSnackbar(`正在后台上传 ${result.file_count} 个文件...`, 'info');
 
       // 为每个文件添加占位条目到文档列表
-      const uploadingDocs = selectedFiles.value.map((file, index) => ({
-        doc_id: `uploading_${taskId}_${index}`,
-        doc_name: file.name,
-        file_type: file.name.split('.').pop() || '',
-        file_size: file.size,
-        chunk_count: 0,
-        created_at: new Date().toISOString(),
-        uploading: true,
-        taskId: taskId,
-        uploadProgress: {
-          stage: 'waiting',
-          current: 0,
-          total: 100,
-        },
-      }));
+      const uploadingDocs = selectedFiles.value.map(
+        (file, index) =>
+          ({
+            doc_id: `uploading_${taskId}_${index}`,
+            doc_name: file.name,
+            file_type: file.name.split('.').pop() || '',
+            file_size: file.size,
+            chunk_count: 0,
+            created_at: new Date().toISOString(),
+            uploading: true,
+            taskId: taskId,
+            uploadProgress: {
+              stage: 'waiting',
+              current: 0,
+              total: 100,
+            },
+          }) satisfies DocumentItem,
+      );
 
       // 添加到文档列表顶部
       documents.value = [...uploadingDocs, ...documents.value];
@@ -694,7 +759,7 @@ const uploadFromUrl = async () => {
   uploading.value = true;
 
   try {
-    const payload: any = {
+    const payload: UploadFromUrlPayload = {
       kb_id: props.kbId,
       url: uploadUrl.value,
       batch_size: uploadSettings.value.batch_size,
@@ -738,7 +803,7 @@ const uploadFromUrl = async () => {
           current: 0,
           total: 100,
         },
-      };
+      } satisfies DocumentItem;
 
       documents.value = [uploadingDoc, ...documents.value];
       closeUploadDialog();
@@ -752,11 +817,9 @@ const uploadFromUrl = async () => {
         'error',
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to upload from URL:', error);
-    const message =
-      error.response?.data?.message || t('documents.uploadFailed');
-    showSnackbar(message, 'error');
+    showSnackbar(getErrorMessage(error, t('documents.uploadFailed')), 'error');
   } finally {
     uploading.value = false;
   }
@@ -860,9 +923,10 @@ const stopProgressPolling = () => {
 };
 
 // 获取上传百分比
-const getUploadPercentage = (item: any) => {
+const getUploadPercentage = (item: DocumentItem) => {
   if (!item.uploadProgress) return 0;
   const { current, total } = item.uploadProgress;
+  if (typeof current !== 'number') return 0;
   if (!total || total === 0) return 0;
   return (current / total) * 100;
 };
@@ -890,7 +954,7 @@ const closeUploadDialog = () => {
 };
 
 // 查看文档
-const viewDocument = (doc: any) => {
+const viewDocument = (doc: DocumentItem) => {
   router.push({
     name: 'NativeDocumentDetail',
     params: { kbId: props.kbId, docId: doc.doc_id },
@@ -898,7 +962,7 @@ const viewDocument = (doc: any) => {
 };
 
 // 确认删除
-const confirmDelete = (doc: any) => {
+const confirmDelete = (doc: DocumentItem) => {
   deleteTarget.value = doc;
   showDeleteDialog.value = true;
 };
@@ -934,7 +998,7 @@ const deleteDocument = async () => {
 };
 
 // 工具函数
-const getFileIcon = (fileType: string) => {
+const getFileIcon = (fileType?: string) => {
   const type = fileType?.toLowerCase() || '';
   if (type.includes('pdf')) return 'mdi-file-pdf-box';
   if (type.includes('md') || type.includes('markdown'))
@@ -944,7 +1008,7 @@ const getFileIcon = (fileType: string) => {
   return 'mdi-file';
 };
 
-const getFileColor = (fileType: string) => {
+const getFileColor = (fileType?: string) => {
   const type = fileType?.toLowerCase() || '';
   if (type.includes('pdf')) return 'error';
   if (type.includes('md')) return 'info';
@@ -953,7 +1017,7 @@ const getFileColor = (fileType: string) => {
   return 'grey';
 };
 
-const formatFileSize = (bytes: number) => {
+const formatFileSize = (bytes?: number) => {
   if (!bytes) return '-';
   const units = ['B', 'KB', 'MB', 'GB'];
   let size = bytes;
@@ -965,7 +1029,7 @@ const formatFileSize = (bytes: number) => {
   return `${size.toFixed(2)} ${units[unitIndex]}`;
 };
 
-const formatDate = (dateStr: string) => {
+const formatDate = (dateStr?: string) => {
   if (!dateStr) return '-';
   return new Date(dateStr).toLocaleString('zh-CN', {
     year: 'numeric',

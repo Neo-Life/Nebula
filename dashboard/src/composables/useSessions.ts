@@ -56,8 +56,8 @@ export function useSessions(chatboxMode: boolean = false) {
         const firstSession = sessions.value[0];
         selectedSessions.value = [firstSession.session_id];
       }
-    } catch (err: any) {
-      if (err.response?.status === 401) {
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
         router.push('/auth/login?redirect=/chatbox');
       }
       console.error(err);

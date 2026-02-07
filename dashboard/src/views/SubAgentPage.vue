@@ -222,6 +222,27 @@ import axios from 'axios';
 import ProviderSelector from '@/components/shared/ProviderSelector.vue';
 import { useModuleI18n } from '@/i18n/composables';
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data;
+    if (isRecord(data)) {
+      const message = data.message;
+      if (typeof message === 'string' && message.length > 0) return message;
+    }
+    if (typeof error.message === 'string' && error.message.length > 0)
+      return error.message;
+  }
+
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+}
+
 type SubAgentItem = {
   __key: string;
   name: string;
@@ -270,17 +291,20 @@ const mainStateDescription = computed(() =>
     : tm('description.disabled'),
 );
 
-function normalizeConfig(raw: any): SubAgentConfig {
-  const main_enable = !!raw?.main_enable;
-  const remove_main_duplicate_tools = !!raw?.remove_main_duplicate_tools;
-  const agentsRaw = Array.isArray(raw?.agents) ? raw.agents : [];
+function normalizeConfig(raw: unknown): SubAgentConfig {
+  const r = isRecord(raw) ? raw : ({} as UnknownRecord);
+  const main_enable = !!r.main_enable;
+  const remove_main_duplicate_tools = !!r.remove_main_duplicate_tools;
+  const agentsRaw = Array.isArray(r.agents) ? (r.agents as unknown[]) : [];
 
-  const agents: SubAgentItem[] = agentsRaw.map((a: any, i: number) => {
-    const name = (a?.name ?? '').toString();
-    const persona_id = (a?.persona_id ?? '').toString();
-    const public_description = (a?.public_description ?? '').toString();
-    const enabled = a?.enabled !== false;
-    const provider_id = (a?.provider_id ?? undefined) as string | undefined;
+  const agents: SubAgentItem[] = agentsRaw.map((agentRaw, i: number) => {
+    const a = isRecord(agentRaw) ? agentRaw : ({} as UnknownRecord);
+    const name = String(a.name ?? '');
+    const persona_id = String(a.persona_id ?? '');
+    const public_description = String(a.public_description ?? '');
+    const enabled = a.enabled !== false;
+    const provider_id =
+      typeof a.provider_id === 'string' ? a.provider_id : undefined;
 
     return {
       __key: `${Date.now()}_${i}_${Math.random().toString(16).slice(2)}`,
@@ -304,11 +328,8 @@ async function loadConfig() {
     } else {
       toast(res.data.message || tm('messages.loadConfigFailed'), 'error');
     }
-  } catch (e: any) {
-    toast(
-      e?.response?.data?.message || tm('messages.loadConfigFailed'),
-      'error',
-    );
+  } catch (e: unknown) {
+    toast(getErrorMessage(e, tm('messages.loadConfigFailed')), 'error');
   } finally {
     loading.value = false;
   }
@@ -319,23 +340,25 @@ async function loadPersonas() {
   try {
     const res = await axios.get('/api/persona/list');
     if (res.data.status === 'ok') {
-      const list = Array.isArray(res.data.data) ? res.data.data : [];
-      personaOptions.value = list.map((p: any) => ({
-        title: p.persona_id,
-        value: p.persona_id,
-      }));
+      const list = Array.isArray(res.data.data)
+        ? (res.data.data as unknown[])
+        : [];
+      personaOptions.value = list
+        .map((p) => {
+          const r = isRecord(p) ? p : ({} as UnknownRecord);
+          const id = typeof r.persona_id === 'string' ? r.persona_id : '';
+          return { title: id, value: id };
+        })
+        .filter((p) => p.value.length > 0);
     }
-  } catch (e: any) {
-    toast(
-      e?.response?.data?.message || tm('messages.loadPersonaFailed'),
-      'error',
-    );
+  } catch (e: unknown) {
+    toast(getErrorMessage(e, tm('messages.loadPersonaFailed')), 'error');
   } finally {
     personaLoading.value = false;
   }
 }
 
-function addAgent() {
+const addAgent = (): void => {
   cfg.value.agents.push({
     __key: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
     name: '',
@@ -344,11 +367,11 @@ function addAgent() {
     enabled: true,
     provider_id: undefined,
   });
-}
+};
 
-function removeAgent(idx: number) {
+const removeAgent = (idx: number): void => {
   cfg.value.agents.splice(idx, 1);
-}
+};
 
 function validateBeforeSave(): boolean {
   const nameRe = /^[a-z][a-z0-9_]{0,63}$/;
@@ -376,7 +399,7 @@ function validateBeforeSave(): boolean {
   return true;
 }
 
-async function save() {
+const save = async (): Promise<void> => {
   if (!validateBeforeSave()) return;
   saving.value = true;
   try {
@@ -398,16 +421,16 @@ async function save() {
     } else {
       toast(res.data.message || tm('messages.saveFailed'), 'error');
     }
-  } catch (e: any) {
-    toast(e?.response?.data?.message || tm('messages.saveFailed'), 'error');
+  } catch (e: unknown) {
+    toast(getErrorMessage(e, tm('messages.saveFailed')), 'error');
   } finally {
     saving.value = false;
   }
-}
+};
 
-async function reload() {
+const reload = async (): Promise<void> => {
   await Promise.all([loadConfig(), loadPersonas()]);
-}
+};
 
 onMounted(() => {
   reload();

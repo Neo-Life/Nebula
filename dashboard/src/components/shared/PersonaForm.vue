@@ -474,6 +474,27 @@ import axios from 'axios';
 import { useModuleI18n } from '@/i18n/composables';
 import { defineComponent, type PropType } from 'vue';
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data;
+    if (isRecord(data)) {
+      const message = data.message;
+      if (typeof message === 'string' && message.length > 0) return message;
+    }
+    if (typeof error.message === 'string' && error.message.length > 0)
+      return error.message;
+  }
+
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+}
+
 type ToolInfo = {
   name: string;
   description?: string;
@@ -722,10 +743,9 @@ export default defineComponent({
           );
         }
       } catch (error) {
-        const err = error as any;
         this.$emit(
           'error',
-          err?.response?.data?.message || 'Failed to load MCP servers',
+          getErrorMessage(error, 'Failed to load MCP servers'),
         );
         this.mcpServers = [];
       }
@@ -741,11 +761,7 @@ export default defineComponent({
           this.$emit('error', response.data.message || 'Failed to load tools');
         }
       } catch (error) {
-        const err = error as any;
-        this.$emit(
-          'error',
-          err?.response?.data?.message || 'Failed to load tools',
-        );
+        this.$emit('error', getErrorMessage(error, 'Failed to load tools'));
         this.availableTools = [];
       } finally {
         this.loadingTools = false;
@@ -768,11 +784,7 @@ export default defineComponent({
           this.$emit('error', response.data.message || 'Failed to load skills');
         }
       } catch (error) {
-        const err = error as any;
-        this.$emit(
-          'error',
-          err?.response?.data?.message || 'Failed to load skills',
-        );
+        this.$emit('error', getErrorMessage(error, 'Failed to load skills'));
         this.availableSkills = [];
       } finally {
         this.loadingSkills = false;
@@ -839,10 +851,9 @@ export default defineComponent({
           );
         }
       } catch (error) {
-        const err = error as any;
         this.$emit(
           'error',
-          err?.response?.data?.message || this.tm('messages.saveError'),
+          getErrorMessage(error, this.tm('messages.saveError')),
         );
       }
       this.saving = false;

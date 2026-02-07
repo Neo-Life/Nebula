@@ -526,6 +526,63 @@ import { useI18n, useModuleI18n } from '@/i18n/composables';
 import MessageList from '@/components/chat/MessageList.vue';
 
 type SessionInfo = { platform: string; messageType: string; sessionId: string };
+
+type PlatformFilterItem = {
+  title: string;
+  value: string;
+};
+
+type MonacoLikeEditor = {
+  onDidChangeModelContent: (cb: () => void) => void;
+  getAction: (id: string) => { run: () => void };
+};
+
+type DataTableOptions = {
+  itemsPerPage?: number;
+};
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+type TextContentItem = { type: 'text'; text: string };
+
+function isTextContentItem(value: unknown): value is TextContentItem {
+  return (
+    isRecord(value) &&
+    value.type === 'text' &&
+    typeof value.text === 'string' &&
+    value.text.length > 0
+  );
+}
+
+type ImageUrlContentItem = { type: 'image_url'; image_url: { url: string } };
+
+function isImageUrlContentItem(value: unknown): value is ImageUrlContentItem {
+  if (!isRecord(value) || value.type !== 'image_url') return false;
+  const imageUrl = value.image_url;
+  return (
+    isRecord(imageUrl) &&
+    typeof imageUrl.url === 'string' &&
+    imageUrl.url.length > 0
+  );
+}
+
+type MessagePartPlain = { type: 'plain'; text: string };
+type MessagePartImage = { type: 'image'; embedded_url: string };
+type MessagePart = MessagePartPlain | MessagePartImage;
+
+type TableHeader = {
+  title: string;
+  key?: string;
+  sortable?: boolean;
+  width?: string;
+  align?: 'center' | 'start' | 'end';
+  children?: TableHeader[];
+};
+
 type ConversationItem = {
   user_id: string;
   cid: string;
@@ -533,13 +590,36 @@ type ConversationItem = {
   created_at?: number | string;
   updated_at?: number | string;
   sessionInfo: SessionInfo;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 type HistoryMessage = {
   role?: string;
   content?: unknown;
-  [key: string]: any;
+  [key: string]: unknown;
+};
+
+type ConversationPageThis = {
+  loading: boolean;
+  pagination: {
+    page: number;
+    page_size: number;
+    total: number;
+    total_pages: number;
+  };
+  platformFilter: unknown[];
+  messageTypeFilter: string[];
+  search: string;
+  currentFilters: {
+    platforms: string[];
+    messageTypes: string[];
+    search: string;
+  };
+  lastAppliedFilters: unknown;
+  conversations: ConversationItem[];
+  tm: (key: string) => string;
+  parseSessionId: (userId: string) => SessionInfo;
+  showErrorMessage: (message: string) => void;
 };
 
 export default {
@@ -571,7 +651,7 @@ export default {
       selectedItems: [] as ConversationItem[], // 批量选择的项目
 
       // 筛选条件
-      platformFilter: [] as any[],
+      platformFilter: [] as PlatformFilterItem[],
       messageTypeFilter: [] as string[],
       lastAppliedFilters: null, // 记录上次应用的筛选条件
 
@@ -614,17 +694,17 @@ export default {
       isEditingHistory: false,
       editedHistory: '',
       savingHistory: false,
-      monacoEditor: null as any,
+      monacoEditor: null as MonacoLikeEditor | null,
 
       commonStore: useCommonStore(),
 
-      debouncedApplyFilters: null as any,
+      debouncedApplyFilters: (() => {}) as () => void,
     };
   },
 
   computed: {
     // 动态表头
-    tableHeaders() {
+    tableHeaders(): TableHeader[] {
       return [
         { title: this.tm('table.headers.title'), key: 'title', sortable: true },
         {
@@ -675,21 +755,24 @@ export default {
           sortable: false,
           align: 'center',
         },
-      ] as any;
+      ];
     },
 
     // 可用平台列表
     availablePlatforms() {
       const platforms = [];
       // 解析 tutorial_map
-      const tutorialMap = (this.commonStore as any).tutorial_map || {};
-      for (const platform in tutorialMap) {
-        if (tutorialMap.hasOwnProperty(platform)) {
-          platforms.push({
-            title: platform,
-            value: platform,
-          });
+      const tutorialMapValue = (
+        this.commonStore as unknown as {
+          tutorial_map?: unknown;
         }
+      ).tutorial_map;
+      const tutorialMap = isRecord(tutorialMapValue) ? tutorialMapValue : {};
+      for (const platform of Object.keys(tutorialMap)) {
+        platforms.push({
+          title: platform,
+          value: platform,
+        });
       }
       return platforms;
     },
@@ -704,9 +787,7 @@ export default {
 
     // 当前的筛选条件对象
     currentFilters() {
-      const platforms = (this.platformFilter as any[]).map((item: any) =>
-        typeof item === 'object' && item !== null ? item.value : item,
-      );
+      const platforms = this.platformFilter.map((item) => item.value);
       return {
         platforms: platforms,
         messageTypes: this.messageTypeFilter,
@@ -750,13 +831,13 @@ export default {
   watch: {
     // 监听筛选条件变化，使用防抖处理
     platformFilter() {
-      this.debouncedApplyFilters();
+      this.debouncedApplyFilters?.();
     },
     messageTypeFilter() {
-      this.debouncedApplyFilters();
+      this.debouncedApplyFilters?.();
     },
     search() {
-      this.debouncedApplyFilters();
+      this.debouncedApplyFilters?.();
     },
   },
 
@@ -774,7 +855,7 @@ export default {
 
   methods: {
     // Monaco编辑器挂载后的回调
-    onMonacoMounted(editor: any) {
+    onMonacoMounted(editor: MonacoLikeEditor) {
       this.monacoEditor = editor;
       // 添加JSON格式校验
       editor.onDidChangeModelContent(() => {
@@ -789,10 +870,14 @@ export default {
     },
 
     // 处理表格选项变更（页面大小等）
-    handleTableOptions(options: any) {
+    handleTableOptions(options: DataTableOptions) {
       // 处理页面大小变更
-      if (options.itemsPerPage !== this.pagination.page_size) {
-        this.pagination.page_size = options.itemsPerPage;
+      const itemsPerPage = options.itemsPerPage;
+      if (
+        typeof itemsPerPage === 'number' &&
+        itemsPerPage !== this.pagination.page_size
+      ) {
+        this.pagination.page_size = itemsPerPage;
         this.pagination.page = 1; // 重置到第一页
         this.fetchConversations();
       }
@@ -819,24 +904,20 @@ export default {
 
     // 获取消息类型的显示文本
     getMessageTypeDisplay(messageType: string) {
-      const typeMap = {
+      const typeMap: Record<string, string> = {
         GroupMessage: this.tm('messageTypes.group'),
         FriendMessage: this.tm('messageTypes.friend'),
         default: this.tm('messageTypes.unknown'),
       };
 
-      return (
-        (messageType in typeMap
-          ? (typeMap as any)[messageType]
-          : typeMap.default) || typeMap.default
-      );
+      return typeMap[messageType] ?? typeMap.default;
     },
 
     // 获取对话列表
     fetchConversations: (() => {
       let controller = new AbortController();
 
-      return async function (this: any) {
+      return async function (this: ConversationPageThis) {
         // 新请求前停止之前的请求
         controller?.abort();
         controller = new AbortController();
@@ -844,16 +925,27 @@ export default {
         this.loading = true;
         try {
           // 准备请求参数，包含分页和筛选条件
-          const params: any = {
+          const params: Record<string, string | number> = {
             page: this.pagination.page,
             page_size: this.pagination.page_size,
           };
 
           // 添加筛选条件 - 处理combobox的混合数据格式
           if (this.platformFilter.length > 0) {
-            const platforms = (this.platformFilter as any[]).map((item: any) =>
-              typeof item === 'object' ? item.value : item,
-            );
+            const platforms = (this.platformFilter as unknown[])
+              .map((item) => {
+                if (typeof item === 'string') return item;
+                if (isRecord(item)) {
+                  const value = item.value;
+                  return typeof value === 'string'
+                    ? value
+                    : value == null
+                      ? ''
+                      : String(value);
+                }
+                return '';
+              })
+              .filter((value): value is string => Boolean(value));
             params.platforms = platforms.join(',');
           }
 
@@ -886,7 +978,12 @@ export default {
             }
 
             // 处理会话数据，解析sessionId
-            this.conversations = (data.conversations || []).map((conv: any) => {
+            const conversations: unknown[] = Array.isArray(data.conversations)
+              ? data.conversations
+              : [];
+
+            this.conversations = conversations.map((convUnknown: unknown) => {
+              const conv = isRecord(convUnknown) ? convUnknown : {};
               const userId = String(conv.user_id ?? '');
               const sessionInfo = this.parseSessionId(userId);
               return {
@@ -1048,7 +1145,9 @@ export default {
 
     // 保存编辑后的对话
     async saveConversation() {
-      if (!(this.$refs.form as any)?.validate?.()) return;
+      const refs = this.$refs as unknown as { form?: unknown };
+      const form = refs.form as unknown as { validate?: () => unknown };
+      if (!form?.validate?.()) return;
 
       this.loading = true;
       try {
@@ -1322,7 +1421,7 @@ export default {
 
     // 将消息内容转换为 MessagePart[] 格式
     convertContentToMessageParts(content: unknown) {
-      const parts: any[] = [];
+      const parts: MessagePart[] = [];
 
       if (typeof content === 'string') {
         // 纯文本内容
@@ -1334,20 +1433,22 @@ export default {
         }
       } else if (Array.isArray(content)) {
         // 数组格式（OpenAI 格式）
-        content.forEach((item: any) => {
-          if (item.type === 'text' && item.text) {
+        content.forEach((item: unknown) => {
+          if (isTextContentItem(item)) {
             parts.push({
               type: 'plain',
               text: item.text,
             });
-          } else if (item.type === 'image_url' && item.image_url?.url) {
+            return;
+          }
+          if (isImageUrlContentItem(item)) {
             parts.push({
               type: 'image',
               embedded_url: item.image_url.url,
             });
           }
         });
-      } else if (typeof content === 'object' && content !== null) {
+      } else if (isRecord(content)) {
         // 对象格式，尝试提取文本和图片
         const textParts: string[] = [];
         for (const [_key, value] of Object.entries(content)) {
@@ -1380,11 +1481,11 @@ export default {
         return content;
       } else if (Array.isArray(content)) {
         return content
-          .filter((item: any) => item.type === 'text')
-          .map((item: any) => item.text)
+          .filter(isTextContentItem)
+          .map((item) => item.text)
           .join('\n');
-      } else if (typeof content === 'object') {
-        return Object.values(content as Record<string, unknown>)
+      } else if (isRecord(content)) {
+        return Object.values(content)
           .filter((val) => typeof val === 'string')
           .join('');
       }
@@ -1395,9 +1496,8 @@ export default {
     extractImagesFromContent(content: unknown) {
       if (Array.isArray(content)) {
         return content
-          .filter((item: any) => item.type === 'image_url')
-          .map((item: any) => item.image_url?.url)
-          .filter((url: any) => url);
+          .filter(isImageUrlContentItem)
+          .map((item) => item.image_url.url);
       }
       return [];
     },

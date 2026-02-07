@@ -1,13 +1,23 @@
 declare module 'markstream-vue' {
-  export const MarkdownRender: any;
-  export const MarkdownCodeBlockNode: any;
+  import type { DefineComponent } from 'vue';
 
-  export function enableKatex(loader?: any): void;
-  export function enableMermaid(loader?: any): void;
+  export const MarkdownRender: DefineComponent<
+    Record<string, unknown>,
+    Record<string, unknown>,
+    unknown
+  >;
+  export const MarkdownCodeBlockNode: DefineComponent<
+    Record<string, unknown>,
+    Record<string, unknown>,
+    unknown
+  >;
 
-  export function setCustomComponents(mapping: Record<string, any>): void;
+  export function enableKatex(loader?: unknown): void;
+  export function enableMermaid(loader?: unknown): void;
+
+  export function setCustomComponents(mapping: Record<string, unknown>): void;
   export function setCustomComponents(
     customId: string,
-    mapping: Record<string, any>,
+    mapping: Record<string, unknown>,
   ): void;
 }

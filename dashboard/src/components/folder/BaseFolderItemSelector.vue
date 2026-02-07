@@ -101,15 +101,17 @@
                 >
                   <template #item="{ item }">
                     <v-breadcrumbs-item
-                      :disabled="(item as any).disabled"
-                      :class="{ 'breadcrumb-link': !(item as any).disabled }"
+                      :disabled="item.disabled"
+                      :class="{ 'breadcrumb-link': !item.disabled }"
                       @click="
-                        !(item as any).disabled &&
-                        navigateToFolder((item as any).folderId)
+                        !item.disabled &&
+                        navigateToFolder(
+                          (item as unknown as BreadcrumbItem).folderId,
+                        )
                       "
                     >
                       <v-icon
-                        v-if="(item as any).isRoot"
+                        v-if="(item as unknown as BreadcrumbItem).isRoot"
                         size="small"
                         class="mr-1"
                       >
@@ -299,7 +301,13 @@ import type {
   FolderTreeNode,
   FolderItemSelectorLabels,
   SelectableItem,
+  BreadcrumbItem,
 } from './types';
+
+type MediaQueryListLegacy = MediaQueryList & {
+  addListener: (listener: (e: MediaQueryListEvent) => void) => void;
+  removeListener: (listener: (e: MediaQueryListEvent) => void) => void;
+};
 
 export default defineComponent({
   name: 'BaseFolderItemSelector',
@@ -399,7 +407,7 @@ export default defineComponent({
       this.mql.addEventListener('change', this.mqlListener);
     } else {
       // Safari < 14
-      (this.mql as any).addListener(this.mqlListener);
+      (this.mql as MediaQueryListLegacy).addListener(this.mqlListener);
     }
   },
   beforeUnmount() {
@@ -410,7 +418,7 @@ export default defineComponent({
       this.mql.removeEventListener('change', this.mqlListener);
     } else {
       // Safari < 14
-      (this.mql as any).removeListener(this.mqlListener);
+      (this.mql as MediaQueryListLegacy).removeListener(this.mqlListener);
     }
     this.mql = null;
     this.mqlListener = null;
@@ -452,8 +460,8 @@ export default defineComponent({
       return folder?.children || [];
     },
 
-    breadcrumbItems(): any[] {
-      const items: any[] = [
+    breadcrumbItems(): BreadcrumbItem[] {
+      const items: BreadcrumbItem[] = [
         {
           title: this.labels.rootFolder || '根目录',
           folderId: null,

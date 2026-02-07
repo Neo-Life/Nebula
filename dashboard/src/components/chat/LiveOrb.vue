@@ -79,7 +79,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
+import {
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  ref,
+  type CSSProperties,
+} from 'vue';
 
 const props = defineProps<{
   energy: number; // 0.0 - 1.0
@@ -100,7 +106,7 @@ const eyeOffset = ref({ x: 0, y: 0 });
 const targetEyeOffset = { x: 0, y: 0 };
 
 let animationFrameId: number;
-let blinkTimeoutId: any;
+let blinkTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
 // 颜色配置
 const colorConfigs = {
@@ -197,7 +203,7 @@ const handleMouseMove = (e: MouseEvent) => {
 };
 
 // Code Mode Helpers
-const codeColumns = ref<Array<{ content: string; style: any }>>([]);
+const codeColumns = ref<Array<{ content: string; style: CSSProperties }>>([]);
 
 onMounted(() => {
   animationFrameId = requestAnimationFrame(animate);
@@ -240,7 +246,9 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   cancelAnimationFrame(animationFrameId);
-  clearTimeout(blinkTimeoutId);
+  if (blinkTimeoutId != null) {
+    clearTimeout(blinkTimeoutId);
+  }
   window.removeEventListener('mousemove', handleMouseMove);
 });
 

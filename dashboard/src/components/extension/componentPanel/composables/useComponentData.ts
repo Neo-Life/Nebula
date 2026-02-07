@@ -10,6 +10,12 @@ import type {
   ToolItem,
 } from '../types';
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 export function useComponentData() {
   const loading = ref(false);
   const commands = ref<CommandItem[]>([]);
@@ -50,8 +56,19 @@ export function useComponentData() {
       } else {
         toast(res.data.message || errorMessage, 'error');
       }
-    } catch (err: any) {
-      toast(err?.message || errorMessage, 'error');
+    } catch (err: unknown) {
+      const message = axios.isAxiosError(err)
+        ? (() => {
+            const data = err.response?.data;
+            if (isRecord(data) && typeof data.message === 'string') {
+              return data.message;
+            }
+            return err.message;
+          })()
+        : err instanceof Error
+          ? err.message
+          : undefined;
+      toast(message || errorMessage, 'error');
     } finally {
       loading.value = false;
     }
@@ -66,8 +83,19 @@ export function useComponentData() {
       } else {
         toast(res.data.message || errorMessage, 'error');
       }
-    } catch (err: any) {
-      toast(err?.message || errorMessage, 'error');
+    } catch (err: unknown) {
+      const message = axios.isAxiosError(err)
+        ? (() => {
+            const data = err.response?.data;
+            if (isRecord(data) && typeof data.message === 'string') {
+              return data.message;
+            }
+            return err.message;
+          })()
+        : err instanceof Error
+          ? err.message
+          : undefined;
+      toast(message || errorMessage, 'error');
     } finally {
       toolsLoading.value = false;
     }

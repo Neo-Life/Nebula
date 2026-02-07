@@ -295,9 +295,13 @@ import { useCommonStore } from '@/stores/common';
 import { useI18n, useModuleI18n } from '@/i18n/composables';
 import { getPlatformIcon } from '@/utils/platformUtils';
 
-type AnyRecord = Record<string, any>;
+type UnknownRecord = Record<string, unknown>;
 
-type PlatformConfig = AnyRecord & {
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+type PlatformConfig = UnknownRecord & {
   id: string;
   type?: string;
   enable?: boolean;
@@ -310,12 +314,17 @@ type PlatformLastError = {
   traceback?: string;
 };
 
-type PlatformStat = AnyRecord & {
+type PlatformStat = UnknownRecord & {
   id: string;
   status?: string;
   error_count?: number;
   unified_webhook?: boolean;
   last_error?: PlatformLastError;
+};
+
+type ConfigData = UnknownRecord & {
+  callback_api_base?: string;
+  platform?: PlatformConfig[];
 };
 
 export default {
@@ -336,11 +345,11 @@ export default {
   },
   data() {
     return {
-      config_data: {} as any,
+      config_data: {} as ConfigData,
       fetched: false,
       loadingConfig: false,
       configLoadSeq: 0,
-      metadata: {} as any,
+      metadata: {} as UnknownRecord,
       showAddPlatformDialog: false,
 
       updatingPlatformConfig: {} as PlatformConfig,
@@ -359,9 +368,9 @@ export default {
       statsRefreshInterval: null as ReturnType<typeof setInterval> | null,
 
       showIdConflictDialog: false,
-      idConflictResolve: null as any,
+      idConflictResolve: null as ((value: boolean) => void) | null,
       showOneBotEmptyTokenWarnDialog: false,
-      oneBotEmptyTokenWarningResolve: null as any,
+      oneBotEmptyTokenWarningResolve: null as ((value: boolean) => void) | null,
 
       showErrorDialog: false,
       currentErrorPlatform: null as PlatformStat | null,
@@ -420,12 +429,24 @@ export default {
 
   methods: {
     getPlatformIcon(platform_id: string) {
-      const template =
-        this.metadata['platform_group']?.metadata?.platform?.config_template?.[
-          platform_id
-        ];
-      if (template && template.logo_token) {
-        return `/api/file/${template.logo_token}`;
+      const platformGroup = this.metadata['platform_group'];
+      if (isRecord(platformGroup)) {
+        const groupMetadata = platformGroup.metadata;
+        if (isRecord(groupMetadata)) {
+          const platform = groupMetadata.platform;
+          if (isRecord(platform)) {
+            const configTemplate = platform.config_template;
+            if (isRecord(configTemplate)) {
+              const template = configTemplate[platform_id];
+              if (isRecord(template)) {
+                const logo_token = template.logo_token;
+                if (typeof logo_token === 'string' && logo_token.length > 0) {
+                  return `/api/file/${logo_token}`;
+                }
+              }
+            }
+          }
+        }
       }
       return getPlatformIcon(platform_id);
     },
@@ -532,7 +553,10 @@ export default {
       this.updatingMode = true;
       this.showAddPlatformDialog = true;
       this.$nextTick(() => {
-        (this.$refs.addPlatformDialog as any)?.toggleShowConfigSection?.();
+        const dialog = this.$refs.addPlatformDialog as
+          | InstanceType<typeof AddNewPlatform>
+          | undefined;
+        dialog?.toggleShowConfigSection?.();
       });
     },
 

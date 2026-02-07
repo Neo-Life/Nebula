@@ -112,6 +112,25 @@ import { PurpleTheme } from '@/theme/LightTheme';
 const { tm } = useModuleI18n('features/settings');
 const theme = useTheme();
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+type ThemeColors = Record<string, unknown> & {
+  primary?: string;
+  secondary?: string;
+  darkprimary?: string;
+  darksecondary?: string;
+};
+
+type ThemeDefinition = Record<string, unknown> & {
+  colors?: ThemeColors;
+};
+
+type ThemeDefinitions = Record<string, ThemeDefinition>;
+
 const getStoredColor = (key: string, fallback: string): string => {
   const stored =
     typeof window !== 'undefined' ? localStorage.getItem(key) : null;
@@ -128,9 +147,17 @@ const primaryColor = ref(
 );
 
 const resolveThemes = () => {
-  if ((theme as any)?.themes?.value) return (theme as any).themes.value;
-  if ((theme as any)?.global?.themes?.value)
-    return (theme as any).global.themes.value;
+  const t: unknown = theme;
+  if (!isRecord(t)) return null;
+
+  const directThemes = isRecord(t.themes) ? t.themes.value : undefined;
+  if (isRecord(directThemes)) return directThemes as ThemeDefinitions;
+
+  const globalThemes =
+    isRecord(t.global) && isRecord(t.global.themes)
+      ? t.global.themes.value
+      : undefined;
+  if (isRecord(globalThemes)) return globalThemes as ThemeDefinitions;
   return null;
 };
 
@@ -143,8 +170,10 @@ const applyThemeColors = (color?: string) => {
     if (color) {
       themeDef.colors.primary = color;
       themeDef.colors.secondary = color;
-      if (themeDef.colors.darkprimary) themeDef.colors.darkprimary = color;
-      if (themeDef.colors.darksecondary) themeDef.colors.darksecondary = color;
+      if (typeof themeDef.colors.darkprimary === 'string')
+        themeDef.colors.darkprimary = color;
+      if (typeof themeDef.colors.darksecondary === 'string')
+        themeDef.colors.darksecondary = color;
     }
   });
 };

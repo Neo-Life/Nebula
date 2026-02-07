@@ -11,6 +11,24 @@ import type {
   StatusInfo,
 } from '../types';
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data;
+    if (isRecord(data) && typeof data.message === 'string') {
+      return data.message;
+    }
+    return error.message || fallback;
+  }
+  if (error instanceof Error) return error.message;
+  return fallback;
+}
+
 export function useCommandActions(
   toast: (message: string, color?: string) => void,
   fetchCommands: () => Promise<void>,
@@ -49,8 +67,8 @@ export function useCommandActions(
       } else {
         toast(res.data.message || errorMessage, 'error');
       }
-    } catch (err: any) {
-      toast(err?.message || errorMessage, 'error');
+    } catch (err: unknown) {
+      toast(getErrorMessage(err, errorMessage), 'error');
     }
   };
 
@@ -87,8 +105,8 @@ export function useCommandActions(
       } else {
         toast(res.data.message || errorMessage, 'error');
       }
-    } catch (err: any) {
-      toast(err?.message || errorMessage, 'error');
+    } catch (err: unknown) {
+      toast(getErrorMessage(err, errorMessage), 'error');
     } finally {
       renameDialog.loading = false;
     }

@@ -29,9 +29,9 @@ interface VADInstance {
 // 声明全局 vad 对象类型
 declare global {
   interface Window {
-    vad: {
+    vad?: {
       MicVAD: {
-        new (options: VADOptions): Promise<VADInstance>;
+        new: (options: VADOptions) => Promise<VADInstance>;
       };
     };
   }
@@ -62,7 +62,7 @@ export function useVADRecording() {
     }
 
     try {
-      vadInstance.value = await (window.vad.MicVAD as any).new({
+      vadInstance.value = await window.vad.MicVAD.new({
         onSpeechStart: () => {
           console.log('[VAD] Speech started');
           isSpeaking.value = true;

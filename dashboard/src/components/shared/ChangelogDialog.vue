@@ -4,7 +4,7 @@ import { useI18n } from '@/i18n/composables';
 import { MarkdownRender, enableKatex, enableMermaid } from 'markstream-vue';
 import 'markstream-vue/index.css';
 import 'katex/dist/katex.min.css';
-import axios from 'axios';
+import axios, { type AxiosError } from 'axios';
 import { useTheme } from 'vuetify';
 import { shikiWasmReady } from '@/composables/shikiWasm';
 
@@ -37,6 +37,17 @@ const changelogVersion = ref<string>('');
 const selectedVersion = ref<string | null>(null);
 const availableVersions = ref<string[]>([]);
 const loadingVersions = ref(false);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function getResponseMessage(error: AxiosError): string | undefined {
+  const data = error.response?.data;
+  if (!isRecord(data)) return undefined;
+  const message = data.message;
+  return typeof message === 'string' ? message : undefined;
+}
 
 // 获取当前版本号（从版本信息中提取）
 async function getCurrentVersion() {
@@ -77,11 +88,17 @@ async function loadChangelog(version?: string) {
       changelogError.value =
         res.data.message || t('core.navigation.changelogDialog.error');
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Failed to load changelog:', err);
+    if (!axios.isAxiosError(err)) {
+      changelogError.value = t('core.navigation.changelogDialog.error');
+      return;
+    }
+
+    const responseMessage = getResponseMessage(err);
     if (
       err.response?.status === 404 ||
-      err.response?.data?.message?.includes('not found')
+      responseMessage?.includes('not found')
     ) {
       changelogError.value = t('core.navigation.changelogDialog.notFound');
     } else {

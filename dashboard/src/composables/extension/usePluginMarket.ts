@@ -14,7 +14,22 @@ export type ToastFn = (
   color: ToastColor,
   timeToClose?: number,
 ) => void;
-export type Tm = (key: string, ...args: any[]) => string;
+type TmParams = Record<string, string | number>;
+export type Tm = (key: string, params?: TmParams) => string;
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getDisplayName(value: unknown): string | undefined {
+  if (!isRecord(value)) return undefined;
+  const displayName = value.display_name;
+  if (typeof displayName !== 'string') return undefined;
+  const trimmed = displayName.trim();
+  return trimmed ? trimmed : undefined;
+}
 
 const displayItemsPerPage = 9;
 
@@ -75,8 +90,8 @@ export function usePluginMarket({
     const candidates = new Set<string>();
     if (value != null) candidates.add(String(value));
     if (item?.name) candidates.add(String(item.name));
-    if ((item as any)?.display_name)
-      candidates.add(String((item as any).display_name));
+    const displayName = getDisplayName(item);
+    if (displayName) candidates.add(displayName);
     if (item?.trimmedName) candidates.add(String(item.trimmedName));
     if (item?.desc) candidates.add(String(item.desc));
     if (item?.author) candidates.add(String(item.author));
@@ -106,10 +121,11 @@ export function usePluginMarket({
       }
 
       const searchTexts: string[] = [];
-      if ((plugin as any)?.display_name) {
-        searchTexts.push((plugin as any).display_name);
-        searchTexts.push(toPinyinText((plugin as any).display_name));
-        searchTexts.push(toInitials((plugin as any).display_name));
+      const displayName = getDisplayName(plugin);
+      if (displayName) {
+        searchTexts.push(displayName);
+        searchTexts.push(toPinyinText(displayName));
+        searchTexts.push(toInitials(displayName));
       }
       if (plugin.name) {
         searchTexts.push(plugin.name);

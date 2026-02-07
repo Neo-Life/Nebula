@@ -229,13 +229,26 @@ import DocumentsTab from './components/DocumentsTab.vue';
 import RetrievalTab from './components/RetrievalTab.vue';
 import SettingsTab from './components/SettingsTab.vue';
 
+type KnowledgeBase = {
+  kb_id: string;
+  kb_name: string;
+  description?: string;
+  emoji?: string;
+  created_at?: string;
+  updated_at?: string;
+  doc_count?: number;
+  chunk_count?: number;
+  embedding_provider_id?: string;
+  rerank_provider_id?: string;
+};
+
 const { tm: t } = useModuleI18n('features/knowledge-base/detail');
 const route = useRoute();
 
 const kbId = ref(route.params.kbId as string);
 const loading = ref(true);
 const activeTab = ref('overview');
-const kb = ref<any>({});
+const kb = ref<KnowledgeBase>({ kb_id: '', kb_name: '' });
 
 const snackbar = ref({
   show: false,
@@ -270,7 +283,7 @@ const loadKB = async () => {
 };
 
 // 格式化日期
-const formatDate = (dateStr: string) => {
+const formatDate = (dateStr?: string) => {
   if (!dateStr) return '-';
   const date = new Date(dateStr);
   return date.toLocaleString('zh-CN', {

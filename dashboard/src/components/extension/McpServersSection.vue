@@ -370,9 +370,9 @@ import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import ItemCard from '@/components/shared/ItemCard.vue';
 import { useI18n, useModuleI18n } from '@/i18n/composables';
 
-type AnyRecord = Record<string, any>;
+type UnknownRecord = Record<string, unknown>;
 
-type McpServer = AnyRecord & {
+type McpServer = UnknownRecord & {
   name: string;
   active: boolean;
   tools?: string[];
@@ -381,7 +381,7 @@ type McpServer = AnyRecord & {
   errlogs?: unknown;
 };
 
-type McpServerConfig = AnyRecord;
+type McpServerConfig = UnknownRecord;
 
 export default {
   name: 'McpServersSection',
@@ -419,10 +419,6 @@ export default {
       save_message_snack: false,
       save_message: '',
       save_message_success: 'success',
-      nameRules: [
-        (v: string) =>
-          !!v || (this as any).tm('dialogs.addServer.fields.nameRequired'),
-      ],
     };
   },
   computed: {
@@ -710,7 +706,7 @@ export default {
       }
       this.loading = true;
       try {
-        const requestData: any = {
+        const requestData: Record<string, unknown> = {
           name: this.selectedMcpServerProvider,
         };
         if (this.selectedMcpServerProvider === 'modelscope') {

@@ -16,6 +16,12 @@ import { computed, onMounted, ref, watch } from 'vue';
 import axios from 'axios';
 import { useModuleI18n } from '@/i18n/composables';
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 // Composables
 import { useComponentData } from './composables/useComponentData';
 import { useCommandFilters } from './composables/useCommandFilters';
@@ -117,12 +123,23 @@ const handleToggleTool = async (tool: ToolItem) => {
         'error',
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     tool.active = previous;
+
+    const message = axios.isAxiosError(error)
+      ? (() => {
+          const data = error.response?.data;
+          if (isRecord(data) && typeof data.message === 'string') {
+            return data.message;
+          }
+          return error.message;
+        })()
+      : error instanceof Error
+        ? error.message
+        : undefined;
+
     toast(
-      error?.response?.data?.message ||
-        error?.message ||
-        tmTool('messages.toggleToolError', { error: '' }),
+      message || tmTool('messages.toggleToolError', { error: '' }),
       'error',
     );
   }

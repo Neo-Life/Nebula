@@ -30,7 +30,7 @@ export interface FolderTreeNode extends Folder {
 export interface DraggableItem {
   id: string;
   type: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -40,7 +40,7 @@ export interface DropEventData {
   item_id: string;
   item_type: string;
   target_folder_id: string | null;
-  source_data?: any;
+  source_data?: unknown;
 }
 
 /**
@@ -196,7 +196,7 @@ export interface FolderI18nKeys {
  */
 export interface BaseFolderProps {
   // i18n 翻译函数
-  t?: (key: string, params?: Record<string, any>) => string;
+  t?: (key: string, params?: Record<string, unknown>) => string;
 
   // i18n 键配置
   i18nKeys?: FolderI18nKeys;
@@ -210,7 +210,7 @@ export interface SelectableItem {
   name: string;
   description?: string | null;
   folder_id?: string | null;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**
@@ -224,7 +224,7 @@ export interface FolderItemSelectorOperations<T extends SelectableItem> {
   loadItemsInFolder: (folderId: string | null) => Promise<T[]>;
 
   // 创建项目（可选）
-  createItem?: (data: any) => Promise<T>;
+  createItem?: (data: unknown) => Promise<T>;
 }
 
 /**

@@ -8,7 +8,7 @@
     :color="toastStore.current.color"
     :timeout="toastStore.current.timeout"
     :multi-line="toastStore.current.multiLine"
-    :location="toastStore.current.location as any"
+    :location="toastStore.current.location"
     close-on-back
   >
     {{ toastStore.current.message }}

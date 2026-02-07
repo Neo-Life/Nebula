@@ -268,10 +268,25 @@ async function applySelectionToBackend(confId: string): Promise<boolean> {
     filtered.push({ pattern: targetUmo.value, confId });
     routingEntries.value = filtered;
     return true;
-  } catch (error) {
-    const err = error as any;
-    console.error('更新配置文件失败', err);
-    toast.error(err?.response?.data?.message || '配置文件应用失败');
+  } catch (error: unknown) {
+    const isRecord = (value: unknown): value is Record<string, unknown> =>
+      typeof value === 'object' && value !== null && !Array.isArray(value);
+
+    const message = (() => {
+      if (axios.isAxiosError(error)) {
+        const data = error.response?.data;
+        if (isRecord(data) && typeof data.message === 'string') {
+          const trimmed = data.message.trim();
+          if (trimmed) return trimmed;
+        }
+        return error.message || '配置文件应用失败';
+      }
+      if (error instanceof Error) return error.message || '配置文件应用失败';
+      return String(error ?? '配置文件应用失败');
+    })();
+
+    console.error('更新配置文件失败', error);
+    toast.error(message);
     return false;
   } finally {
     saving.value = false;

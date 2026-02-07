@@ -706,8 +706,8 @@ const props = defineProps<{
 
   configDialog: boolean;
   extensionConfig: {
-    metadata?: Record<string, any>;
-    config?: Record<string, any>;
+    metadata?: Record<string, unknown>;
+    config?: Record<string, unknown>;
   } | null;
   currNamespace: string;
 
@@ -834,8 +834,8 @@ const toItemCardExtension = (extension: InstalledPlugin) => {
 };
 
 const extensionConfig = computed(() => props.extensionConfig);
-const extensionIterable = computed<Record<string, any>>(() => {
-  return (extensionConfig.value?.config ?? {}) as Record<string, any>;
+const extensionIterable = computed<Record<string, unknown>>(() => {
+  return (extensionConfig.value?.config ?? {}) as Record<string, unknown>;
 });
 const currNamespace = computed(() => props.currNamespace);
 const selectedPlugin = computed(() => props.selectedPlugin);

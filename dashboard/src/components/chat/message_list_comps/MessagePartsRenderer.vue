@@ -355,6 +355,8 @@ type MessagePart = {
   tool_calls?: ToolCall[];
 } & Record<string, unknown>;
 
+type EmbeddedFile = NonNullable<MessagePart['embedded_file']>;
+
 const props = withDefaults(
   defineProps<{
     parts: MessagePart[];
@@ -378,7 +380,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'open-image-preview', url: string): void;
-  (e: 'download-file', file: any): void;
+  (e: 'download-file', file: EmbeddedFile): void;
   (e: 'scroll-to-message', messageId: string | number): void;
 }>();
 const { t } = useI18n();
@@ -417,7 +419,7 @@ const emitOpenImage = (url: string) => {
   emit('open-image-preview', url);
 };
 
-const emitDownloadFile = (file: any) => {
+const emitDownloadFile = (file: EmbeddedFile) => {
   emit('download-file', file);
 };
 
@@ -491,6 +493,10 @@ type RenderPart =
 
 const getRenderParts = (messageParts: unknown): RenderPart[] => {
   if (!Array.isArray(messageParts)) return [];
+
+  const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null;
+
   const rendered: RenderPart[] = [];
   let pendingToolCalls: ToolCall[] = [];
   let groupIndex = 0;
@@ -506,27 +512,27 @@ const getRenderParts = (messageParts: unknown): RenderPart[] => {
     groupIndex += 1;
   };
 
-  (messageParts as any[]).forEach((part, idx) => {
+  messageParts.forEach((part, idx) => {
     if (
-      part?.type === 'tool_call' &&
+      isRecord(part) &&
+      part.type === 'tool_call' &&
       Array.isArray(part.tool_calls) &&
       part.tool_calls.length
     ) {
-      (part.tool_calls as ToolCall[]).forEach(
-        (toolCall: ToolCall, tcIndex: number) => {
-          if (isIPythonTool(toolCall)) {
-            flushPending(idx - 1);
-            rendered.push({
-              type: 'ipython',
-              toolCall,
-              key: `ipython-${idx}-${tcIndex}`,
-            });
-            return;
-          }
+      const toolCalls = part.tool_calls as unknown as ToolCall[];
+      toolCalls.forEach((toolCall: ToolCall, tcIndex: number) => {
+        if (isIPythonTool(toolCall)) {
+          flushPending(idx - 1);
+          rendered.push({
+            type: 'ipython',
+            toolCall,
+            key: `ipython-${idx}-${tcIndex}`,
+          });
+          return;
+        }
 
-          pendingToolCalls.push(toolCall);
-        },
-      );
+        pendingToolCalls.push(toolCall);
+      });
       return;
     }
 

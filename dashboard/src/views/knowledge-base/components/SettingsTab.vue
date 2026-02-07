@@ -181,8 +181,26 @@ import { useModuleI18n } from '@/i18n/composables';
 
 const { tm: t } = useModuleI18n('features/knowledge-base/detail');
 
+type KnowledgeBaseSettings = {
+  kb_id: string;
+  chunk_size?: number;
+  chunk_overlap?: number;
+  top_k_dense?: number;
+  top_k_sparse?: number;
+  embedding_provider_id?: string;
+  rerank_provider_id?: string;
+};
+
+type ProviderItem = {
+  id: string;
+  provider_type?: string;
+  embedding_model?: string;
+  embedding_dimensions?: number;
+  rerank_model?: string;
+};
+
 const props = defineProps<{
-  kb: any;
+  kb: KnowledgeBaseSettings;
 }>();
 
 const emit = defineEmits(['updated']);
@@ -190,8 +208,8 @@ const emit = defineEmits(['updated']);
 // 状态
 const saving = ref(false);
 const formRef = ref();
-const embeddingProviders = ref<any[]>([]);
-const rerankProviders = ref<any[]>([]);
+const embeddingProviders = ref<ProviderItem[]>([]);
+const rerankProviders = ref<ProviderItem[]>([]);
 const originalEmbeddingProvider = ref('');
 const showEmbeddingWarning = ref(false);
 const embeddingChangeDialog = ref(false);
@@ -247,11 +265,12 @@ const loadProviders = async () => {
       params: { provider_type: 'embedding,rerank' },
     });
     if (response.data.status === 'ok') {
-      embeddingProviders.value = response.data.data.filter(
-        (p: any) => p.provider_type === 'embedding',
+      const providers = response.data.data as ProviderItem[];
+      embeddingProviders.value = providers.filter(
+        (p: ProviderItem) => p.provider_type === 'embedding',
       );
-      rerankProviders.value = response.data.data.filter(
-        (p: any) => p.provider_type === 'rerank',
+      rerankProviders.value = providers.filter(
+        (p: ProviderItem) => p.provider_type === 'rerank',
       );
     }
   } catch (error) {

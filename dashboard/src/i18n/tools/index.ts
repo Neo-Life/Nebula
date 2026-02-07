@@ -5,23 +5,34 @@ export type * from '../types';
 
 // 实用工具函数
 export function generateMissingKeys(
-  sourceTranslations: Record<string, any>,
-  targetTranslations: Record<string, any>,
+  sourceTranslations: Record<string, unknown>,
+  targetTranslations: Record<string, unknown>,
 ): string[] {
   const missing: string[] = [];
 
-  function traverse(source: any, target: any, path: string = '') {
+  const isObjectLike = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null;
+
+  function traverse(source: unknown, target: unknown, path: string = '') {
+    if (!isObjectLike(source)) return;
+    const targetObj: Record<string, unknown> = isObjectLike(target)
+      ? target
+      : {};
+
     for (const key in source) {
       const currentPath = path ? `${path}.${key}` : key;
 
-      if (typeof source[key] === 'object' && source[key] !== null) {
-        if (!target[key]) {
+      const sourceValue = source[key];
+      const targetValue = targetObj[key];
+
+      if (typeof sourceValue === 'object' && sourceValue !== null) {
+        if (!targetValue) {
           missing.push(currentPath);
         } else {
-          traverse(source[key], target[key], currentPath);
+          traverse(sourceValue, targetValue, currentPath);
         }
       } else {
-        if (!(key in target)) {
+        if (!(key in targetObj)) {
           missing.push(currentPath);
         }
       }

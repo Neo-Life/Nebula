@@ -9,11 +9,21 @@ export type ToastColor =
   | 'warning'
   | (string & {});
 
+type ToastBlockLocation = 'top' | 'bottom';
+type ToastInlineLocation = 'start' | 'end' | 'left' | 'right';
+export type ToastLocation =
+  | ToastBlockLocation
+  | ToastInlineLocation
+  | 'center'
+  | 'center center'
+  | `${ToastBlockLocation} ${ToastInlineLocation | 'center'}`
+  | `${ToastInlineLocation} ${ToastBlockLocation | 'center'}`;
+
 export type ToastOptions = {
   timeout?: number;
   closable?: boolean;
   multiLine?: boolean;
-  location?: string;
+  location?: ToastLocation;
 };
 
 export type ToastItem = {
@@ -22,7 +32,7 @@ export type ToastItem = {
   timeout: number;
   closable: boolean;
   multiLine: boolean;
-  location: string;
+  location: ToastLocation;
 };
 
 export type ToastInput = { message: string; color?: ToastColor } & ToastOptions;

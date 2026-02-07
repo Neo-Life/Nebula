@@ -67,7 +67,7 @@
           </v-btn>
           <div class="d-flex flex-column">
             <v-list-item-title class="property-name">
-              {{ templateLabel((entry as any).__template_key) }}
+              {{ templateLabel(entry.__template_key) }}
             </v-list-item-title>
             <v-list-item-subtitle
               v-if="getTemplate(entry)?.hint || getTemplate(entry)?.description"
@@ -101,8 +101,7 @@
           </div>
           <div v-else class="template-entry-body">
             <template
-              v-for="(itemMeta, itemKey, metaIndex) in getTemplate(entry)
-                ?.items as Record<string, any>"
+              v-for="(itemMeta, itemKey, metaIndex) in templateItems(entry)"
               :key="itemKey"
             >
               <!-- Nested Object -->
@@ -126,8 +125,9 @@
                   </v-list-item-subtitle>
                 </div>
                 <div
-                  v-for="(childMeta, childKey, childIndex) in (itemMeta as any)
-                    .items as Record<string, any>"
+                  v-for="(childMeta, childKey, childIndex) in childItems(
+                    itemMeta,
+                  )"
                   :key="childKey"
                 >
                   <template
@@ -148,7 +148,11 @@
                       </v-col>
                       <v-col cols="12" sm="6" class="config-input">
                         <ConfigItemRenderer
-                          v-model="entry[itemKey][childKey]"
+                          v-model="
+                            (entry[itemKey] as UnknownRecord)[
+                              childKey
+                            ] as ConfigValue
+                          "
                           :item-meta="childMeta"
                         />
                       </v-col>
@@ -156,7 +160,7 @@
                     <v-divider
                       v-if="
                         hasVisibleItemsAfter(
-                          Object.entries(itemMeta.items),
+                          itemEntries(childItems(itemMeta)),
                           childIndex,
                           entry,
                         )
@@ -192,7 +196,7 @@
                   </v-col>
                   <v-col cols="12" sm="6" class="config-input">
                     <ConfigItemRenderer
-                      v-model="entry[itemKey]"
+                      v-model="entry[itemKey] as ConfigValue"
                       :item-meta="itemMeta"
                     />
                   </v-col>
@@ -200,7 +204,7 @@
                 <v-divider
                   v-if="
                     hasVisibleItemsAfter(
-                      Object.entries((getTemplate(entry)?.items as any) || {}),
+                      itemEntries(templateItems(entry)),
                       metaIndex,
                       entry,
                     )
@@ -221,20 +225,37 @@ import { computed, ref, watch, type PropType } from 'vue';
 import ConfigItemRenderer from './ConfigItemRenderer.vue';
 import { useI18n } from '@/i18n/composables';
 
+type UnknownRecord = Record<string, unknown>;
+
+type ConfigValue =
+  | string
+  | number
+  | boolean
+  | unknown[]
+  | UnknownRecord
+  | undefined;
+
+type ItemMeta = {
+  type?: string;
+  description?: string;
+  hint?: string;
+  invisible?: boolean;
+  default?: unknown;
+  items?: Record<string, unknown>;
+  condition?: Record<string, unknown>;
+};
+
 type TemplateMeta = {
   name?: string;
   hint?: string;
   description?: string;
-  items?: Record<string, any>;
-};
-
-type TemplateEntry = Record<string, any> & {
-  __template_key?: string;
+  items?: Record<string, unknown>;
 };
 
 const props = defineProps({
   modelValue: {
-    type: Array as PropType<TemplateEntry[]>,
+    // Keep prop type broad to avoid cross-component type alias conflicts.
+    type: Array as PropType<Array<Record<string, unknown>>>,
     default: () => [],
   },
   templates: {
@@ -266,18 +287,16 @@ const defaultValueMap: Record<string, unknown> = {
   string: '',
   text: '',
   list: [] as unknown[],
-  object: {} as Record<string, unknown>,
+  object: {} as UnknownRecord,
   template_list: [] as unknown[],
 };
 
 const templateOptions = computed(() => {
-  return Object.entries((props.templates || {}) as Record<string, any>).map(
-    ([value, meta]) => ({
-      label: (meta as any)?.name || value,
-      value,
-      hint: (meta as any)?.hint || (meta as any)?.description || '',
-    }),
-  );
+  return Object.entries(props.templates || {}).map(([value, meta]) => ({
+    label: meta.name || value,
+    value,
+    hint: meta.hint || meta.description || '',
+  }));
 });
 
 function templateLabel(key: unknown) {
@@ -287,46 +306,45 @@ function templateLabel(key: unknown) {
   return props.templates?.[k]?.name || k;
 }
 
-function buildDefaults(itemsMeta: Record<string, any> = {}) {
-  const result: Record<string, any> = {};
-  for (const [k, meta] of Object.entries(itemsMeta)) {
-    const m = meta as any;
-    if (!m || !m.type) continue;
-    const fallback = Object.prototype.hasOwnProperty.call(m, 'default')
-      ? m.default
-      : (defaultValueMap as any)[m.type];
+function buildDefaults(
+  itemsMeta: Record<string, ItemMeta> = {},
+): UnknownRecord {
+  const result: UnknownRecord = {};
+  for (const [key, meta] of Object.entries(itemsMeta)) {
+    if (!meta?.type) continue;
+    const hasDefault = Object.prototype.hasOwnProperty.call(meta, 'default');
+    const fallback = hasDefault ? meta.default : defaultValueMap[meta.type];
 
-    if (m.type === 'object') {
-      result[k] = buildDefaults(m.items || {});
+    if (meta.type === 'object') {
+      result[key] = buildDefaults(normalizeItems(meta.items));
     } else {
-      result[k] = fallback;
+      result[key] = fallback;
     }
   }
   return result;
 }
 
 function applyDefaults(
-  target: Record<string, any>,
-  itemsMeta: Record<string, any> = {},
+  target: UnknownRecord,
+  itemsMeta: Record<string, ItemMeta> = {},
 ) {
   let changed = false;
-  for (const [k, meta] of Object.entries(itemsMeta)) {
-    const m = meta as any;
-    if (!m || !m.type) continue;
-    const hasDefault = Object.prototype.hasOwnProperty.call(m, 'default');
-    const fallback = hasDefault ? m.default : (defaultValueMap as any)[m.type];
+  for (const [key, meta] of Object.entries(itemsMeta)) {
+    if (!meta?.type) continue;
+    const hasDefault = Object.prototype.hasOwnProperty.call(meta, 'default');
+    const fallback = hasDefault ? meta.default : defaultValueMap[meta.type];
 
-    if (m.type === 'object') {
-      if (!target[k] || typeof target[k] !== 'object') {
-        target[k] = buildDefaults(m.items || {});
+    if (meta.type === 'object') {
+      if (!isRecord(target[key])) {
+        target[key] = buildDefaults(normalizeItems(meta.items));
         changed = true;
       } else {
-        if (applyDefaults(target[k], m.items || {})) {
+        if (applyDefaults(target[key], normalizeItems(meta.items))) {
           changed = true;
         }
       }
-    } else if (!(k in target)) {
-      target[k] = fallback;
+    } else if (!(key in target)) {
+      target[key] = fallback;
       changed = true;
     }
   }
@@ -342,8 +360,8 @@ function ensureEntryDefaults() {
     if (!template || !template.items) return entry;
 
     // 我们必须克隆以避免就地修改
-    const newEntry = JSON.parse(JSON.stringify(entry)) as Record<string, any>;
-    let entryChanged = applyDefaults(newEntry, template.items);
+    const newEntry = JSON.parse(JSON.stringify(entry)) as UnknownRecord;
+    let entryChanged = applyDefaults(newEntry, normalizeItems(template.items));
 
     if (!Object.prototype.hasOwnProperty.call(newEntry, '__template_key')) {
       newEntry.__template_key = '';
@@ -375,9 +393,9 @@ function addEntry(templateKey: string) {
   if (!templateKey) return;
   const template = props.templates?.[templateKey];
   if (!template) return;
-  const newEntry = {
+  const newEntry: UnknownRecord = {
     __template_key: templateKey,
-    ...buildDefaults(template.items || {}),
+    ...buildDefaults(normalizeItems(template.items)),
   };
   emit('update:modelValue', [...(props.modelValue || []), newEntry]);
   expandedEntries.value[props.modelValue.length] = true;
@@ -399,18 +417,51 @@ function toggleEntry(index: number) {
   expandedEntries.value[index] = !expandedEntries.value[index];
 }
 
-function getTemplate(entry: TemplateEntry | null | undefined) {
+function getTemplate(entry: Record<string, unknown> | null | undefined) {
   if (!entry) return null;
-  const key = entry.__template_key;
+  const rawKey = (entry as UnknownRecord).__template_key;
+  const key = typeof rawKey === 'string' ? rawKey : '';
   if (!key) return null;
   return props.templates?.[key] || null;
 }
 
+function templateItems(
+  entry: Record<string, unknown>,
+): Record<string, ItemMeta> {
+  return normalizeItems(getTemplate(entry)?.items);
+}
+
+function childItems(itemMeta: ItemMeta): Record<string, ItemMeta> {
+  return normalizeItems(itemMeta.items);
+}
+
+function itemEntries(
+  items: Record<string, ItemMeta> | undefined,
+): Array<[string, ItemMeta]> {
+  return Object.entries(items || {}) as Array<[string, ItemMeta]>;
+}
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizeItems(items: unknown): Record<string, ItemMeta> {
+  if (!isRecord(items)) return {};
+
+  const result: Record<string, ItemMeta> = {};
+  for (const [key, value] of Object.entries(items)) {
+    if (isRecord(value)) {
+      result[key] = value as ItemMeta;
+    }
+  }
+  return result;
+}
+
 function getValueBySelector(obj: unknown, selector: string) {
   const keys = selector.split('.');
-  let current: any = obj;
+  let current: unknown = obj;
   for (const key of keys) {
-    if (current && typeof current === 'object' && key in current) {
+    if (isRecord(current) && key in current) {
       current = current[key];
     } else {
       return undefined;
@@ -419,7 +470,7 @@ function getValueBySelector(obj: unknown, selector: string) {
   return current;
 }
 
-function shouldShowItem(itemMeta: any, entry: Record<string, any>) {
+function shouldShowItem(itemMeta: ItemMeta, entry: Record<string, unknown>) {
   if (!itemMeta?.condition) {
     return true;
   }
@@ -435,9 +486,9 @@ function shouldShowItem(itemMeta: any, entry: Record<string, any>) {
 }
 
 function hasVisibleItemsAfter(
-  entries: Array<[string, any]>,
+  entries: Array<[string, ItemMeta]>,
   currentIndex: number,
-  entry: Record<string, any>,
+  entry: Record<string, unknown>,
 ) {
   for (let i = currentIndex + 1; i < entries.length; i++) {
     const [_k, meta] = entries[i];

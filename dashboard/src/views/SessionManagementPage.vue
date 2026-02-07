@@ -1023,6 +1023,27 @@ import type {
   SessionKbConfig,
 } from '@/types/session';
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data;
+    if (isRecord(data)) {
+      const message = data.message;
+      if (typeof message === 'string' && message.length > 0) return message;
+    }
+    if (typeof error.message === 'string' && error.message.length > 0)
+      return error.message;
+  }
+
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+}
+
 export default {
   name: 'SessionManagementPage',
   setup() {
@@ -1387,10 +1408,8 @@ export default {
             (umo: string) => !existingUmos.has(umo),
           );
         }
-      } catch (error: any) {
-        this.showError(
-          error?.response?.data?.message || this.tm('messages.loadError'),
-        );
+      } catch (error: unknown) {
+        this.showError(getErrorMessage(error, this.tm('messages.loadError')));
       }
       this.loadingUmos = false;
     },
@@ -1525,10 +1544,8 @@ export default {
             response.data.message || this.tm('messages.saveError'),
           );
         }
-      } catch (error: any) {
-        this.showError(
-          error?.response?.data?.message || this.tm('messages.saveError'),
-        );
+      } catch (error: unknown) {
+        this.showError(getErrorMessage(error, this.tm('messages.saveError')));
       }
       this.saving = false;
     },
@@ -1601,10 +1618,8 @@ export default {
         } else {
           this.showSuccess(this.tm('messages.noChanges'));
         }
-      } catch (error: any) {
-        this.showError(
-          error?.response?.data?.message || this.tm('messages.saveError'),
-        );
+      } catch (error: unknown) {
+        this.showError(getErrorMessage(error, this.tm('messages.saveError')));
       }
       this.saving = false;
     },
@@ -1665,10 +1680,8 @@ export default {
             );
           }
         }
-      } catch (error: any) {
-        this.showError(
-          error?.response?.data?.message || this.tm('messages.saveError'),
-        );
+      } catch (error: unknown) {
+        this.showError(getErrorMessage(error, this.tm('messages.saveError')));
       }
       this.saving = false;
     },
@@ -1727,10 +1740,8 @@ export default {
             );
           }
         }
-      } catch (error: any) {
-        this.showError(
-          error?.response?.data?.message || this.tm('messages.saveError'),
-        );
+      } catch (error: unknown) {
+        this.showError(getErrorMessage(error, this.tm('messages.saveError')));
       }
       this.saving = false;
     },
@@ -1769,10 +1780,8 @@ export default {
             response.data.message || this.tm('messages.deleteError'),
           );
         }
-      } catch (error: any) {
-        this.showError(
-          error?.response?.data?.message || this.tm('messages.deleteError'),
-        );
+      } catch (error: unknown) {
+        this.showError(getErrorMessage(error, this.tm('messages.deleteError')));
       }
       this.deleting = false;
     },
@@ -1806,10 +1815,9 @@ export default {
             response.data.message || this.tm('messages.batchDeleteError'),
           );
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         this.showError(
-          error?.response?.data?.message ||
-            this.tm('messages.batchDeleteError'),
+          getErrorMessage(error, this.tm('messages.batchDeleteError')),
         );
       }
       this.deleting = false;
@@ -1907,10 +1915,8 @@ export default {
             response.data.message || this.tm('messages.saveError'),
           );
         }
-      } catch (error: any) {
-        this.showError(
-          error?.response?.data?.message || this.tm('messages.saveError'),
-        );
+      } catch (error: unknown) {
+        this.showError(getErrorMessage(error, this.tm('messages.saveError')));
       }
       this.saving = false;
     },
@@ -1937,13 +1943,13 @@ export default {
           }
         }
 
-        const tasks = [];
+        const tasks: Array<Promise<unknown>> = [];
 
         if (this.batchLlmStatus !== null || this.batchTtsStatus !== null) {
           const serviceData: {
             scope: string;
-            umos: any[];
-            group_id: any;
+            umos: string[];
+            group_id: string | null;
             llm_enabled?: boolean;
             tts_enabled?: boolean;
           } = { scope, umos, group_id: groupId };
@@ -1989,7 +1995,12 @@ export default {
         }
 
         const results = await Promise.all(tasks);
-        const allOk = results.every((r) => r.data.status === 'ok');
+        const allOk = results.every((r) => {
+          if (!isRecord(r)) return false;
+          const data = r.data;
+          if (!isRecord(data)) return false;
+          return data.status === 'ok';
+        });
 
         if (allOk) {
           this.showSuccess('批量更新成功');
@@ -2001,8 +2012,8 @@ export default {
         } else {
           this.showError('部分更新失败');
         }
-      } catch (error: any) {
-        this.showError(error?.response?.data?.message || '批量更新失败');
+      } catch (error: unknown) {
+        this.showError(getErrorMessage(error, '批量更新失败'));
       }
       this.batchUpdating = false;
     },
@@ -2115,8 +2126,8 @@ export default {
         } else {
           this.showError(response.data.message);
         }
-      } catch (error: any) {
-        this.showError(error?.response?.data?.message || '保存分组失败');
+      } catch (error: unknown) {
+        this.showError(getErrorMessage(error, '保存分组失败'));
       }
     },
 
@@ -2133,8 +2144,8 @@ export default {
         } else {
           this.showError(response.data.message);
         }
-      } catch (error: any) {
-        this.showError(error?.response?.data?.message || '删除分组失败');
+      } catch (error: unknown) {
+        this.showError(getErrorMessage(error, '删除分组失败'));
       }
     },
 
@@ -2160,8 +2171,8 @@ export default {
         } else {
           this.showError(response.data.message);
         }
-      } catch (error: any) {
-        this.showError(error?.response?.data?.message || '添加失败');
+      } catch (error: unknown) {
+        this.showError(getErrorMessage(error, '添加失败'));
       }
     },
   },

@@ -17,7 +17,26 @@ export type ToastFn = (
   color: ToastColor,
   timeToClose?: number,
 ) => void;
-export type Tm = (key: string, ...args: any[]) => string;
+type TmParams = Record<string, string | number>;
+export type Tm = (key: string, params?: TmParams) => string;
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data;
+    if (isRecord(data) && typeof data.message === 'string') {
+      return data.message;
+    }
+    return error.message || 'Unknown error';
+  }
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
 
 type SelectedPlugin = InstalledPlugin & { handlers: PluginHandlerInfo[] };
 
@@ -353,9 +372,8 @@ export function useInstalledPlugins({
         try {
           await getExtensions();
           toast(tm('messages.refreshSuccess'), 'success');
-        } catch (error: any) {
-          const errorMsg =
-            error?.response?.data?.message || error?.message || String(error);
+        } catch (error: unknown) {
+          const errorMsg = getErrorMessage(error);
           toast(`${tm('messages.refreshFailed')}: ${errorMsg}`, 'error');
         }
       }, 1000);
@@ -411,9 +429,8 @@ export function useInstalledPlugins({
       const failures = results.filter((r) => r.status !== 'ok');
       try {
         await getExtensions();
-      } catch (err: any) {
-        const errorMsg =
-          err?.response?.data?.message || err?.message || String(err);
+      } catch (err: unknown) {
+        const errorMsg = getErrorMessage(err);
         failures.push({ name: 'refresh', status: 'error', message: errorMsg });
       }
 
@@ -429,10 +446,8 @@ export function useInstalledPlugins({
           .join('\n');
         onLoadingDialogResult(2, `${failureText}\n${detail}`, -1);
       }
-    } catch (err: any) {
-      const errorMsg =
-        err?.response?.data?.message || err?.message || String(err);
-      onLoadingDialogResult(2, errorMsg, -1);
+    } catch (err: unknown) {
+      onLoadingDialogResult(2, getErrorMessage(err), -1);
     } finally {
       updatingAll.value = false;
     }

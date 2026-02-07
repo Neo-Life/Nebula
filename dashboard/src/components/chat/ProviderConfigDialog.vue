@@ -247,9 +247,9 @@ import ProviderSourcesPanel from '@/components/provider/ProviderSourcesPanel.vue
 import { useProviderSources } from '@/composables/useProviderSources';
 import axios from 'axios';
 
-type AnyRecord = Record<string, any>;
+type UnknownRecord = Record<string, unknown>;
 
-type ProviderConfig = AnyRecord & {
+type ProviderConfig = UnknownRecord & {
   id?: string;
   enable?: boolean;
 };

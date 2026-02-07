@@ -338,12 +338,22 @@ import StandaloneChat from '@/components/chat/StandaloneChat.vue';
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import { useI18n, useModuleI18n } from '@/i18n/composables';
 
-type AnyRecord = Record<string, any>;
+type UnknownRecord = Record<string, unknown>;
 
 type ConfigInfo = {
   id: string;
   name: string;
-  [key: string]: any;
+  [key: string]: unknown;
+};
+
+type ConfigGetParams = {
+  system_config?: '1';
+  id?: string;
+};
+
+type UpdatePayload = {
+  conf_id: string | null;
+  config: unknown;
 };
 
 export default {
@@ -381,7 +391,7 @@ export default {
         config: {},
       },
       fetched: false,
-      metadata: {} as AnyRecord,
+      metadata: {} as UnknownRecord,
       save_message_snack: false,
       save_message: '',
       save_message_success: '',
@@ -489,7 +499,7 @@ export default {
     },
     getConfig(abconf_id?: string | null) {
       this.fetched = false;
-      const params: any = {};
+      const params: ConfigGetParams = {};
 
       if (this.isSystemConfig) {
         params.system_config = '1';
@@ -516,7 +526,8 @@ export default {
     updateConfig() {
       if (!this.fetched) return;
 
-      const postData: any = {
+      const postData: UpdatePayload = {
+        conf_id: null,
         config: JSON.parse(JSON.stringify(this.config_data)),
       };
 
@@ -536,7 +547,10 @@ export default {
 
             if (this.isSystemConfig) {
               axios.post('/api/stat/restart-core').then(() => {
-                (this.$refs.wfr as any)?.check?.();
+                const wfr = this.$refs.wfr as
+                  | InstanceType<typeof WaitingForRestart>
+                  | undefined;
+                wfr?.check?.();
               });
             }
           } else {

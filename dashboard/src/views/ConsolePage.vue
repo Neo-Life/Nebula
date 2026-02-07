@@ -101,7 +101,10 @@ export default {
   watch: {
     autoScrollEnabled(val) {
       if (this.$refs.consoleDisplayer) {
-        (this.$refs.consoleDisplayer as any).autoScroll = val;
+        const displayer = this.$refs.consoleDisplayer as
+          | InstanceType<typeof ConsoleDisplayer>
+          | undefined;
+        if (displayer) displayer.autoScroll = val;
       }
     },
   },

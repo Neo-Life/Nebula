@@ -23,11 +23,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, type VNodeChild } from 'vue';
 
 defineSlots<{
-  label(props: { expanded: boolean }): any;
-  details(): any;
+  label(props: { expanded: boolean }): VNodeChild;
+  details(): VNodeChild;
 }>();
 
 defineProps<{

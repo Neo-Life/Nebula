@@ -48,7 +48,7 @@ const switchToLightLabel = computed(() =>
 const themeIconColor = computed(() => 'primary');
 const BASE_API_URL = 'https://api.revaea.com/pc';
 const currentImageUrl = ref<string>('');
-const carouselInterval = ref<any>(null);
+const carouselInterval = ref<ReturnType<typeof setInterval> | null>(null);
 const heroImageLoaded = ref(false);
 const getFreshUrl = () => {
   const timestamp = new Date().getTime();

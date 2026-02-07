@@ -335,6 +335,25 @@ import axios from 'axios';
 import { useModuleI18n } from '@/i18n/composables';
 import ItemCard from '@/components/shared/ItemCard.vue';
 
+type KnowledgeBaseListItem = {
+  kb_id: string;
+  kb_name: string;
+  description?: string;
+  emoji?: string;
+  doc_count?: number;
+  chunk_count?: number;
+  embedding_provider_id?: string | null;
+  rerank_provider_id?: string | null;
+};
+
+type ProviderItem = {
+  id: string;
+  provider_type?: string;
+  embedding_model?: string;
+  embedding_dimensions?: number;
+  rerank_model?: string;
+};
+
 const { tm: t } = useModuleI18n('features/knowledge-base/index');
 const router = useRouter();
 
@@ -342,9 +361,9 @@ const router = useRouter();
 const loading = ref(false);
 const saving = ref(false);
 const deleting = ref(false);
-const kbList = ref<any[]>([]);
-const embeddingProviders = ref<any[]>([]);
-const rerankProviders = ref<any[]>([]);
+const kbList = ref<KnowledgeBaseListItem[]>([]);
+const embeddingProviders = ref<ProviderItem[]>([]);
+const rerankProviders = ref<ProviderItem[]>([]);
 const originalEmbeddingProvider = ref<string | null>(null);
 const showEmbeddingWarning = ref(false);
 const pendingEmbeddingProvider = ref<string | null>(null);
@@ -363,14 +382,14 @@ const snackbar = ref({
 
 // 表单
 const formRef = ref();
-const editingKB = ref<any>(null);
-const deleteTarget = ref<any>(null);
+const editingKB = ref<KnowledgeBaseListItem | null>(null);
+const deleteTarget = ref<KnowledgeBaseListItem | null>(null);
 const formData = ref({
   kb_name: '',
   description: '',
   emoji: '📚',
-  embedding_provider_id: null,
-  rerank_provider_id: null,
+  embedding_provider_id: null as string | null,
+  rerank_provider_id: null as string | null,
 });
 
 // Emoji 分类
@@ -461,14 +480,15 @@ const emojiCategories = [
 const loadKnowledgeBases = async (refreshStats = false) => {
   loading.value = true;
   try {
-    const params: any = {};
+    const params: Record<string, string> = {};
     if (refreshStats) {
       params.refresh_stats = 'true';
     }
 
     const response = await axios.get('/api/kb/list', { params });
     if (response.data.status === 'ok') {
-      kbList.value = response.data.data.items || [];
+      kbList.value = (response.data.data.items ||
+        []) as KnowledgeBaseListItem[];
     } else {
       showSnackbar(response.data.message || t('messages.loadError'), 'error');
     }
@@ -487,11 +507,12 @@ const loadProviders = async () => {
       params: { provider_type: 'embedding,rerank' },
     });
     if (response.data.status === 'ok') {
-      embeddingProviders.value = response.data.data.filter(
-        (p: any) => p.provider_type === 'embedding',
+      const providers = response.data.data as ProviderItem[];
+      embeddingProviders.value = providers.filter(
+        (p: ProviderItem) => p.provider_type === 'embedding',
       );
-      rerankProviders.value = response.data.data.filter(
-        (p: any) => p.provider_type === 'rerank',
+      rerankProviders.value = providers.filter(
+        (p: ProviderItem) => p.provider_type === 'rerank',
       );
     }
   } catch (error) {
@@ -505,21 +526,21 @@ const navigateToDetail = (kbId: string) => {
 };
 
 // 编辑知识库
-const editKB = (kb: any) => {
+const editKB = (kb: KnowledgeBaseListItem) => {
   editingKB.value = kb;
-  originalEmbeddingProvider.value = kb.embedding_provider_id;
+  originalEmbeddingProvider.value = kb.embedding_provider_id ?? null;
   formData.value = {
     kb_name: kb.kb_name,
     description: kb.description || '',
     emoji: kb.emoji || '📚',
-    embedding_provider_id: kb.embedding_provider_id,
-    rerank_provider_id: kb.rerank_provider_id,
+    embedding_provider_id: kb.embedding_provider_id ?? null,
+    rerank_provider_id: kb.rerank_provider_id ?? null,
   };
   showCreateDialog.value = true;
 };
 
 // 确认删除
-const confirmDelete = (kb: any) => {
+const confirmDelete = (kb: KnowledgeBaseListItem) => {
   deleteTarget.value = kb;
   showDeleteDialog.value = true;
 };

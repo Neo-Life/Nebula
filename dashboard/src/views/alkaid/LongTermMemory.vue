@@ -409,14 +409,51 @@ import axios from 'axios';
 // import * as d3 from "d3"; // npm install d3
 import { useModuleI18n } from '@/i18n/composables';
 
-type NodeRaw = [string, Record<string, any>];
-type EdgeRaw = [string, string, Record<string, any>];
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+type NodeRaw = [string, Record<string, unknown>];
+type EdgeRaw = [string, string, Record<string, unknown>];
+
+type D3ZoomEventLike = { transform: unknown } & UnknownRecord;
+type D3DragEventLike = {
+  active?: boolean;
+  x?: number;
+  y?: number;
+} & UnknownRecord;
+
+function isD3ZoomEventLike(value: unknown): value is D3ZoomEventLike {
+  return isRecord(value) && 'transform' in value;
+}
+
+function isD3DragEventLike(value: unknown): value is D3DragEventLike {
+  return isRecord(value);
+}
+
+function stopPropagation(event: unknown) {
+  if (!isRecord(event)) return;
+  const fn = event.stopPropagation;
+  if (typeof fn === 'function') {
+    (fn as () => void)();
+  }
+}
+
+function isGraphLink(value: unknown): value is GraphLink {
+  return isRecord(value) && ('source' in value || 'target' in value);
+}
+
+function isGraphNode(value: unknown): value is GraphNode {
+  return isRecord(value) && typeof value.id === 'string';
+}
 
 type GraphNode = {
   id: string;
   label: string;
   color: string;
-  originalData: Record<string, any>;
+  originalData: Record<string, unknown>;
   x?: number;
   y?: number;
   fx?: number | null;
@@ -427,7 +464,7 @@ type GraphLink = {
   source: string | GraphNode;
   target: string | GraphNode;
   color: string;
-  originalData: Record<string, any>;
+  originalData: Record<string, unknown>;
   label: string;
   curvature?: number;
 };
@@ -448,10 +485,10 @@ export default {
   },
   data() {
     return {
-      simulation: null as any,
-      svg: null as any,
-      zoom: null as any,
-      g: null as any,
+      simulation: null as D3SimulationLike | null,
+      svg: null as D3SelectionLike | null,
+      zoom: null as unknown,
+      g: null as D3SelectionLike | null,
       width: 0,
       height: 0,
       node_data: [] as NodeRaw[],
@@ -460,7 +497,7 @@ export default {
       links: [] as GraphLink[],
       searchUserId: null as string | null,
       userIdList: [] as string[],
-      selectedNode: null as Record<string, any> | null,
+      selectedNode: null as Record<string, unknown> | null,
       graphStats: null as GraphStats | null,
       nodeColors: {
         PhaseNode: '#4CAF50', // 绿色
@@ -489,7 +526,7 @@ export default {
       // 添加边点击相关数据
       selectedEdge: null as GraphLink | null,
       selectedEdgeFactId: null as string | null,
-      selectedEdgeFactData: null as Record<string, any> | null,
+      selectedEdgeFactData: null as Record<string, unknown> | null,
       showFactDialog: false,
       isLoadingFactData: false,
 
@@ -504,9 +541,7 @@ export default {
   },
   beforeUnmount() {
     // 停止D3仿真
-    if (this.simulation) {
-      this.simulation.stop();
-    }
+    this.simulation?.stop();
 
     // 清理DOM元素
     if (this.svg) {
@@ -536,9 +571,7 @@ export default {
       this.searchResults = [];
 
       // 构建查询参数
-      const params: any = {
-        query: this.searchQuery,
-      };
+      const params: Record<string, string> = { query: this.searchQuery };
 
       // 如果有选择用户ID，也加入查询参数
       if (this.searchMemoryUserId) {
@@ -549,14 +582,26 @@ export default {
         .get('/api/plug/alkaid/ltm/graph/search', { params })
         .then((response) => {
           if (response.data.status === 'ok') {
-            const data = response.data.data;
+            const data: unknown = response.data.data;
 
             // 处理返回的文档数组
+            if (!isRecord(data)) {
+              this.searchResults = [];
+              this.$toast.info(this.tm('messages.searchNoResults'));
+              return;
+            }
+
             this.searchResults = Object.keys(data).map((doc_id) => {
+              const item = (data as UnknownRecord)[doc_id];
+              const itemRecord = isRecord(item) ? item : {};
               return {
                 doc_id: doc_id,
-                text: data[doc_id].text || this.tm('search.noTextContent'),
-                score: data[doc_id].score || 0,
+                text:
+                  typeof itemRecord.text === 'string'
+                    ? itemRecord.text
+                    : this.tm('search.noTextContent'),
+                score:
+                  typeof itemRecord.score === 'number' ? itemRecord.score : 0,
               };
             });
 
@@ -650,13 +695,23 @@ export default {
           this.nodes = nodesRaw.map((node) => {
             const nodeId = node[0];
             const nodeData = node[1];
-            const nodeType = String(nodeData._label || 'default');
+            const nodeTypeRaw = nodeData._label;
+            const nodeType =
+              typeof nodeTypeRaw === 'string'
+                ? nodeTypeRaw
+                : String(nodeTypeRaw ?? 'default');
             const color =
               this.nodeColors[nodeType] || this.nodeColors['default'];
 
+            const nameRaw = nodeData.name;
+            const label =
+              typeof nameRaw === 'string' && nameRaw.trim().length > 0
+                ? nameRaw
+                : nodeId.split('_')[0];
+
             return {
               id: nodeId,
-              label: nodeData.name || nodeId.split('_')[0],
+              label,
               color: color,
               originalData: nodeData,
             };
@@ -666,7 +721,11 @@ export default {
             const sourceId = edge[0];
             const targetId = edge[1];
             const edgeData = edge[2];
-            const relationType = String(edgeData.relation_type || 'default');
+            const relationTypeRaw = edgeData.relation_type;
+            const relationType =
+              typeof relationTypeRaw === 'string'
+                ? relationTypeRaw
+                : String(relationTypeRaw ?? 'default');
             const color =
               this.edgeColors[relationType] || this.edgeColors['default'];
 
@@ -759,10 +818,8 @@ export default {
         })
         .then((response) => {
           if (response.data.status === 'ok') {
-            const factData = (response.data.data || null) as Record<
-              string,
-              any
-            > | null;
+            const raw: unknown = response.data.data;
+            const factData = isRecord(raw) ? raw : null;
             this.selectedEdgeFactData = factData;
             // 解析元数据
             this.parsedMetadata = this.parseMetadata(factData?.metadata);
@@ -830,9 +887,17 @@ export default {
     formatTime(timestamp: unknown) {
       if (!timestamp) return this.tm('factDialog.unknown');
       try {
-        return new Date(timestamp as any).toLocaleString();
+        if (
+          typeof timestamp === 'string' ||
+          typeof timestamp === 'number' ||
+          timestamp instanceof Date
+        ) {
+          return new Date(timestamp).toLocaleString();
+        }
+
+        return String(timestamp);
       } catch (_e) {
-        return timestamp;
+        return String(timestamp);
       }
     },
 
@@ -863,12 +928,13 @@ export default {
       const zoom = d3
         .zoom()
         .scaleExtent([0.1, 10])
-        .on('zoom', (event: any) => {
+        .on('zoom', (event: unknown) => {
+          if (!isD3ZoomEventLike(event)) return;
           g.attr('transform', event.transform);
         });
 
       svg.call(zoom);
-      const simulation = d3
+      const simulation: D3SimulationLike = d3
         .forceSimulation()
         .force(
           'link',
@@ -943,11 +1009,20 @@ export default {
         .attr('text-anchor', 'middle')
         .attr('fill', '#666')
         .style('cursor', 'pointer')
-        .on('click', (event: any, d: GraphLink) => {
-          event.stopPropagation();
+        .on('click', (event: unknown, d: unknown) => {
+          stopPropagation(event);
+
+          if (!isGraphLink(d)) return;
 
           // 检查边数据中是否有fact_id
-          const factId = d.originalData?.fact_id;
+          const factIdRaw = isRecord(d.originalData)
+            ? d.originalData.fact_id
+            : undefined;
+          const factId =
+            typeof factIdRaw === 'string' || typeof factIdRaw === 'number'
+              ? String(factIdRaw)
+              : null;
+
           if (factId) {
             this.selectedEdge = d;
             this.selectedEdgeFactId = factId;
@@ -979,8 +1054,9 @@ export default {
         .attr('fill', '#333')
         .attr('dy', -12);
 
-      node.on('click', (event: any, d: GraphNode) => {
-        event.stopPropagation();
+      node.on('click', (event: unknown, d: unknown) => {
+        if (!isGraphNode(d)) return;
+        stopPropagation(event);
         this.selectedNode = d.originalData;
       });
 
@@ -1225,17 +1301,26 @@ export default {
     dragBehavior() {
       return d3
         .drag()
-        .on('start', (event: any, d: GraphNode) => {
-          if (!event.active) this.simulation?.alphaTarget(0.3)?.restart?.();
+        .on('start', (event: unknown, d: unknown) => {
+          if (!isD3DragEventLike(event) || !isGraphNode(d)) return;
+          const active = event.active === true;
+          if (!active && this.simulation) {
+            this.simulation.alphaTarget(0.3).restart();
+          }
           d.fx = d.x;
           d.fy = d.y;
         })
-        .on('drag', (event: any, d: GraphNode) => {
-          d.fx = event.x;
-          d.fy = event.y;
+        .on('drag', (event: unknown, d: unknown) => {
+          if (!isD3DragEventLike(event) || !isGraphNode(d)) return;
+          if (typeof event.x === 'number') d.fx = event.x;
+          if (typeof event.y === 'number') d.fy = event.y;
         })
-        .on('end', (event: any, d: GraphNode) => {
-          if (!event.active) this.simulation?.alphaTarget?.(0);
+        .on('end', (event: unknown, d: unknown) => {
+          if (!isD3DragEventLike(event) || !isGraphNode(d)) return;
+          const active = event.active === true;
+          if (!active && this.simulation) {
+            this.simulation.alphaTarget(0);
+          }
           d.fx = null;
           d.fy = null;
         });

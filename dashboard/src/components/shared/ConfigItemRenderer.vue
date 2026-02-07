@@ -252,7 +252,7 @@
 
     <v-text-field
       v-else
-      :model-value="modelValueAny"
+      :model-value="modelValueUnknown"
       density="compact"
       variant="outlined"
       class="config-field"
@@ -274,6 +274,16 @@ import KnowledgeBaseSelector from './KnowledgeBaseSelector.vue';
 import PluginSetSelector from './PluginSetSelector.vue';
 import T2ITemplateEditor from './T2ITemplateEditor.vue';
 import { useI18n, useModuleI18n } from '@/i18n/composables';
+
+type UnknownRecord = Record<string, unknown>;
+
+type ItemMeta = UnknownRecord & {
+  labels?: string | unknown[];
+  options?: unknown;
+  readonly?: boolean;
+  type?: string;
+  _special?: unknown;
+};
 
 const props = defineProps({
   modelValue: {
@@ -316,12 +326,12 @@ const modelValueString = computed(() =>
 const modelValueArray = computed(() =>
   Array.isArray(props.modelValue) ? props.modelValue : [],
 );
-const modelValueAny = computed(() => props.modelValue as any);
+const modelValueUnknown = computed<unknown>(() => props.modelValue);
 const modelValueObject = computed(() => {
   const value = props.modelValue;
   if (value && typeof value === 'object' && !Array.isArray(value))
-    return value as Record<string, any>;
-  return {} as Record<string, any>;
+    return value as UnknownRecord;
+  return {} as UnknownRecord;
 });
 
 function emitUpdate(val: unknown) {
@@ -333,7 +343,11 @@ function toNumber(val: unknown) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function getLabel(itemMeta: any, index: string | number, option: unknown) {
+function getLabel(
+  itemMeta: ItemMeta | null | undefined,
+  index: string | number,
+  option: unknown,
+) {
   const labels = getTranslatedLabels(itemMeta);
   if (labels) {
     const numericIndex = typeof index === 'number' ? index : Number(index);
@@ -345,29 +359,37 @@ function getLabel(itemMeta: any, index: string | number, option: unknown) {
   return undefined;
 }
 
-function getTranslatedLabels(itemMeta: any): string[] | null {
-  if (!itemMeta?.labels) return null;
+function getTranslatedLabels(itemMeta: ItemMeta | null | undefined): string[] {
+  if (!itemMeta?.labels) return [];
+
   if (typeof itemMeta.labels === 'string') {
     const translatedLabels = getRaw(itemMeta.labels);
     if (Array.isArray(translatedLabels)) {
-      return translatedLabels;
+      return translatedLabels.map((v) => String(v));
     }
+    return [];
   }
+
   if (Array.isArray(itemMeta.labels)) {
-    return itemMeta.labels;
+    return itemMeta.labels.map((v) => String(v));
   }
-  return null;
+
+  return [];
 }
 
-function getSelectItems(itemMeta: any) {
+function getSelectItems(itemMeta: ItemMeta | null | undefined) {
   const labels = getTranslatedLabels(itemMeta);
-  if (labels && itemMeta.options) {
-    return itemMeta.options.map((value: unknown, index: number) => ({
-      title: labels[index] || value,
+  const options = itemMeta?.options;
+  if (!Array.isArray(options)) return [];
+
+  if (labels.length > 0) {
+    return options.map((value: unknown, index: number) => ({
+      title: labels[index] || String(value),
       value,
     }));
   }
-  return itemMeta.options || [];
+
+  return options;
 }
 
 function parseSpecialValue(value: unknown) {

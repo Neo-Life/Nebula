@@ -104,38 +104,63 @@ import { computed } from 'vue';
 import type { PropType } from 'vue';
 import { useTheme } from 'vuetify'; // 引入 useTheme
 
+type ProviderSourceLike = {
+  id: string;
+  provider_type?: string;
+  type?: string;
+  provider?: string;
+  key?: string;
+  api_base?: string;
+  enable?: boolean;
+  isPlaceholder?: boolean;
+  templateKey?: string;
+};
+
+type SourceTypeOption = {
+  value: string;
+  label: string;
+};
+
+type TmFn = (key: string, params?: Record<string, string | number>) => string;
+type ResolveSourceIconFn = (
+  source: ProviderSourceLike | null | undefined,
+) => string;
+type GetSourceDisplayNameFn = (
+  source: ProviderSourceLike | null | undefined,
+) => string;
+
 const props = defineProps({
   displayedProviderSources: {
-    type: Array as PropType<any[]>,
+    type: Array as PropType<ProviderSourceLike[]>,
     default: () => [],
   },
   selectedProviderSource: {
-    type: Object as PropType<any>,
+    type: Object as PropType<ProviderSourceLike | null>,
     default: null,
   },
   availableSourceTypes: {
-    type: Array as PropType<any[]>,
+    type: Array as PropType<SourceTypeOption[]>,
     default: () => [],
   },
   tm: {
-    type: Function,
+    type: Function as PropType<TmFn>,
     required: true,
   },
   resolveSourceIcon: {
-    type: Function,
+    type: Function as PropType<ResolveSourceIconFn>,
     required: true,
   },
   getSourceDisplayName: {
-    type: Function,
+    type: Function as PropType<GetSourceDisplayNameFn>,
     required: true,
   },
 });
 
-const emit = defineEmits([
-  'add-provider-source',
-  'select-provider-source',
-  'delete-provider-source',
-]);
+const emit = defineEmits<{
+  (e: 'add-provider-source', type: string): void;
+  (e: 'select-provider-source', source: ProviderSourceLike): void;
+  (e: 'delete-provider-source', source: ProviderSourceLike): void;
+}>();
 
 // 获取当前主题状态
 const theme = useTheme();
@@ -143,15 +168,15 @@ const isDark = computed(() => theme.global.current.value.dark);
 
 const selectedId = computed(() => props.selectedProviderSource?.id || null);
 
-const isActive = (source: any) => {
+const isActive = (source: ProviderSourceLike) => {
   if (source.isPlaceholder) return false;
   return selectedId.value !== null && selectedId.value === source.id;
 };
 
-const emitAddSource = (type: unknown) => emit('add-provider-source', type);
-const emitSelectSource = (source: unknown) =>
+const emitAddSource = (type: string) => emit('add-provider-source', type);
+const emitSelectSource = (source: ProviderSourceLike) =>
   emit('select-provider-source', source);
-const emitDeleteSource = (source: unknown) =>
+const emitDeleteSource = (source: ProviderSourceLike) =>
   emit('delete-provider-source', source);
 </script>
 

@@ -3,7 +3,7 @@
     <v-slide-y-transition>
       <v-row v-if="noticeTitle && noticeContent" class="notice-row">
         <v-alert
-          :type="noticeType as any"
+          :type="noticeType"
           :text="noticeContent"
           :title="noticeTitle"
           closable
@@ -97,7 +97,7 @@ export default {
       stat: {},
       noticeTitle: '',
       noticeContent: '',
-      noticeType: '',
+      noticeType: 'info' as 'success' | 'info' | 'warning' | 'error',
       lastUpdated: '',
       refreshInterval: null as ReturnType<typeof setInterval> | null,
       isRefreshing: false,

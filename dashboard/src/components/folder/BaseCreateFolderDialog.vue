@@ -10,7 +10,7 @@
           <v-text-field
             v-model="formData.name"
             :label="mergedLabels.nameLabel"
-            :rules="[(v: any) => !!v || mergedLabels.nameRequired]"
+            :rules="[(v: unknown) => !!v || mergedLabels.nameRequired]"
             variant="outlined"
             density="comfortable"
             autofocus
@@ -49,6 +49,10 @@
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue';
 import type { CreateFolderData } from './types';
+
+type FormRef = {
+  resetValidation: () => void;
+};
 
 interface DefaultLabels {
   title: string;
@@ -122,7 +126,7 @@ export default defineComponent({
         description: '',
       };
       if (this.$refs.form) {
-        (this.$refs.form as any).resetValidation();
+        (this.$refs.form as unknown as FormRef).resetValidation();
       }
     },
 

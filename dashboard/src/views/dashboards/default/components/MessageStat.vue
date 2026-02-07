@@ -156,8 +156,20 @@ export default defineComponent({
   computed: {
     chartOptions() {
       const currentTheme = this.theme.current.value;
-      const themeColors: any = currentTheme.colors || {};
+      const themeColors = currentTheme.colors as
+        | Record<string, unknown>
+        | undefined;
       const isDark = currentTheme.dark;
+
+      const primaryColor =
+        themeColors && typeof themeColors.primary === 'string'
+          ? themeColors.primary
+          : undefined;
+
+      const borderColor =
+        themeColors && typeof themeColors.border === 'string'
+          ? themeColors.border
+          : undefined;
 
       return {
         chart: {
@@ -182,7 +194,7 @@ export default defineComponent({
             speed: 800,
           },
         },
-        colors: [themeColors.primary || '#5e35b1'],
+        colors: [primaryColor || '#5e35b1'],
         fill: {
           type: 'solid',
           opacity: 0.3,
@@ -240,7 +252,7 @@ export default defineComponent({
           },
         },
         grid: {
-          borderColor: themeColors.border || '#eeeeee',
+          borderColor: borderColor || '#eeeeee',
           row: {
             colors: ['transparent', 'transparent'],
             opacity: 0.2,

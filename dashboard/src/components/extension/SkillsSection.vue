@@ -165,6 +165,30 @@ export default defineComponent({
     const { t } = useI18n();
     const { tm } = useModuleI18n('features/extension');
 
+    type UnknownRecord = Record<string, unknown>;
+    const isRecord = (value: unknown): value is UnknownRecord =>
+      typeof value === 'object' && value !== null && !Array.isArray(value);
+
+    const getErrorMessage = (error: unknown, fallback: string): string => {
+      if (axios.isAxiosError(error)) {
+        const data = error.response?.data;
+        if (isRecord(data) && typeof data.message === 'string') {
+          const trimmed = data.message.trim();
+          if (trimmed) return trimmed;
+        }
+        const msg = (error.message || '').trim();
+        return msg || fallback;
+      }
+
+      if (error instanceof Error) {
+        const msg = (error.message || '').trim();
+        return msg || fallback;
+      }
+
+      const msg = String(error ?? '').trim();
+      return msg || fallback;
+    };
+
     const skills = ref<SkillItem[]>([]);
     const loading = ref(false);
     const uploading = ref(false);
@@ -217,8 +241,8 @@ export default defineComponent({
         } else {
           skills.value = payload?.skills || [];
         }
-      } catch (err) {
-        showMessage((err as any)?.message || tm('skills.loadFailed'), 'error');
+      } catch (err: unknown) {
+        showMessage(getErrorMessage(err, tm('skills.loadFailed')), 'error');
       }
 
       const elapsed = Date.now() - startedAt;
@@ -276,11 +300,8 @@ export default defineComponent({
             await fetchSkills();
           },
         );
-      } catch (err) {
-        showMessage(
-          (err as any)?.message || tm('skills.uploadFailed'),
-          'error',
-        );
+      } catch (err: unknown) {
+        showMessage(getErrorMessage(err, tm('skills.uploadFailed')), 'error');
       } finally {
         uploading.value = false;
       }
@@ -304,11 +325,8 @@ export default defineComponent({
             skill.active = nextActive;
           },
         );
-      } catch (err) {
-        showMessage(
-          (err as any)?.message || tm('skills.updateFailed'),
-          'error',
-        );
+      } catch (err: unknown) {
+        showMessage(getErrorMessage(err, tm('skills.updateFailed')), 'error');
       } finally {
         itemLoading[skill.name] = false;
       }
@@ -338,11 +356,8 @@ export default defineComponent({
             await fetchSkills();
           },
         );
-      } catch (err) {
-        showMessage(
-          (err as any)?.message || tm('skills.deleteFailed'),
-          'error',
-        );
+      } catch (err: unknown) {
+        showMessage(getErrorMessage(err, tm('skills.deleteFailed')), 'error');
       } finally {
         deleting.value = false;
       }
