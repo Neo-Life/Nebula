@@ -131,6 +131,9 @@ export default [
       'src/views/dashboards/default/DefaultDashboard.vue',
       'src/views/dashboards/default/components/MessageStat.vue',
       'src/views/knowledge-base/components/TavilyKeyDialog.vue',
+      'src/views/knowledge-base/KBDetail.vue',
+      'src/views/knowledge-base/DocumentDetail.vue',
+      'src/views/knowledge-base/components/RetrievalTab.vue',
     ],
     plugins: {
       '@typescript-eslint': tseslint,
