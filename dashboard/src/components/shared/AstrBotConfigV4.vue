@@ -540,5 +540,12 @@ function hasVisibleItemsAfter(
   .config-input {
     padding: 4px;
   }
+
+  /* When the input column wraps under the label on mobile, keep switches aligned to the right. */
+  .config-input :deep(.v-switch) {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+  }
 }
 </style>
