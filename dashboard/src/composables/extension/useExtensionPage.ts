@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useModuleI18n } from '@/i18n/composables';
 import { useCommonStore } from '@/stores/common';
 
-import type { ExtensionActiveTab } from '@/types/extension';
+import type { ExtensionActiveTab, PluginMarketItem } from '@/types/extension';
 
 import { useCommandConflicts } from './useCommandConflicts';
 import { useInstalledPlugins } from './useInstalledPlugins';
@@ -234,12 +234,12 @@ export function useExtensionPage() {
     return repo || plugin.name;
   };
 
-  const cart = ref(new Map<string, any>());
+  const cart = ref(new Map<string, PluginMarketItem>());
 
   const cartItems = computed(() => Array.from(cart.value.values()));
   const cartCount = computed(() => cart.value.size);
 
-  const toggleCart = (plugin: any) => {
+  const toggleCart = (plugin: PluginMarketItem | null) => {
     if (!plugin) return;
     if (plugin.installed) return;
 

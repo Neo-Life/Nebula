@@ -10,7 +10,8 @@ export type ToastFn = (
   color: ToastColor,
   timeToClose?: number,
 ) => void;
-export type Tm = (key: string, ...args: unknown[]) => string;
+type TmParams = Record<string, string | number>;
+export type Tm = (key: string, params?: TmParams) => string;
 
 type InstallResult = { name: string; repo?: string | null };
 type AfterInstallOptions = { openReadme?: boolean };

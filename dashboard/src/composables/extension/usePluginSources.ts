@@ -9,7 +9,8 @@ export type ToastFn = (
   color: ToastColor,
   timeToClose?: number,
 ) => void;
-export type Tm = (key: string, ...args: any[]) => string;
+type TmParams = Record<string, string | number>;
+export type Tm = (key: string, params?: TmParams) => string;
 
 export function usePluginSources({
   tm,
@@ -47,7 +48,7 @@ export function usePluginSources({
       } else {
         toast(res.data.message, 'error');
       }
-    } catch (e) {
+    } catch (e: unknown) {
       console.warn('Failed to load custom sources:', e);
       customSources.value = [];
     }
@@ -69,7 +70,7 @@ export function usePluginSources({
       if (res.data.status !== 'ok') {
         toast(res.data.message, 'error');
       }
-    } catch (e) {
+    } catch (e: unknown) {
       toast(e, 'error');
     }
   };

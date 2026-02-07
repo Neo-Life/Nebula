@@ -2,7 +2,8 @@ import { reactive } from 'vue';
 
 import { normalizeMessage } from './utils';
 
-export type Tm = (key: string, ...args: any[]) => string;
+type TmParams = Record<string, string | number>;
+export type Tm = (key: string, params?: TmParams) => string;
 
 export function useLoadingDialog(tm: Tm) {
   const loadingDialog = reactive({
