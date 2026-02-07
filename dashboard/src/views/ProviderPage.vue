@@ -321,16 +321,18 @@
 
     <!-- 配置对话框 -->
     <v-dialog v-model="showProviderCfg" width="900" persistent>
-      <v-card
-        :title="
-          updatingMode
-            ? tm('dialogs.config.editTitle')
-            : tm('dialogs.config.addTitle') +
-              ` ${newSelectedProviderName} ` +
-              tm('dialogs.config.provider')
-        "
-      >
-        <v-card-text class="py-4">
+      <v-card class="provider-dialog-card d-flex flex-column">
+        <v-card-title class="provider-dialog-title">
+          {{
+            updatingMode
+              ? tm('dialogs.config.editTitle')
+              : tm('dialogs.config.addTitle') +
+                ` ${newSelectedProviderName} ` +
+                tm('dialogs.config.provider')
+          }}
+        </v-card-title>
+
+        <v-card-text class="py-4 flex-grow-1 overflow-y-auto">
           <AstrBotConfig
             :iterable="newSelectedProviderConfig"
             :metadata="configSchema"
@@ -359,8 +361,11 @@
 
     <!-- 已配置模型编辑对话框 -->
     <v-dialog v-model="showProviderEditDialog" width="800">
-      <v-card :title="providerEditData?.id || tm('dialogs.config.editTitle')">
-        <v-card-text class="py-4">
+      <v-card class="provider-dialog-card d-flex flex-column">
+        <v-card-title class="provider-dialog-title">
+          {{ providerEditData?.id || tm('dialogs.config.editTitle') }}
+        </v-card-title>
+        <v-card-text class="py-4 flex-grow-1 overflow-y-auto">
           <small style="color: gray"
             >不建议修改
             ID，可能会导致指向该模型的相关配置（如默认模型、插件相关配置等）失效。旧版本
@@ -962,6 +967,14 @@ function goToConfigPage() {
 
 .provider-config-card {
   min-height: 280px;
+}
+
+.provider-dialog-card {
+  max-height: calc(100vh - 48px);
+}
+
+.provider-dialog-title {
+  flex: 0 0 auto;
 }
 
 .provider-item-card.is-dark
