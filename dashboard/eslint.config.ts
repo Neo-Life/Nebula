@@ -119,6 +119,7 @@ export default [
       'src/components/shared/TemplateListEditor.vue',
       'src/components/shared/BackupDialog.vue',
       'src/components/shared/PersonaForm.vue',
+      'src/views/SubAgentPage.vue',
     ],
     plugins: {
       '@typescript-eslint': tseslint,
