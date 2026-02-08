@@ -430,11 +430,20 @@ class LarkMessageEvent(AstrMessageEvent):
         # 获取音频时长
         duration = await get_media_duration(audio_path)
 
+        # 仅在转换成功（或本身就是 .opus）时标记为 opus。
+        # 转换失败回退到原始文件时，按真实扩展名上传，避免把 mp3/wav 等错误标记为 opus。
+        audio_path_lower = audio_path.lower()
+        if audio_path_lower.endswith(".opus"):
+            upload_file_type = "opus"
+        else:
+            ext = os.path.splitext(audio_path_lower)[1].lstrip(".")
+            upload_file_type = ext if ext else "stream"
+
         # 上传音频文件
         file_key = await LarkMessageEvent._upload_lark_file(
             lark_client,
             path=audio_path,
-            file_type="opus",
+            file_type=upload_file_type,
             duration=duration,
         )
 

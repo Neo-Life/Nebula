@@ -4,15 +4,15 @@
 
 ## 组件列表
 
-| 组件 | 说明 |
-|------|------|
-| `BaseFolderTree` | 文件夹树组件，支持搜索、展开/折叠、右键菜单、拖放 |
-| `BaseFolderTreeNode` | 文件夹树节点组件（内部使用） |
-| `BaseFolderCard` | 文件夹卡片组件，用于网格布局展示 |
-| `BaseFolderBreadcrumb` | 面包屑导航组件 |
-| `BaseCreateFolderDialog` | 创建文件夹对话框 |
-| `BaseMoveToFolderDialog` | 移动项目到文件夹对话框 |
-| `BaseMoveTargetNode` | 移动对话框中的目标文件夹节点（内部使用） |
+| 组件                     | 说明                                              |
+| ------------------------ | ------------------------------------------------- |
+| `BaseFolderTree`         | 文件夹树组件，支持搜索、展开/折叠、右键菜单、拖放 |
+| `BaseFolderTreeNode`     | 文件夹树节点组件（内部使用）                      |
+| `BaseFolderCard`         | 文件夹卡片组件，用于网格布局展示                  |
+| `BaseFolderBreadcrumb`   | 面包屑导航组件                                    |
+| `BaseCreateFolderDialog` | 创建文件夹对话框                                  |
+| `BaseMoveToFolderDialog` | 移动项目到文件夹对话框                            |
+| `BaseMoveTargetNode`     | 移动对话框中的目标文件夹节点（内部使用）          |
 
 ## Composable
 
@@ -32,11 +32,11 @@ const {
   expandedFolderIds,
   loading,
   treeLoading,
-  
+
   // 计算属性
   currentFolderName,
   breadcrumbItems,
-  
+
   // 方法
   loadFolderTree,
   navigateToFolder,
@@ -58,7 +58,7 @@ const {
     },
     loadSubFolders: async (parentId) => {
       const response = await axios.get('/api/your-module/folder/list', {
-        params: { parent_id: parentId ?? '' }
+        params: { parent_id: parentId ?? '' },
       });
       return response.data.data;
     },
@@ -70,7 +70,9 @@ const {
       await axios.post('/api/your-module/folder/update', data);
     },
     deleteFolder: async (folderId) => {
-      await axios.post('/api/your-module/folder/delete', { folder_id: folderId });
+      await axios.post('/api/your-module/folder/delete', {
+        folder_id: folderId,
+      });
     },
   },
   rootFolderName: '根目录',
@@ -102,7 +104,7 @@ const {
         @toggle-expansion="toggleFolderExpansion"
       />
     </div>
-    
+
     <!-- 主内容区 -->
     <div class="main-content">
       <!-- 面包屑 -->
@@ -112,10 +114,14 @@ const {
         root-folder-name="根目录"
         @navigate="navigateToFolder"
       />
-      
+
       <!-- 文件夹卡片 -->
       <v-row>
-        <v-col v-for="folder in currentFolders" :key="folder.folder_id" cols="3">
+        <v-col
+          v-for="folder in currentFolders"
+          :key="folder.folder_id"
+          cols="3"
+        >
           <BaseFolderCard
             :folder="folder"
             :accept-drop-types="['item']"
@@ -130,7 +136,7 @@ const {
         </v-col>
       </v-row>
     </div>
-    
+
     <!-- 创建文件夹对话框 -->
     <BaseCreateFolderDialog
       v-model="showCreateDialog"
@@ -138,7 +144,7 @@ const {
       :labels="createDialogLabels"
       @create="handleCreateFolder"
     />
-    
+
     <!-- 移动对话框 -->
     <BaseMoveToFolderDialog
       v-model="showMoveDialog"
@@ -306,10 +312,7 @@ interface CreateFolderData {
 
 ```vue
 <!-- 只接受 'persona' 类型的拖放 -->
-<BaseFolderTree
-  :accept-drop-types="['persona']"
-  @item-dropped="handleDrop"
-/>
+<BaseFolderTree :accept-drop-types="['persona']" @item-dropped="handleDrop" />
 
 <!-- 拖放事件处理 -->
 <script setup>
@@ -338,7 +341,7 @@ export const useMyFolderStore = defineStore('myFolder', {
     currentFolders: [] as Folder[],
     // ...
   }),
-  
+
   actions: {
     async loadFolderTree() {
       // ...

@@ -185,8 +185,19 @@ class ProviderOpenAIOfficial(Provider):
         async for chunk in stream:
             try:
                 state.handle_chunk(chunk)
-            except Exception as e:
-                logger.warning("Saving chunk state error: " + str(e))
+            except Exception:
+                chunk_type = type(chunk).__name__
+                chunk_id = getattr(chunk, "id", None)
+                try:
+                    choices_len = len(getattr(chunk, "choices", []) or [])
+                except Exception:
+                    choices_len = None
+                logger.exception(
+                    "Saving chunk state error (chunk_type=%s, chunk_id=%s, choices=%s)",
+                    chunk_type,
+                    chunk_id,
+                    choices_len,
+                )
             if len(chunk.choices) == 0:
                 continue
             delta = chunk.choices[0].delta

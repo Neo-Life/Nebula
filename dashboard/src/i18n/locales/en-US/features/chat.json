@@ -30,7 +30,7 @@
     "liveMode": "Live Mode"
   },
   "welcome": {
-    "title": "Welcome to AstrBot",
+    "title": "Welcome to Nebula",
     "subtitle": "Your Intelligent Chat Assistant",
     "quickActions": "Quick Actions",
     "examples": "Example Questions"
@@ -68,9 +68,10 @@
     "confirmDelete": "Are you sure you want to delete \"{name}\"? This action cannot be undone."
   },
   "modes": {
-    "darkMode": "Switch to Dark Mode",
-    "lightMode": "Switch to Light Mode"
-  },  "shortcuts": {
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode"
+  },
+  "shortcuts": {
     "help": "Get Help",
     "voiceRecord": "Record Voice",
     "pasteImage": "Paste Image"
@@ -80,9 +81,11 @@
     "disabled": "Streaming disabled",
     "on": "Stream",
     "off": "Normal"
-  },  "config": {
+  },
+  "config": {
     "title": "Config"
-  },  "reasoning": {
+  },
+  "reasoning": {
     "thinking": "Thinking Process"
   },
   "reply": {
@@ -132,6 +135,8 @@
   },
   "errors": {
     "sendMessageFailed": "Failed to send message, please try again",
-    "createSessionFailed": "Failed to create session, please refresh the page"
+    "createSessionFailed": "Failed to create session, please refresh the page",
+    "sessionNotFound": "Session does not exist or has been deleted",
+    "sessionRunning": "This session is generating a reply. Please wait before sending."
   }
-} 
+}

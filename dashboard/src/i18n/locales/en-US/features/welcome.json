@@ -1,8 +1,8 @@
 {
   "greeting": {
-    "morning": "Good morning, welcome to AstrBot",
-    "afternoon": "Good afternoon, welcome to AstrBot",
-    "evening": "Good evening, welcome to AstrBot",
+    "morning": "Good morning, welcome to Nebula",
+    "afternoon": "Good afternoon, welcome to Nebula",
+    "evening": "Good evening, welcome to Nebula",
     "newYear": "Happy New Year!"
   },
   "subtitle": "You can complete the basic onboarding first. Platform and chat provider setup can both be skipped.",
@@ -10,9 +10,9 @@
     "title": "Quick Onboarding",
     "subtitle": "Complete initialization directly on the welcome page.",
     "step1Title": "Configure Platform Bot",
-    "step1Desc": "Connect AstrBot to IM platforms like QQ, Lark, Slack, Telegram, etc.",
+    "step1Desc": "Connect Nebula to IM platforms like QQ, Lark, Slack, Telegram, etc.",
     "step2Title": "Configure AI Model",
-    "step2Desc": "Configure AI models for AstrBot.",
+    "step2Desc": "Configure AI models for Nebula.",
     "configure": "Configure",
     "skip": "Skip",
     "pending": "Pending",
@@ -27,6 +27,6 @@
     "title": "Resources",
     "githubDesc": "Give us a Star!",
     "docsTitle": "Documentation",
-    "docsDesc": "Read the official AstrBot documentation."
+    "docsDesc": "Read the official documentation."
   }
 }

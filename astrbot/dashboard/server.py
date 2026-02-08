@@ -240,11 +240,11 @@ class AstrBotDashboard:
 
             raise Exception(f"端口 {port} 已被占用")
 
-        parts = [f"\n ✨✨✨\n  AstrBot v{VERSION} WebUI 已启动，可访问\n\n"]
+        parts = [f"\n ✨✨✨\n  Nebula v{VERSION} WebUI 已启动，可访问\n\n"]
         parts.append(f"   ➜  本地: http://localhost:{port}\n")
         for ip in ip_addr:
             parts.append(f"   ➜  网络: http://{ip}:{port}\n")
-        parts.append("   ➜  默认用户名和密码: astrbot\n ✨✨✨\n")
+        parts.append("   ➜  默认用户名和密码: nebula\n ✨✨✨\n")
         display = "".join(parts)
 
         if not ip_addr:
@@ -273,4 +273,4 @@ class AstrBotDashboard:
 
     async def shutdown_trigger(self) -> None:
         await self.shutdown_event.wait()
-        logger.info("AstrBot WebUI 已经被优雅地关闭")
+        logger.info("WebUI 已经被优雅地关闭")

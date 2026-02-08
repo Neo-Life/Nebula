@@ -4,7 +4,7 @@
   "tooltip": {
     "info": "What are Function Calling and MCP?",
     "marketplace": "Browse and install MCP servers from the community",
-    "serverConfig": "MCP server (stdio) configuration supports the following fields:\ncommand: Command name (e.g. python or uv)\nargs: Command arguments array (e.g. [\"run\", \"server.py\"])\nenv: Environment variables object (e.g. {\"api_key\": \"abc\"})\ncwd: Working directory path (e.g. /path/to/server)\nencoding: Output encoding (default utf-8)\nencoding_error_handler: The text encoding error handler. Defaults to strict.\nOther fields please refer to MCP documentation\n⚠️ If you deploy AstrBot using Docker, make sure to install MCP servers in the data directory mounted by AstrBot"
+    "serverConfig": "MCP server (stdio) configuration supports the following fields:\ncommand: Command name (e.g. python or uv)\nargs: Command arguments array (e.g. [\"run\", \"server.py\"])\nenv: Environment variables object (e.g. {\"api_key\": \"abc\"})\ncwd: Working directory path (e.g. /path/to/server)\nencoding: Output encoding (default utf-8)\nencoding_error_handler: The text encoding error handler. Defaults to strict.\nOther fields please refer to MCP documentation\n⚠️ If you deploy Nebula using Docker, make sure to install MCP servers in the data directory mounted by Nebula"
   },
   "tabs": {
     "local": "Local Servers",
