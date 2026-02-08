@@ -192,10 +192,7 @@
         },
         "context_limit_reached_strategy": {
           "description": "超出模型上下文窗口时的处理方式",
-          "labels": [
-            "按对话轮数截断",
-            "由 LLM 压缩上下文"
-          ],
+          "labels": ["按对话轮数截断", "由 LLM 压缩上下文"],
           "hint": "当按对话轮数截断时，会根据上面\"丢弃对话轮数\"的配置丢弃最旧的 N 轮对话。当由 LLM 压缩上下文时，会使用指定的模型进行上下文压缩。"
         },
         "llm_compress_instruction": {
@@ -347,10 +344,7 @@
       },
       "lark_connection_mode": {
         "description": "订阅方式",
-        "labels": [
-          "长连接模式",
-          "推送至服务器模式"
-        ]
+        "labels": ["长连接模式", "推送至服务器模式"]
       },
       "lark_encrypt_key": {
         "description": "Encrypt Key",
@@ -884,11 +878,7 @@
       "modalities": {
         "description": "模型能力",
         "hint": "模型支持的模态。如所填写的模型不支持图像，请取消勾选图像。",
-        "labels": [
-          "文本",
-          "图像",
-          "工具使用"
-        ]
+        "labels": ["文本", "图像", "工具使用"]
       },
       "custom_headers": {
         "description": "自定义添加请求头",

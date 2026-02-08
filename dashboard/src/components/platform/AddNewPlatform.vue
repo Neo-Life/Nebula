@@ -22,13 +22,14 @@
           <div>
             <v-icon icon="mdi-numeric-1-circle" class="mr-3"></v-icon>
           </div>
-          <div style="flex: 1;">
+          <div style="flex: 1">
             <h3>
               {{ tm('createDialog.step1Title') }}
             </h3>
-            <small style="color: grey;">{{ tm('createDialog.step1Hint') }}</small>
+            <small style="color: grey">{{
+              tm('createDialog.step1Hint')
+            }}</small>
             <div>
-
               <div v-if="!updatingMode">
                 <v-select
                   v-model="selectedPlatformType"
@@ -43,13 +44,14 @@
                   class="mt-6"
                   style="max-width: 30%; min-width: 300px"
                 >
-
                   <template v-slot:item="{ props: itemProps, item }">
                     <v-list-item v-bind="itemProps">
                       <template v-slot:prepend>
                         <img
                           :src="
-                            getPlatformIcon(platformTemplates[item.raw]?.type ?? '')
+                            getPlatformIcon(
+                              platformTemplates[item.raw]?.type ?? '',
+                            )
                           "
                           style="
                             width: 32px;
@@ -61,10 +63,14 @@
                       </template>
                     </v-list-item>
                   </template>
-
                 </v-select>
                 <div class="mt-3" v-if="selectedPlatformConfig">
-                  <v-btn color="info" variant="tonal" @click="openTutorial" class="mt-2">
+                  <v-btn
+                    color="info"
+                    variant="tonal"
+                    @click="openTutorial"
+                    class="mt-2"
+                  >
                     <v-icon start>mdi-book-open-variant</v-icon>
                     {{ tm('dialog.viewTutorial') }}
                   </v-btn>
@@ -86,7 +92,7 @@
                   hide-details
                   class="mt-6"
                   style="max-width: 30%; min-width: 300px"
-                  v-model="updatingPlatformConfig.type"
+                  :model-value="updatingPlatformConfig?.type ?? ''"
                   disabled
                 ></v-text-field>
                 <div class="mt-3">
@@ -99,7 +105,6 @@
                   </div>
                 </div>
               </div>
-
             </div>
           </div>
         </div>
@@ -108,53 +113,105 @@
           <div>
             <v-icon icon="mdi-numeric-2-circle" class="mr-3"></v-icon>
           </div>
-          <div style="flex: 1;">
+          <div style="flex: 1">
             <div class="d-flex align-center justify-space-between">
               <div>
                 <div class="d-flex align-center">
                   <h3>
                     {{ tm('createDialog.configFileTitle') }}
                   </h3>
-                  <v-chip size="x-small" color="primary" variant="tonal" rounded="sm" class="ml-2"
-                    v-if="!updatingMode">{{ tm('createDialog.optional') }}</v-chip>
+                  <v-chip
+                    size="x-small"
+                    color="primary"
+                    variant="tonal"
+                    rounded="sm"
+                    class="ml-2"
+                    v-if="!updatingMode"
+                    >{{ tm('createDialog.optional') }}</v-chip
+                  >
                 </div>
-                <small style="color: grey;">{{ tm('createDialog.configHint') }}</small>
-                <small style="color: grey;" v-if="!updatingMode">{{ tm('createDialog.configDefaultHint') }}</small>
+                <small style="color: grey">{{
+                  tm('createDialog.configHint')
+                }}</small>
+                <small style="color: grey" v-if="!updatingMode">{{
+                  tm('createDialog.configDefaultHint')
+                }}</small>
               </div>
               <div>
-                <v-btn variant="plain" icon @click="toggleConfigSection" class="mt-2">
-                  <v-icon>{{ showConfigSection ? 'mdi-chevron-up' : 'mdi-chevron-down' }}</v-icon>
+                <v-btn
+                  variant="plain"
+                  icon
+                  @click="toggleConfigSection"
+                  class="mt-2"
+                >
+                  <v-icon>{{
+                    showConfigSection ? 'mdi-chevron-up' : 'mdi-chevron-down'
+                  }}</v-icon>
                 </v-btn>
               </div>
-
             </div>
 
             <div v-if="showConfigSection">
               <div v-if="!updatingMode">
-                <v-radio-group class="mt-2" v-model="aBConfigRadioVal" hide-details="true">
+                <v-radio-group
+                  class="mt-2"
+                  v-model="aBConfigRadioVal"
+                  hide-details="true"
+                >
                   <v-radio value="0">
                     <template v-slot:label>
                       <span>{{ tm('createDialog.useExistingConfig') }}</span>
                     </template>
                   </v-radio>
-                  <div class="d-flex align-center ml-10 my-2" v-if="aBConfigRadioVal === '0'">
-                    <v-select v-model="selectedAbConfId" :items="configInfoList" item-title="name"
-                      item-value="id" :label="tm('createDialog.selectConfigLabel')" variant="outlined" rounded="md" dense hide-details
-                      style="max-width: 30%; min-width: 200px;">
+                  <div
+                    class="d-flex align-center ml-10 my-2"
+                    v-if="aBConfigRadioVal === '0'"
+                  >
+                    <v-select
+                      v-model="selectedAbConfId"
+                      :items="configInfoList"
+                      item-title="name"
+                      item-value="id"
+                      :label="tm('createDialog.selectConfigLabel')"
+                      variant="outlined"
+                      rounded="md"
+                      dense
+                      hide-details
+                      style="max-width: 30%; min-width: 200px"
+                    >
                     </v-select>
-                    <v-btn icon variant="text" density="comfortable" class="ml-2"
-                      :disabled="!selectedAbConfId" @click="openConfigDrawer(selectedAbConfId)">
+                    <v-btn
+                      icon
+                      variant="text"
+                      density="comfortable"
+                      class="ml-2"
+                      :disabled="!selectedAbConfId"
+                      @click="openConfigDrawer(selectedAbConfId)"
+                    >
                       <v-icon>mdi-arrow-top-right-thick</v-icon>
                     </v-btn>
                   </div>
-                  <v-radio value="1" :label="tm('createDialog.createNewConfig')">
+                  <v-radio
+                    value="1"
+                    :label="tm('createDialog.createNewConfig')"
+                  >
                   </v-radio>
-                  <div class="d-flex align-center" v-if="aBConfigRadioVal === '1'">
-                    <v-text-field v-model="selectedAbConfId" :label="tm('createDialog.newConfigNameLabel')" variant="outlined" rounded="md" dense
-                      hide-details style="max-width: 30%; min-width: 200px;" class="ml-10 my-2">
+                  <div
+                    class="d-flex align-center"
+                    v-if="aBConfigRadioVal === '1'"
+                  >
+                    <v-text-field
+                      v-model="selectedAbConfId"
+                      :label="tm('createDialog.newConfigNameLabel')"
+                      variant="outlined"
+                      rounded="md"
+                      dense
+                      hide-details
+                      style="max-width: 30%; min-width: 200px"
+                      class="ml-10 my-2"
+                    >
                     </v-text-field>
                   </div>
-
                 </v-radio-group>
 
                 <!-- 现有配置文件预览区域 -->
@@ -175,107 +232,213 @@
 
                 <!-- 新配置文件编辑区域 -->
                 <div v-if="aBConfigRadioVal === '1'" class="mt-4">
-                  <div v-if="newConfigLoading" class="d-flex justify-center py-4">
-                    <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                  <div
+                    v-if="newConfigLoading"
+                    class="d-flex justify-center py-4"
+                  >
+                    <v-progress-circular
+                      indeterminate
+                      color="primary"
+                    ></v-progress-circular>
                   </div>
-                  <div v-else-if="newConfigData && newConfigMetadata" class="config-preview-container">
-                    <h4 class="mb-3">{{ tm('createDialog.newConfigTitle') }}</h4>
-                    <AstrBotCoreConfigWrapper :metadata="newConfigMetadata" :config_data="newConfigData" />
+                  <div
+                    v-else-if="newConfigData && newConfigMetadata"
+                    class="config-preview-container"
+                  >
+                    <h4 class="mb-3">
+                      {{ tm('createDialog.newConfigTitle') }}
+                    </h4>
+                    <AstrBotCoreConfigWrapper
+                      :metadata="newConfigMetadata"
+                      :config_data="newConfigData"
+                    />
                   </div>
                   <div v-else class="text-center py-4 text-grey">
                     <v-icon>mdi-information-outline</v-icon>
-                    <p class="mt-2">{{ tm('createDialog.newConfigLoadFailed') }}</p>
+                    <p class="mt-2">
+                      {{ tm('createDialog.newConfigLoadFailed') }}
+                    </p>
                   </div>
                 </div>
-
               </div>
 
               <div v-else>
                 <div class="mb-3 d-flex align-center justify-space-between">
                   <div>
-                    <v-btn v-if="isEditingRoutes" color="primary" variant="tonal" @click="addNewRoute" size="small">
+                    <v-btn
+                      v-if="isEditingRoutes"
+                      color="primary"
+                      variant="tonal"
+                      @click="addNewRoute"
+                      size="small"
+                    >
                       <v-icon start>mdi-plus</v-icon>
                       {{ tm('createDialog.addRouteRule') }}
                     </v-btn>
                   </div>
-                  <v-btn :color="isEditingRoutes ? 'grey' : 'primary'" variant="tonal" size="small"
-                    @click="toggleEditMode">
-                    <v-icon start>{{ isEditingRoutes ? 'mdi-eye' : 'mdi-pencil' }}</v-icon>
-                    {{ isEditingRoutes ? tm('createDialog.viewMode') : tm('createDialog.editMode') }}
+                  <v-btn
+                    :color="isEditingRoutes ? 'grey' : 'primary'"
+                    variant="tonal"
+                    size="small"
+                    @click="toggleEditMode"
+                  >
+                    <v-icon start>{{
+                      isEditingRoutes ? 'mdi-eye' : 'mdi-pencil'
+                    }}</v-icon>
+                    {{
+                      isEditingRoutes
+                        ? tm('createDialog.viewMode')
+                        : tm('createDialog.editMode')
+                    }}
                   </v-btn>
                 </div>
 
-                <v-data-table :headers="routeTableHeaders" :items="platformRoutes" item-value="umop"
-                  :no-data-text="tm('createDialog.noRouteRules')" hide-default-footer :items-per-page="-1" class="mt-2"
-                  variant="outlined">
-
+                <v-data-table
+                  :headers="routeTableHeaders"
+                  :items="platformRoutes"
+                  item-value="umop"
+                  :no-data-text="tm('createDialog.noRouteRules')"
+                  hide-default-footer
+                  :items-per-page="-1"
+                  class="mt-2"
+                  variant="outlined"
+                >
                   <template v-slot:item.source="{ item }">
-                    <div class="d-flex align-center" style="min-width: 250px;">
-                      <v-select v-if="isEditingRoutes" v-model="item.messageType" :items="messageTypeOptions"
-                        item-title="label" item-value="value" variant="outlined" density="compact" hide-details
-                        style="max-width: 140px;">
+                    <div class="d-flex align-center" style="min-width: 250px">
+                      <v-select
+                        v-if="isEditingRoutes"
+                        v-model="item.messageType"
+                        :items="messageTypeOptions"
+                        item-title="label"
+                        item-value="value"
+                        variant="outlined"
+                        density="compact"
+                        hide-details
+                        style="max-width: 140px"
+                      >
                       </v-select>
-                      <small v-else>{{ getMessageTypeLabel(item.messageType) }}</small>
+                      <small v-else>{{
+                        getMessageTypeLabel(item.messageType)
+                      }}</small>
                       <small class="mx-1">:</small>
-                      <v-text-field v-if="isEditingRoutes" v-model="item.sessionId" variant="outlined" density="compact"
-                        hide-details :placeholder="tm('createDialog.sessionIdPlaceholder')">
+                      <v-text-field
+                        v-if="isEditingRoutes"
+                        v-model="item.sessionId"
+                        variant="outlined"
+                        density="compact"
+                        hide-details
+                        :placeholder="tm('createDialog.sessionIdPlaceholder')"
+                      >
                       </v-text-field>
-                      <small v-else>{{ item.sessionId === '*' ? tm('createDialog.allSessions') : item.sessionId }}</small>
+                      <small v-else>{{
+                        item.sessionId === '*'
+                          ? tm('createDialog.allSessions')
+                          : item.sessionId
+                      }}</small>
                     </div>
                   </template>
 
                   <template v-slot:item.configId="{ item }">
                     <div class="d-flex align-center">
-                      <v-select v-if="isEditingRoutes" v-model="item.configId" :items="configInfoList"
-                        item-title="name" item-value="id" variant="outlined" density="compact"
-                        style="min-width: 200px;" hide-details>
+                      <v-select
+                        v-if="isEditingRoutes"
+                        v-model="item.configId"
+                        :items="configInfoList"
+                        item-title="name"
+                        item-value="id"
+                        variant="outlined"
+                        density="compact"
+                        style="min-width: 200px"
+                        hide-details
+                      >
                       </v-select>
                       <div v-else>
                         <small>{{ getConfigName(item.configId) }}</small>
                       </div>
-                      <v-btn icon variant="text" density="compact" class="ml-2"
-                        :disabled="!item.configId" @click="openConfigDrawer(item.configId)">
+                      <v-btn
+                        icon
+                        variant="text"
+                        density="compact"
+                        class="ml-2"
+                        :disabled="!item.configId"
+                        @click="openConfigDrawer(item.configId)"
+                      >
                         <v-icon size="18">mdi-arrow-top-right-thick</v-icon>
                       </v-btn>
                     </div>
-                    <small v-if="configInfoList.findIndex(c => c.id === item.configId) === -1" style="color: red;"
-                      class="ml-2">{{ tm('createDialog.configMissing') }}</small>
+                    <small
+                      v-if="
+                        configInfoList.findIndex(
+                          (c) => c.id === item.configId,
+                        ) === -1
+                      "
+                      style="color: red"
+                      class="ml-2"
+                      >{{ tm('createDialog.configMissing') }}</small
+                    >
                   </template>
 
-                  <template v-slot:item.actions="{ item, index }">
+                  <template v-slot:item.actions="{ index }">
                     <div v-if="isEditingRoutes" class="d-flex align-center">
-                      <v-btn icon size="x-small" variant="text" @click="moveRouteUp(index)" :disabled="index === 0">
+                      <v-btn
+                        icon
+                        size="x-small"
+                        variant="text"
+                        @click="moveRouteUp(index)"
+                        :disabled="index === 0"
+                      >
                         <v-icon>mdi-arrow-up</v-icon>
                       </v-btn>
-                      <v-btn icon size="x-small" variant="text" @click="moveRouteDown(index)"
-                        :disabled="index === platformRoutes.length - 1">
+                      <v-btn
+                        icon
+                        size="x-small"
+                        variant="text"
+                        @click="moveRouteDown(index)"
+                        :disabled="index === platformRoutes.length - 1"
+                      >
                         <v-icon>mdi-arrow-down</v-icon>
                       </v-btn>
-                      <v-btn icon size="x-small" variant="text" color="error" @click="deleteRoute(index)">
+                      <v-btn
+                        icon
+                        size="x-small"
+                        variant="text"
+                        color="error"
+                        @click="deleteRoute(index)"
+                      >
                         <v-icon>mdi-delete</v-icon>
                       </v-btn>
                     </div>
                     <span v-else class="text-grey">-</span>
                   </template>
-
                 </v-data-table>
-                <small class="ml-2 mt-2 d-block" style="color: grey">{{ tm('createDialog.routeHint') }}</small>
+                <small class="ml-2 mt-2 d-block" style="color: grey">{{
+                  tm('createDialog.routeHint')
+                }}</small>
               </div>
             </div>
-
-
           </div>
         </div>
-
       </v-card-text>
 
       <v-card-actions>
         <v-spacer></v-spacer>
         <v-btn text @click="closeDialog">{{ tm('dialog.cancel') }}</v-btn>
-        <v-btn :disabled="!canSave" color="primary" v-if="!updatingMode" @click="newPlatform" :loading="loading">{{
-          tm('dialog.save') }}</v-btn>
-        <v-btn :disabled="!selectedAbConfId" color="primary" v-else @click="newPlatform" :loading="loading">{{
-          tm('dialog.save') }}</v-btn>
+        <v-btn
+          :disabled="!canSave"
+          color="primary"
+          v-if="!updatingMode"
+          @click="newPlatform"
+          :loading="loading"
+          >{{ tm('dialog.save') }}</v-btn
+        >
+        <v-btn
+          :disabled="!selectedAbConfId"
+          color="primary"
+          v-else
+          @click="newPlatform"
+          :loading="loading"
+          >{{ tm('dialog.save') }}</v-btn
+        >
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -292,8 +455,12 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn color="grey" variant="text" @click="handleIdConflictConfirm(false)">{{ tm('dialog.idConflict.confirm')
-        }}</v-btn>
+        <v-btn
+          color="grey"
+          variant="text"
+          @click="handleIdConflictConfirm(false)"
+          >{{ tm('dialog.idConflict.confirm') }}</v-btn
+        >
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -306,16 +473,26 @@
       </v-card-title>
       <v-card-text class="py-4">
         <p>{{ tm('dialog.securityWarning.aiocqhttpTokenMissing') }}</p>
-        <span><a
+        <span
+          ><a
             href="https://docs.astrbot.app/deploy/platform/aiocqhttp/napcat.html#%E9%99%84%E5%BD%95-%E5%A2%9E%E5%BC%BA%E8%BF%9E%E6%8E%A5%E5%AE%89%E5%85%A8%E6%80%A7"
-            target="_blank">{{ tm('dialog.securityWarning.learnMore') }}</a></span>
+            target="_blank"
+            >{{ tm('dialog.securityWarning.learnMore') }}</a
+          ></span
+        >
       </v-card-text>
       <v-card-actions class="px-4 pb-4">
         <v-spacer></v-spacer>
-        <v-btn color="error" @click="handleOneBotEmptyTokenWarningDismiss(true)">
+        <v-btn
+          color="error"
+          @click="handleOneBotEmptyTokenWarningDismiss(true)"
+        >
           {{ tm('createDialog.warningContinue') }}
         </v-btn>
-        <v-btn color="primary" @click="handleOneBotEmptyTokenWarningDismiss(false)">
+        <v-btn
+          color="primary"
+          @click="handleOneBotEmptyTokenWarningDismiss(false)"
+        >
           {{ tm('createDialog.warningEditAgain') }}
         </v-btn>
       </v-card-actions>
@@ -333,9 +510,12 @@
     <v-card class="config-drawer-card" elevation="12">
       <div class="config-drawer-header">
         <div>
-          <span class="text-h6">{{ tm('createDialog.configDrawerTitle') }}</span>
+          <span class="text-h6">{{
+            tm('createDialog.configDrawerTitle')
+          }}</span>
           <div v-if="configDrawerTargetId" class="text-caption text-grey">
-            {{ tm('createDialog.configDrawerIdLabel') }}: {{ configDrawerTargetId }}
+            {{ tm('createDialog.configDrawerIdLabel') }}:
+            {{ configDrawerTargetId }}
           </div>
         </div>
         <v-btn icon variant="text" @click="closeConfigDrawer">
@@ -344,17 +524,23 @@
       </div>
       <v-divider></v-divider>
       <div class="config-drawer-content">
-        <ConfigPage v-if="showConfigDrawer" :initial-config-id="configDrawerTargetId" />
+        <ConfigPage
+          v-if="showConfigDrawer"
+          :initial-config-id="configDrawerTargetId"
+        />
       </div>
     </v-card>
   </v-overlay>
 </template>
 
-
 <script>
 import axios from 'axios';
 import { useModuleI18n } from '@/i18n/composables';
-import { getPlatformIcon, getPlatformDescription, getTutorialLink } from '@/utils/platformUtils';
+import {
+  getPlatformIcon,
+  getPlatformDescription,
+  getTutorialLink,
+} from '@/utils/platformUtils';
 import AstrBotConfig from '@/components/shared/AstrBotConfig.vue';
 import AstrBotCoreConfigWrapper from '@/components/config/AstrBotCoreConfigWrapper.vue';
 import ConfigPage from '@/views/ConfigPage.vue';
@@ -366,24 +552,24 @@ export default {
   props: {
     show: {
       type: Boolean,
-      default: false
+      default: false,
     },
     metadata: {
       type: Object,
-      default: () => ({})
+      default: () => ({}),
     },
     config_data: {
       type: Object,
-      default: () => ({})
+      default: () => ({}),
     },
     updatingMode: {
       type: Boolean,
-      default: false
+      default: false,
     },
     updatingPlatformConfig: {
       type: Object,
-      default: null
-    }
+      default: null,
+    },
   },
   data() {
     return {
@@ -443,10 +629,13 @@ export default {
       },
       set(value) {
         this.$emit('update:show', value);
-      }
+      },
     },
     platformTemplates() {
-      return this.metadata['platform_group']?.metadata?.platform?.config_template || {};
+      return (
+        this.metadata['platform_group']?.metadata?.platform?.config_template ||
+        {}
+      );
     },
     canSave() {
       // 基本条件：必须选择平台类型
@@ -473,29 +662,61 @@ export default {
     },
     configTableHeaders() {
       return [
-        { title: this.tm('createDialog.configTableHeaders.configId'), key: 'name', sortable: false },
-        { title: this.tm('createDialog.configTableHeaders.scope'), key: 'scope', sortable: false },
+        {
+          title: this.tm('createDialog.configTableHeaders.configId'),
+          key: 'name',
+          sortable: false,
+        },
+        {
+          title: this.tm('createDialog.configTableHeaders.scope'),
+          key: 'scope',
+          sortable: false,
+        },
       ];
     },
     routeTableHeaders() {
       return [
-        { title: this.tm('createDialog.routeTableHeaders.source'), key: 'source', sortable: false, width: '60%' },
-        { title: this.tm('createDialog.routeTableHeaders.config'), key: 'configId', sortable: false, width: '20%' },
-        { title: this.tm('createDialog.routeTableHeaders.actions'), key: 'actions', sortable: false, align: 'center', width: '20%' },
+        {
+          title: this.tm('createDialog.routeTableHeaders.source'),
+          key: 'source',
+          sortable: false,
+          width: '60%',
+        },
+        {
+          title: this.tm('createDialog.routeTableHeaders.config'),
+          key: 'configId',
+          sortable: false,
+          width: '20%',
+        },
+        {
+          title: this.tm('createDialog.routeTableHeaders.actions'),
+          key: 'actions',
+          sortable: false,
+          align: 'center',
+          width: '20%',
+        },
       ];
     },
     messageTypeOptions() {
       return [
         { label: this.tm('createDialog.messageTypeOptions.all'), value: '*' },
-        { label: this.tm('createDialog.messageTypeOptions.group'), value: 'GroupMessage' },
-        { label: this.tm('createDialog.messageTypeOptions.friend'), value: 'FriendMessage' },
+        {
+          label: this.tm('createDialog.messageTypeOptions.group'),
+          value: 'GroupMessage',
+        },
+        {
+          label: this.tm('createDialog.messageTypeOptions.friend'),
+          value: 'FriendMessage',
+        },
       ];
-    }
+    },
   },
   watch: {
     selectedPlatformType(newType) {
       if (newType && this.platformTemplates[newType]) {
-        this.selectedPlatformConfig = JSON.parse(JSON.stringify(this.platformTemplates[newType]));
+        this.selectedPlatformConfig = JSON.parse(
+          JSON.stringify(this.platformTemplates[newType]),
+        );
       } else {
         this.selectedPlatformConfig = null;
       }
@@ -545,7 +766,7 @@ export default {
           this.getPlatformConfigs(newConfig.id);
         }
       },
-      immediate: true
+      immediate: true,
     },
     showConfigSection(newValue) {
       if (newValue && !this.updatingMode && this.aBConfigRadioVal === '0') {
@@ -566,8 +787,8 @@ export default {
           this.isEditingRoutes = false;
         }
       },
-      immediate: true
-    }
+      immediate: true,
+    },
   },
   methods: {
     getPlatformIcon,
@@ -605,7 +826,7 @@ export default {
     async getConfigInfoList() {
       await axios.get('/api/config/abconfs').then((res) => {
         this.configInfoList = res.data.data.info_list;
-      })
+      });
     },
 
     // 获取配置文件数据用于预览
@@ -619,7 +840,7 @@ export default {
       this.configPreviewLoading = true;
       try {
         const response = await axios.get('/api/config/abconf', {
-          params: { id: configId }
+          params: { id: configId },
         });
 
         this.selectedConfigData = response.data.data.config;
@@ -655,7 +876,10 @@ export default {
     openConfigDrawer(configId) {
       const targetId = configId || 'default';
 
-      if (configId && this.configInfoList.findIndex(c => c.id === configId) === -1) {
+      if (
+        configId &&
+        this.configInfoList.findIndex((c) => c.id === configId) === -1
+      ) {
         this.showError(this.tm('messages.configNotFoundOpenConfig'));
       }
 
@@ -687,7 +911,8 @@ export default {
       }
     },
     async updatePlatform() {
-      const id = this.originalUpdatingPlatformId || this.updatingPlatformConfig.id;
+      const id =
+        this.originalUpdatingPlatformId || this.updatingPlatformConfig.id;
       if (!id) {
         this.loading = false;
         this.showError(this.tm('messages.updateMissingPlatformId'));
@@ -704,13 +929,15 @@ export default {
         // 更新平台配置
         let resp = await axios.post('/api/config/platform/update', {
           id: id,
-          config: this.updatingPlatformConfig
-        })
+          config: this.updatingPlatformConfig,
+        });
 
         if (resp.data.status === 'error') {
-          throw new Error(resp.data.message || this.tm('messages.platformUpdateFailed'));
+          throw new Error(
+            resp.data.message || this.tm('messages.platformUpdateFailed'),
+          );
         }
-        
+
         // 同时更新路由表
         await this.saveRoutesInternal();
 
@@ -732,9 +959,13 @@ export default {
       }
 
       // 检查 ID 是否已存在
-      const existingPlatform = this.config_data.platform?.find(p => p.id === this.selectedPlatformConfig.id);
+      const existingPlatform = this.config_data.platform?.find(
+        (p) => p.id === this.selectedPlatformConfig.id,
+      );
       if (existingPlatform || this.selectedPlatformConfig.id === 'webchat') {
-        const confirmed = await this.confirmIdConflict(this.selectedPlatformConfig.id);
+        const confirmed = await this.confirmIdConflict(
+          this.selectedPlatformConfig.id,
+        );
         if (!confirmed) {
           this.loading = false;
           return; // 如果用户取消，则中止保存
@@ -754,7 +985,10 @@ export default {
 
       try {
         // 先保存平台配置
-        const res = await axios.post('/api/config/platform/new', this.selectedPlatformConfig);
+        const res = await axios.post(
+          '/api/config/platform/new',
+          this.selectedPlatformConfig,
+        );
 
         // 平台保存成功后，处理配置文件
         await this.handleConfigFile();
@@ -763,7 +997,9 @@ export default {
         this.showDialog = false;
         this.resetForm();
         this.$emit('refresh-config');
-        this.showSuccess(res.data.message || this.tm('messages.addSuccessWithConfig'));
+        this.showSuccess(
+          res.data.message || this.tm('messages.addSuccessWithConfig'),
+        );
       } catch (err) {
         this.loading = false;
         this.showError(err.response?.data?.message || err.message);
@@ -802,28 +1038,31 @@ export default {
       try {
         await axios.post('/api/config/umo_abconf_route/update', {
           umo: umop,
-          conf_id: configId
+          conf_id: configId,
         });
 
         console.log(`成功更新路由表: ${umop} -> ${configId}`);
       } catch (err) {
         console.error('更新路由表失败:', err);
         const errorMessage = err.response?.data?.message || err.message;
-        throw new Error(this.tm('messages.routingUpdateFailed', { message: errorMessage }));
+        throw new Error(
+          this.tm('messages.routingUpdateFailed', { message: errorMessage }),
+        );
       }
     },
 
     async createNewConfigFile(configName) {
       try {
         // 准备配置数据，如果是创建模式且有新配置数据，使用用户填写的配置
-        const configData = this.aBConfigRadioVal === '1' && this.newConfigData
-          ? this.newConfigData
-          : undefined;
+        const configData =
+          this.aBConfigRadioVal === '1' && this.newConfigData
+            ? this.newConfigData
+            : undefined;
 
         // 创建新的配置文件（不传入umop）
         const createRes = await axios.post('/api/config/abconf/new', {
           name: configName,
-          config: configData  // 传入用户配置的数据
+          config: configData, // 传入用户配置的数据
         });
 
         const newConfigId = createRes.data.data.conf_id;
@@ -833,7 +1072,9 @@ export default {
       } catch (err) {
         console.error('创建新配置文件失败:', err);
         const errorMessage = err.response?.data?.message || err.message;
-        throw new Error(this.tm('messages.createConfigFailed', { message: errorMessage }));
+        throw new Error(
+          this.tm('messages.createConfigFailed', { message: errorMessage }),
+        );
       }
     },
 
@@ -907,9 +1148,10 @@ export default {
               routes.push({
                 umop: umop,
                 originalUmop: umop, // 保存原始 UMOP 用于更新时查找
-                messageType: parts[1] === '' || parts[1] === '*' ? '*' : parts[1],
+                messageType:
+                  parts[1] === '' || parts[1] === '*' ? '*' : parts[1],
                 sessionId: parts[2] === '' || parts[2] === '*' ? '*' : parts[2],
-                configId: confId
+                configId: confId,
               });
             }
           }
@@ -924,7 +1166,7 @@ export default {
             originalUmop: null,
             messageType: '*',
             sessionId: '*',
-            configId: 'default'
+            configId: 'default',
           });
         }
       } catch (err) {
@@ -940,7 +1182,7 @@ export default {
         originalUmop: null,
         messageType: '*',
         sessionId: '*',
-        configId: 'default'
+        configId: 'default',
       });
     },
 
@@ -973,8 +1215,10 @@ export default {
 
     // 内部保存路由表方法（不显示成功提示）
     async saveRoutesInternal() {
-      const originalPlatformId = this.originalUpdatingPlatformId || this.updatingPlatformConfig?.id;
-      const newPlatformId = this.updatingPlatformConfig?.id || originalPlatformId;
+      const originalPlatformId =
+        this.originalUpdatingPlatformId || this.updatingPlatformConfig?.id;
+      const newPlatformId =
+        this.updatingPlatformConfig?.id || originalPlatformId;
 
       if (!originalPlatformId && !newPlatformId) {
         throw new Error(this.tm('messages.platformIdMissing'));
@@ -988,7 +1232,8 @@ export default {
         // 删除该平台的所有旧路由
         for (const umop in fullRoutingTable) {
           if (
-            (originalPlatformId && this.isUmopMatchPlatform(umop, originalPlatformId)) ||
+            (originalPlatformId &&
+              this.isUmopMatchPlatform(umop, originalPlatformId)) ||
             (newPlatformId && this.isUmopMatchPlatform(umop, newPlatformId))
           ) {
             delete fullRoutingTable[umop];
@@ -997,7 +1242,8 @@ export default {
 
         // 添加新路由（按顺序）
         for (const route of this.platformRoutes) {
-          const messageType = route.messageType === '*' ? '*' : route.messageType;
+          const messageType =
+            route.messageType === '*' ? '*' : route.messageType;
           const sessionId = route.sessionId === '*' ? '*' : route.sessionId;
           const platformIdForRoute = newPlatformId || originalPlatformId;
           const newUmop = `${platformIdForRoute}:${messageType}:${sessionId}`;
@@ -1009,12 +1255,14 @@ export default {
 
         // 使用 update_all 更新整个路由表
         await axios.post('/api/config/umo_abconf_route/update_all', {
-          routing: fullRoutingTable
+          routing: fullRoutingTable,
         });
       } catch (err) {
         console.error('保存路由表失败:', err);
         const errorMessage = err.response?.data?.message || err.message;
-        throw new Error(this.tm('messages.routingSaveFailed', { message: errorMessage }));
+        throw new Error(
+          this.tm('messages.routingSaveFailed', { message: errorMessage }),
+        );
       }
     },
 
@@ -1028,7 +1276,7 @@ export default {
 
     // 根据配置文件ID获取名称
     getConfigName(configId) {
-      const config = this.configInfoList.find(c => c.id === configId);
+      const config = this.configInfoList.find((c) => c.id === configId);
       return config ? config.name : configId;
     },
 
@@ -1045,8 +1293,8 @@ export default {
       const typeMap = {
         '*': this.tm('createDialog.messageTypeLabels.all'),
         '': this.tm('createDialog.messageTypeLabels.all'),
-        'GroupMessage': this.tm('createDialog.messageTypeLabels.group'),
-        'FriendMessage': this.tm('createDialog.messageTypeLabels.friend')
+        GroupMessage: this.tm('createDialog.messageTypeLabels.group'),
+        FriendMessage: this.tm('createDialog.messageTypeLabels.friend'),
       };
       return typeMap[messageType] || messageType;
     },
@@ -1059,7 +1307,11 @@ export default {
     prepareData() {
       this.getConfigInfoList();
       this.getConfigForPreview(this.selectedAbConfId);
-      if (this.updatingMode && this.updatingPlatformConfig && this.updatingPlatformConfig.id) {
+      if (
+        this.updatingMode &&
+        this.updatingPlatformConfig &&
+        this.updatingPlatformConfig.id
+      ) {
         this.getPlatformConfigs(this.updatingPlatformConfig.id);
       }
     },
@@ -1075,10 +1327,9 @@ export default {
       } else {
         el.scrollTop = el.scrollHeight;
       }
-    }
-
+    },
   },
-}
+};
 </script>
 
 <style>

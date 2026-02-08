@@ -107,8 +107,16 @@ const handleToggleCommand = async (cmd: CommandItem) => {
   );
 };
 
-const handleUpdatePermission = async (cmd: CommandItem, permission: 'admin' | 'member') => {
-  await updatePermission(cmd, permission, tm('messages.updateSuccess'), tm('messages.updateFailed'));
+const handleUpdatePermission = async (
+  cmd: CommandItem,
+  permission: 'admin' | 'member',
+) => {
+  await updatePermission(
+    cmd,
+    permission,
+    tm('messages.updateSuccess'),
+    tm('messages.updateFailed'),
+  );
 };
 
 const handleToggleTool = async (tool: ToolItem) => {

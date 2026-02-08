@@ -18,7 +18,11 @@ const emit = defineEmits<{
   (e: 'toggle-command', cmd: CommandItem): void;
   (e: 'rename', cmd: CommandItem): void;
   (e: 'view-details', cmd: CommandItem): void;
-  (e: 'update-permission', cmd: CommandItem, permission: 'admin' | 'member'): void;
+  (
+    e: 'update-permission',
+    cmd: CommandItem,
+    permission: 'admin' | 'member',
+  ): void;
 }>();
 
 // 表格表头
@@ -234,14 +238,18 @@ const getRowProps = ({ item }: { item: CommandItem }) => {
               :active="item.permission !== 'admin'"
               @click="$emit('update-permission', item, 'member')"
             >
-              <v-list-item-title>{{ tm('permission.everyone') }}</v-list-item-title>
+              <v-list-item-title>{{
+                tm('permission.everyone')
+              }}</v-list-item-title>
             </v-list-item>
             <v-list-item
               :value="'admin'"
               :active="item.permission === 'admin'"
               @click="$emit('update-permission', item, 'admin')"
             >
-              <v-list-item-title>{{ tm('permission.admin') }}</v-list-item-title>
+              <v-list-item-title>{{
+                tm('permission.admin')
+              }}</v-list-item-title>
             </v-list-item>
           </v-list>
         </v-menu>

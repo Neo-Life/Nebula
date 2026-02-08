@@ -216,12 +216,12 @@ export function useCommandActions(
     cmd: CommandItem,
     permission: 'admin' | 'member',
     successMessage: string,
-    errorMessage: string
+    errorMessage: string,
   ) => {
     try {
       const res = await axios.post('/api/commands/permission', {
         handler_full_name: cmd.handler_full_name,
-        permission: permission
+        permission: permission,
       });
       if (res.data.status === 'ok') {
         toast(successMessage, 'success');
@@ -229,8 +229,8 @@ export function useCommandActions(
       } else {
         toast(res.data.message || errorMessage, 'error');
       }
-    } catch (err: any) {
-      toast(err?.message || errorMessage, 'error');
+    } catch (err: unknown) {
+      toast(getErrorMessage(err, errorMessage), 'error');
     }
   };
 

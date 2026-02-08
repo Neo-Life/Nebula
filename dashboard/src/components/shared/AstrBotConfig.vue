@@ -278,7 +278,11 @@ function hasVisibleItemsAfter(
               <div class="config-section mb-2">
                 <v-list-item-title class="config-title">
                   <span v-if="metadata[metadataKey].items[key]?.description">
-                    {{ translateIfKey(metadata[metadataKey].items[key]?.description) }}
+                    {{
+                      translateIfKey(
+                        metadata[metadataKey].items[key]?.description,
+                      )
+                    }}
                     <span class="property-key">({{ key }})</span>
                   </span>
                   <span v-else>{{ key }}</span>
@@ -319,7 +323,11 @@ function hasVisibleItemsAfter(
                 <v-list-item density="compact">
                   <v-list-item-title class="property-name">
                     <span v-if="metadata[metadataKey].items[key]?.description">
-                      {{ metadata[metadataKey].items[key]?.description }}
+                      {{
+                        translateIfKey(
+                          metadata[metadataKey].items[key]?.description,
+                        )
+                      }}
                       <span class="property-key">({{ key }})</span>
                     </span>
                     <span v-else>{{ key }}</span>
@@ -334,7 +342,7 @@ function hasVisibleItemsAfter(
                       class="important-hint"
                       >‼️</span
                     >
-                    {{ metadata[metadataKey].items[key]?.hint }}
+                    {{ translateIfKey(metadata[metadataKey].items[key]?.hint) }}
                   </v-list-item-subtitle>
                 </v-list-item>
               </v-col>
@@ -383,7 +391,7 @@ function hasVisibleItemsAfter(
           <v-col cols="12" sm="7" class="property-info">
             <v-list-item density="compact">
               <v-list-item-title class="property-name">
-                {{ metadata[metadataKey]?.description }}
+                {{ translateIfKey(metadata[metadataKey]?.description) }}
                 <span class="property-key">({{ metadataKey }})</span>
               </v-list-item-title>
 
@@ -396,7 +404,7 @@ function hasVisibleItemsAfter(
                   class="important-hint"
                   >‼️</span
                 >
-                {{ metadata[metadataKey]?.hint }}
+                {{ translateIfKey(metadata[metadataKey]?.hint) }}
               </v-list-item-subtitle>
             </v-list-item>
           </v-col>

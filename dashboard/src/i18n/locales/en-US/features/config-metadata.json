@@ -349,10 +349,7 @@
       },
       "lark_connection_mode": {
         "description": "Subscription Mode",
-        "labels": [
-          "Long Connection Mode",
-          "Webhook Server Mode"
-        ]
+        "labels": ["Long Connection Mode", "Webhook Server Mode"]
       },
       "lark_encrypt_key": {
         "description": "Encrypt Key",
@@ -886,11 +883,7 @@
       "modalities": {
         "description": "Model capabilities",
         "hint": "Modalities supported by the model. If the model does not support images, uncheck image.",
-        "labels": [
-          "Text",
-          "Image",
-          "Tool use"
-        ]
+        "labels": ["Text", "Image", "Tool use"]
       },
       "custom_headers": {
         "description": "Custom request headers",

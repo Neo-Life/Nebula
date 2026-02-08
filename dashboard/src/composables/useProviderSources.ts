@@ -396,9 +396,10 @@ export function useProviderSources(options: UseProviderSourcesOptions) {
       apiBaseField.hint = tm('providerSources.hints.apiBase');
     }
     // 为 proxy 字段添加描述和提示
-    if (customSchema.provider?.items?.proxy) {
-      customSchema.provider.items.proxy.description = tm('providerSources.labels.proxy')
-      customSchema.provider.items.proxy.hint = tm('providerSources.hints.proxy')
+    const proxyField = items.proxy;
+    if (isRecord(proxyField)) {
+      proxyField.description = tm('providerSources.labels.proxy');
+      proxyField.hint = tm('providerSources.hints.proxy');
     }
 
     return customSchema;

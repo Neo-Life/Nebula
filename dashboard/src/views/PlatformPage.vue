@@ -553,8 +553,11 @@ export default {
       this.updatingMode = true;
       this.showAddPlatformDialog = true;
       this.$nextTick(() => {
+        type AddNewPlatformRef = {
+          toggleShowConfigSection?: () => void;
+        };
         const dialog = this.$refs.addPlatformDialog as
-          | InstanceType<typeof AddNewPlatform>
+          | AddNewPlatformRef
           | undefined;
         dialog?.toggleShowConfigSection?.();
       });
