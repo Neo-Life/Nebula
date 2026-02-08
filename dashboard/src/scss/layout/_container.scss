@@ -44,7 +44,7 @@ $sizes: (
   'text-18': 18px,
   'text-20': 20px,
   'text-24': 24px,
-  'body-text-1': 10px
+  'body-text-1': 10px,
 );
 
 @each $pixel, $size in $sizes {

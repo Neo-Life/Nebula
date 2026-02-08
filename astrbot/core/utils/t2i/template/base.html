@@ -3,9 +3,32 @@
 <head>
   <meta charset="utf-8"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" integrity="sha384-wcIxkf4k558AjM3Yz3BBFQUbk/zgIYC2R0QpeeYb+TwlBVMrlgLqwRjRtGZiK7ww" crossorigin="anonymous">
-  <link rel="stylesheet" href="/path/to/styles/default.min.css">
-  <script src="/path/to/highlight.min.js"></script>
-  <script>hljs.highlightAll();</script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github.min.css">
+  <script>
+    (function () {
+      function applyHighlighting() {
+        var hljs = window.hljs;
+        if (!hljs) return;
+
+        if (typeof hljs.highlightAll === 'function') {
+          hljs.highlightAll();
+          return;
+        }
+
+        if (typeof hljs.highlightElement === 'function') {
+          document.querySelectorAll('pre code').forEach(function (el) {
+            hljs.highlightElement(el);
+          });
+        }
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyHighlighting);
+      } else {
+        applyHighlighting();
+      }
+    })();
+  </script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js" integrity="sha384-hIoBPJpTUs74ddyc4bFZSM1TVlQDA60VBbJS0oA934VSz82sBx1X7kSx2ATBDIyd" crossorigin="anonymous"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous"
       onload="renderMathInElement(document.getElementById('content'),{delimiters: [{left: '$$', right: '$$', display: true},{left: '$', right: '$', display: false}]});"></script>

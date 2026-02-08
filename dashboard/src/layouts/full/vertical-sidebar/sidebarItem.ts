@@ -6,7 +6,7 @@ export interface menu {
   divider?: boolean;
   chip?: string;
   chipColor?: string;
-  chipVariant?: string;
+  chipVariant?: 'flat' | 'text' | 'elevated' | 'tonal' | 'outlined' | 'plain';
   chipIcon?: string;
   children?: menu[];
   disabled?: boolean;
@@ -41,29 +41,29 @@ const sidebarItem: menu[] = [
       {
         title: 'core.navigation.extensionTabs.installed',
         icon: 'mdi-puzzle',
-        to: '/extension#installed'
+        to: '/extension#installed',
       },
       {
         title: 'core.navigation.extensionTabs.market',
         icon: 'mdi-store',
-        to: '/extension#market'
+        to: '/extension#market',
       },
       {
         title: 'core.navigation.extensionTabs.mcp',
         icon: 'mdi-server-network',
-        to: '/extension#mcp'
+        to: '/extension#mcp',
       },
       {
         title: 'core.navigation.extensionTabs.skills',
         icon: 'mdi-lightning-bolt',
-        to: '/extension#skills'
+        to: '/extension#skills',
       },
       {
         title: 'core.navigation.extensionTabs.components',
         icon: 'mdi-wrench',
-        to: '/extension#components'
-      }
-    ]
+        to: '/extension#components',
+      },
+    ],
   },
   {
     title: 'core.navigation.knowledgeBase',
@@ -73,7 +73,7 @@ const sidebarItem: menu[] = [
   {
     title: 'core.navigation.persona',
     icon: 'mdi-heart',
-    to: '/persona'
+    to: '/persona',
   },
   {
     title: 'core.navigation.groups.more',
@@ -82,40 +82,40 @@ const sidebarItem: menu[] = [
       {
         title: 'core.navigation.conversation',
         icon: 'mdi-database',
-        to: '/conversation'
+        to: '/conversation',
       },
       {
         title: 'core.navigation.sessionManagement',
         icon: 'mdi-pencil-ruler',
-        to: '/session-management'
+        to: '/session-management',
       },
       {
         title: 'core.navigation.cron',
         icon: 'mdi-clock-outline',
-        to: '/cron'
+        to: '/cron',
       },
       {
         title: 'core.navigation.subagent',
         icon: 'mdi-vector-link',
-        to: '/subagent'
+        to: '/subagent',
       },
       {
         title: 'core.navigation.dashboard',
         icon: 'mdi-view-dashboard',
-        to: '/dashboard/default'
+        to: '/default',
       },
       {
         title: 'core.navigation.console',
         icon: 'mdi-console',
-        to: '/console'
+        to: '/console',
       },
       {
         title: 'core.navigation.trace',
         icon: 'mdi-timeline-text-outline',
-        to: '/trace'
+        to: '/trace',
       },
-    ]
-  }
+    ],
+  },
   // {
   //   title: 'Project ATRI',
   //   icon: 'mdi-grain',

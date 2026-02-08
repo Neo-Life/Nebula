@@ -25,11 +25,12 @@ class WebChatMessageEvent(AstrMessageEvent):
         message: MessageChain | None,
         session_id: str,
         streaming: bool = False,
+        stream_id: str | None = None,
     ) -> str | None:
-        request_id = str(message_id)
         conversation_id = session_id.split("!")[-1]
+        queue_key = stream_id or str(message_id)
         web_chat_back_queue = webchat_queue_mgr.get_or_create_back_queue(
-            request_id,
+            queue_key,
             conversation_id,
         )
         if not message:
@@ -122,17 +123,22 @@ class WebChatMessageEvent(AstrMessageEvent):
 
     async def send(self, message: MessageChain | None):
         message_id = self.message_obj.message_id
-        await WebChatMessageEvent._send(message_id, message, session_id=self.session_id)
+        await WebChatMessageEvent._send(
+            message_id=message_id,
+            message=message,
+            session_id=self.session_id,
+            stream_id=self.get_extra("stream_id"),
+        )
         await super().send(MessageChain([]))
 
     async def send_streaming(self, generator, use_fallback: bool = False):
         final_data = ""
         reasoning_content = ""
         message_id = self.message_obj.message_id
-        request_id = str(message_id)
         conversation_id = self.session_id.split("!")[-1]
+        queue_key = self.get_extra("stream_id") or str(message_id)
         web_chat_back_queue = webchat_queue_mgr.get_or_create_back_queue(
-            request_id,
+            queue_key,
             conversation_id,
         )
         async for chain in generator:
@@ -177,6 +183,7 @@ class WebChatMessageEvent(AstrMessageEvent):
                 message=chain,
                 session_id=self.session_id,
                 streaming=True,
+                stream_id=self.get_extra("stream_id"),
             )
             if not r:
                 continue

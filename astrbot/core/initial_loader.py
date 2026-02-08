@@ -22,9 +22,22 @@ class InitialLoader:
         self.logger = logger
         self.log_broker = log_broker
         self.webui_dir: str | None = None
+        self.core_lifecycle: AstrBotCoreLifecycle | None = None
+        self.dashboard_server: AstrBotDashboard | None = None
 
-    async def start(self):
+    async def stop(self) -> None:
+        """优雅停止 AstrBot。
+
+        主要用于主入口在 Ctrl+C 等场景下触发清理。
+        """
+
+        if self.core_lifecycle is None:
+            return
+        await self.core_lifecycle.stop()
+
+    async def start(self) -> None:
         core_lifecycle = AstrBotCoreLifecycle(self.log_broker, self.db)
+        self.core_lifecycle = core_lifecycle
 
         try:
             await core_lifecycle.initialize()

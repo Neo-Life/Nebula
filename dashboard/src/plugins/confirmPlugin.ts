@@ -1,10 +1,10 @@
-import type { App } from "vue";
-import { h, render } from "vue";
-import ConfirmDialog from "@/components/ConfirmDialog.vue";
+import type { App } from 'vue';
+import { h, render } from 'vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 
 export default {
   install(app: App) {
-    const mountNode = document.createElement("div");
+    const mountNode = document.createElement('div');
     document.body.appendChild(mountNode);
 
     const vNode = h(ConfirmDialog);
@@ -18,6 +18,6 @@ export default {
     };
 
     app.config.globalProperties.$confirm = confirm;
-    app.provide("$confirm", confirm);
+    app.provide('$confirm', confirm);
   },
 };

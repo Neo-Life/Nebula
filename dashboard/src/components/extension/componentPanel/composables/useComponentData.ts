@@ -3,7 +3,18 @@
  */
 import { ref, reactive } from 'vue';
 import axios from 'axios';
-import type { CommandItem, CommandSummary, SnackbarState, ToolItem } from '../types';
+import type {
+  CommandItem,
+  CommandSummary,
+  SnackbarState,
+  ToolItem,
+} from '../types';
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
 export function useComponentData() {
   const loading = ref(false);
@@ -12,13 +23,13 @@ export function useComponentData() {
   const toolsLoading = ref(false);
   const summary = reactive<CommandSummary>({
     disabled: 0,
-    conflicts: 0
+    conflicts: 0,
   });
 
   const snackbar = reactive<SnackbarState>({
     show: false,
     message: '',
-    color: 'success'
+    color: 'success',
   });
 
   /**
@@ -45,8 +56,19 @@ export function useComponentData() {
       } else {
         toast(res.data.message || errorMessage, 'error');
       }
-    } catch (err: any) {
-      toast(err?.message || errorMessage, 'error');
+    } catch (err: unknown) {
+      const message = axios.isAxiosError(err)
+        ? (() => {
+            const data = err.response?.data;
+            if (isRecord(data) && typeof data.message === 'string') {
+              return data.message;
+            }
+            return err.message;
+          })()
+        : err instanceof Error
+          ? err.message
+          : undefined;
+      toast(message || errorMessage, 'error');
     } finally {
       loading.value = false;
     }
@@ -61,8 +83,19 @@ export function useComponentData() {
       } else {
         toast(res.data.message || errorMessage, 'error');
       }
-    } catch (err: any) {
-      toast(err?.message || errorMessage, 'error');
+    } catch (err: unknown) {
+      const message = axios.isAxiosError(err)
+        ? (() => {
+            const data = err.response?.data;
+            if (isRecord(data) && typeof data.message === 'string') {
+              return data.message;
+            }
+            return err.message;
+          })()
+        : err instanceof Error
+          ? err.message
+          : undefined;
+      toast(message || errorMessage, 'error');
     } finally {
       toolsLoading.value = false;
     }
@@ -77,7 +110,6 @@ export function useComponentData() {
     snackbar,
     toast,
     fetchCommands,
-    fetchTools
+    fetchTools,
   };
 }
-
