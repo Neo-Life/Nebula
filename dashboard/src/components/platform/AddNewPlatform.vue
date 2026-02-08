@@ -1,9 +1,24 @@
 <template>
-  <v-dialog v-model="showDialog" max-width="800px" height="90%" @after-enter="prepareData">
+  <v-dialog
+    v-model="showDialog"
+    max-width="800px"
+    height="90%"
+    @after-enter="prepareData"
+  >
     <v-card
-      :title="updatingMode ? `${tm('dialog.edit')} ${updatingPlatformConfig.id} ${tm('dialog.adapter')}` : tm('dialog.addPlatform')">
-  <v-card-text ref="dialogScrollContainer" class="pa-4 ml-2" style="overflow-y: auto;">
-        <div class="d-flex align-start" style="width: 100%;">
+      class="add-platform-card"
+      :title="
+        updatingMode
+          ? `${tm('dialog.edit')} ${updatingPlatformConfig?.id ?? ''} ${tm('dialog.adapter')}`
+          : tm('dialog.addPlatform')
+      "
+    >
+      <v-card-text
+        ref="dialogScrollContainer"
+        class="pa-4 ml-2 add-platform-body"
+        style="overflow-y: auto"
+      >
+        <div class="d-flex align-start flex-wrap" style="width: 100%">
           <div>
             <v-icon icon="mdi-numeric-1-circle" class="mr-3"></v-icon>
           </div>
@@ -15,15 +30,34 @@
             <div>
 
               <div v-if="!updatingMode">
-                <v-select v-model="selectedPlatformType" :items="Object.keys(platformTemplates)" item-title="name"
-                  item-value="name" :label="tm('createDialog.platformTypeLabel')" variant="outlined" rounded="md" dense hide-details class="mt-6"
-                  style="max-width: 30%; min-width: 300px;">
+                <v-select
+                  v-model="selectedPlatformType"
+                  :items="Object.keys(platformTemplates)"
+                  item-title="name"
+                  item-value="name"
+                  :label="tm('createDialog.platformTypeLabel')"
+                  variant="outlined"
+                  rounded="md"
+                  dense
+                  hide-details
+                  class="mt-6"
+                  style="max-width: 30%; min-width: 300px"
+                >
 
                   <template v-slot:item="{ props: itemProps, item }">
                     <v-list-item v-bind="itemProps">
                       <template v-slot:prepend>
-                        <img :src="getPlatformIcon(platformTemplates[item.raw].type)"
-                          style="width: 32px; height: 32px; object-fit: contain; margin-right: 16px;" />
+                        <img
+                          :src="
+                            getPlatformIcon(platformTemplates[item.raw]?.type ?? '')
+                          "
+                          style="
+                            width: 32px;
+                            height: 32px;
+                            object-fit: contain;
+                            margin-right: 16px;
+                          "
+                        />
                       </template>
                     </v-list-item>
                   </template>
@@ -35,19 +69,33 @@
                     {{ tm('dialog.viewTutorial') }}
                   </v-btn>
                   <div class="mt-2">
-                    <AstrBotConfig :iterable="selectedPlatformConfig" :metadata="metadata['platform_group']?.metadata"
-                      metadataKey="platform" />
+                    <AstrBotConfig
+                      :iterable="selectedPlatformConfig"
+                      :metadata="metadata['platform_group']?.metadata"
+                      metadata-key="platform"
+                    />
                   </div>
                 </div>
               </div>
               <div v-else>
-                <v-text-field :label="tm('createDialog.platformTypeLabel')" variant="outlined" rounded="md" dense hide-details class="mt-6"
-                  style="max-width: 30%; min-width: 300px;" v-model="updatingPlatformConfig.type"
-                  disabled></v-text-field>
+                <v-text-field
+                  :label="tm('createDialog.platformTypeLabel')"
+                  variant="outlined"
+                  rounded="md"
+                  dense
+                  hide-details
+                  class="mt-6"
+                  style="max-width: 30%; min-width: 300px"
+                  v-model="updatingPlatformConfig.type"
+                  disabled
+                ></v-text-field>
                 <div class="mt-3">
                   <div class="mt-2">
-                    <AstrBotConfig :iterable="updatingPlatformConfig" :metadata="metadata['platform_group']?.metadata"
-                      metadataKey="platform" />
+                    <AstrBotConfig
+                      :iterable="updatingPlatformConfig"
+                      :metadata="metadata['platform_group']?.metadata"
+                      metadata-key="platform"
+                    />
                   </div>
                 </div>
               </div>
@@ -56,7 +104,7 @@
           </div>
         </div>
 
-        <div class="d-flex align-start mt-6">
+        <div class="d-flex align-start mt-6 flex-wrap">
           <div>
             <v-icon icon="mdi-numeric-2-circle" class="mr-3"></v-icon>
           </div>

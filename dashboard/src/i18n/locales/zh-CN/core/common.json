@@ -18,6 +18,8 @@
   "author": "作者",
   "status": "状态",
   "actions": "操作",
+  "expand": "展开",
+  "collapse": "收起",
   "enable": "启用",
   "disable": "禁用",
   "enabled": "已启用",
@@ -44,7 +46,7 @@
     "cancelButton": "取消"
   },
   "restart": {
-    "waiting": "正在等待 AstrBot 重启...",
+    "waiting": "正在等待 Nebula 重启...",
     "maxRetriesReached": "拉取状态达到最大次数，请手动检查。"
   },
   "readme": {
@@ -73,7 +75,8 @@
   },
   "editor": {
     "fullscreen": "全屏编辑",
-    "editingTitle": "编辑内容"
+    "editingTitle": "编辑内容",
+    "invalidJson": "JSON 格式不合法，请修正后再保存。"
   },
   "templateList": {
     "addEntry": "添加条目",
@@ -104,5 +107,9 @@
     "edit": "编辑",
     "copy": "复制",
     "noData": "暂无数据"
+  },
+  "error404": {
+    "returnHome": "返回首页",
+    "goBack": "后退一步"
   }
 }

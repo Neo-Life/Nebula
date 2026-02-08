@@ -1,80 +1,78 @@
-const MainRoutes = {
-  path: '/main',
+import type { RouteRecordRaw } from 'vue-router';
+
+const MainRoutes: RouteRecordRaw = {
+  name: 'main',
+  path: '/',
   meta: {
-    requiresAuth: true
+    requiresAuth: true,
   },
-  redirect: '/main/platforms',
   component: () => import('@/layouts/full/FullLayout.vue'),
   children: [
     {
       name: 'MainPage',
       path: '/',
-      component: () => import('@/views/PlatformPage.vue')
+      component: () => import('@/views/PlatformPage.vue'),
     },
     {
       name: 'Extensions',
       path: '/extension',
-      component: () => import('@/views/ExtensionPage.vue')
-    },
-    {
-      name: 'ExtensionMarketplace',
-      path: '/extension-marketplace',
-      component: () => import('@/views/ExtensionPage.vue')
+      component: () => import('@/views/ExtensionPage.vue'),
     },
     {
       name: 'Platforms',
       path: '/platforms',
-      component: () => import('@/views/PlatformPage.vue')
+      component: () => import('@/views/PlatformPage.vue'),
     },
     {
       name: 'Providers',
       path: '/providers',
-      component: () => import('@/views/ProviderPage.vue')
+      component: () => import('@/views/ProviderPage.vue'),
     },
     {
       name: 'Configs',
       path: '/config',
-      component: () => import('@/views/ConfigPage.vue')
+      component: () => import('@/views/ConfigPage.vue'),
     },
     {
       name: 'Default',
-      path: '/dashboard/default',
-      component: () => import('@/views/dashboards/default/DefaultDashboard.vue')
+      path: '/default',
+      component: () =>
+        import('@/views/dashboards/default/DefaultDashboard.vue'),
     },
     {
       name: 'Conversation',
       path: '/conversation',
-      component: () => import('@/views/ConversationPage.vue')
+      component: () => import('@/views/ConversationPage.vue'),
     },
     {
       name: 'SessionManagement',
       path: '/session-management',
-      component: () => import('@/views/SessionManagementPage.vue')
+      component: () => import('@/views/SessionManagementPage.vue'),
     },
     {
       name: 'Persona',
       path: '/persona',
-      component: () => import('@/views/PersonaPage.vue')
+      component: () => import('@/views/PersonaPage.vue'),
     },
     {
       name: 'SubAgent',
       path: '/subagent',
-      component: () => import('@/views/SubAgentPage.vue')
+      component: () => import('@/views/SubAgentPage.vue'),
     },
     {
       name: 'CronJobs',
       path: '/cron',
-      component: () => import('@/views/CronJobPage.vue')
+      component: () => import('@/views/CronJobPage.vue'),
     },
     {
       name: 'Console',
       path: '/console',
-      component: () => import('@/views/ConsolePage.vue')
+      component: () => import('@/views/ConsolePage.vue'),
     },
     {
       name: 'Trace',
       path: '/trace',
-      component: () => import('@/views/TracePage.vue')
+      component: () => import('@/views/TracePage.vue'),
     },
     {
       name: 'NativeKnowledgeBase',
@@ -84,21 +82,21 @@ const MainRoutes = {
         {
           path: '',
           name: 'NativeKBList',
-          component: () => import('@/views/knowledge-base/KBList.vue')
+          component: () => import('@/views/knowledge-base/KBList.vue'),
         },
         {
           path: ':kbId',
           name: 'NativeKBDetail',
           component: () => import('@/views/knowledge-base/KBDetail.vue'),
-          props: true
+          props: true,
         },
         {
           path: ':kbId/document/:docId',
           name: 'NativeDocumentDetail',
           component: () => import('@/views/knowledge-base/DocumentDetail.vue'),
-          props: true
-        }
-      ]
+          props: true,
+        },
+      ],
     },
 
     // 旧版本的知识库路由
@@ -138,21 +136,26 @@ const MainRoutes = {
           path: ':conversationId',
           name: 'ChatDetail',
           component: () => import('@/views/ChatPage.vue'),
-          props: true
-        }
-      ]
+          props: true,
+        },
+      ],
     },
     {
       name: 'Settings',
       path: '/settings',
-      component: () => import('@/views/Settings.vue')
+      component: () => import('@/views/Settings.vue'),
     },
     {
       name: 'About',
       path: '/about',
-      component: () => import('@/views/AboutPage.vue')
-    }
-  ]
+      component: () => import('@/views/AboutPage.vue'),
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'NotFound',
+      component: () => import('@/views/Error404.vue'),
+    },
+  ],
 };
 
 export default MainRoutes;

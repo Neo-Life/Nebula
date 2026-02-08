@@ -1,0 +1,87 @@
+name: Nightly Dashboard Dist
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["master"]
+    paths: ["dashboard/**", ".github/workflows/nightly_dashboard_dist.yml"]
+
+concurrency:
+  group: nightly-dashboard-dist
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.PAT }} 
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT }}
+
+      - name: Setup Environment
+        uses: pnpm/action-setup@v4
+        with: { version: 9 }
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: dashboard/pnpm-lock.yaml
+
+      - name: Fetch Version Info
+        run: |
+          git fetch --force --prune https://github.com/AstrBotDevs/AstrBot.git "refs/tags/*:refs/tags/upstream/*"
+          LATEST=$(git for-each-ref 'refs/tags/upstream' --sort=-v:refname --format='%(refname:strip=3)' | head -n1)
+          echo "LATEST_TAG=${LATEST:-unknown}" >> "$GITHUB_ENV"
+
+      - name: Install & Build
+        working-directory: dashboard
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run build
+
+      - name: Package Dist & Generate Note
+        run: |
+          mkdir -p dashboard/dist/assets
+          echo "${LATEST_TAG:-$GITHUB_SHA}" > dashboard/dist/assets/version
+          echo "$GITHUB_SHA" > dashboard/dist/assets/version.sha
+          
+          find dashboard/dist -name "*.md" -delete
+          cd dashboard && zip -r ../dist.zip dist
+          cd ..
+
+          cat <<EOF > release_note.md
+          ### **Frontend Artifacts Only / 仅前端产物**
+
+          > [!WARNING]
+          >
+          > This release is for override updates.   
+          > It is an automated nightly build that **updates frequently** and may contain unstable features.
+          >
+          > 此版本适用于覆盖更新。  
+          > 这是一个自动构建的 Nightly 版本，**会随代码提交随时更新**，可能包含不稳定的功能。
+          
+          | Component | Ref |
+          | :--- | :--- |
+          | **AstrBot Core** | \`${LATEST_TAG}\` |
+          | **Commit** | \`${GITHUB_SHA:0:8}\` |
+          | **Build Time** | $(date -u '+%Y-%m-%d %H:%M:%S UTC') |
+          
+          EOF
+
+      - name: Update Nightly Release
+        run: |
+          gh release delete nightly --cleanup-tag -y || true
+          
+          gh release create nightly dist.zip \
+            --target $GITHUB_SHA \
+            --title "Nightly Dashboard Dist" \
+            --prerelease \
+            -F release_note.md

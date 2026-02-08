@@ -90,7 +90,7 @@ export const translations = {
       status: zhCNStatus,
       navigation: zhCNNavigation,
       header: zhCNHeader,
-      shared: zhCNShared
+      shared: zhCNShared,
     },
     features: {
       chat: zhCNChat,
@@ -113,23 +113,23 @@ export const translations = {
       alkaid: {
         index: zhCNAlkaidIndex,
         'knowledge-base': zhCNAlkaidKnowledgeBase,
-        memory: zhCNAlkaidMemory
+        memory: zhCNAlkaidMemory,
       },
       'knowledge-base': {
         index: zhCNKnowledgeBaseIndex,
         detail: zhCNKnowledgeBaseDetail,
-        document: zhCNKnowledgeBaseDocument
+        document: zhCNKnowledgeBaseDocument,
       },
       persona: zhCNPersona,
       migration: zhCNMigration,
       command: zhCNCommand,
-      subagent: zhCNSubagent
+      subagent: zhCNSubagent,
     },
     messages: {
       errors: zhCNErrors,
       success: zhCNSuccess,
-      validation: zhCNValidation
-    }
+      validation: zhCNValidation,
+    },
   },
   'en-US': {
     core: {
@@ -138,7 +138,7 @@ export const translations = {
       status: enUSStatus,
       navigation: enUSNavigation,
       header: enUSHeader,
-      shared: enUSShared
+      shared: enUSShared,
     },
     features: {
       chat: enUSChat,
@@ -161,24 +161,24 @@ export const translations = {
       alkaid: {
         index: enUSAlkaidIndex,
         'knowledge-base': enUSAlkaidKnowledgeBase,
-        memory: enUSAlkaidMemory
+        memory: enUSAlkaidMemory,
       },
       'knowledge-base': {
         index: enUSKnowledgeBaseIndex,
         detail: enUSKnowledgeBaseDetail,
-        document: enUSKnowledgeBaseDocument
+        document: enUSKnowledgeBaseDocument,
       },
       persona: enUSPersona,
       migration: enUSMigration,
       command: enUSCommand,
-      subagent: enUSSubagent
+      subagent: enUSSubagent,
     },
     messages: {
       errors: enUSErrors,
       success: enUSSuccess,
-      validation: enUSValidation
-    }
-  }
+      validation: enUSValidation,
+    },
+  },
 };
 
-export type TranslationData = typeof translations; 
+export type TranslationData = typeof translations;

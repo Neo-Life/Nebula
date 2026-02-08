@@ -10,10 +10,10 @@
     "cancel": "取消",
     "save": "保存",
     "move": "移动",
-    "addDialogPair": "添加对话对"
+    "addDialogPair": "添加对话组"
   },
   "labels": {
-    "presetDialogs": "预设对话 ({count} 对)",
+    "presetDialogs": "预设对话 ({count} 组)",
     "createdAt": "创建时间",
     "updatedAt": "更新时间"
   },
@@ -87,7 +87,7 @@
     "toolsCount": "个工具",
     "skillsCount": "个 Skills",
     "contextMenu": {
-      "moveTo": "移动到..."
+      "moveTo": "移动"
     },
     "messages": {
       "moveSuccess": "人格移动成功",
@@ -111,7 +111,7 @@
     "contextMenu": {
       "open": "打开",
       "rename": "重命名",
-      "moveTo": "移动到...",
+      "moveTo": "移动",
       "delete": "删除"
     },
     "createDialog": {
