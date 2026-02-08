@@ -3,13 +3,17 @@
     <v-card-text>
       <div class="platform-header">
         <div>
-          <div class="platform-title">{{ t('charts.platformStat.title') }}</div>
-          <div class="platform-subtitle">{{ t('charts.platformStat.subtitle') }}</div>
+          <div class="platform-title">
+            {{ t('charts.platformStat.title') }}
+          </div>
+          <div class="platform-subtitle">
+            {{ t('charts.platformStat.subtitle') }}
+          </div>
         </div>
       </div>
-      
-      <v-divider class="my-3"></v-divider>
-      
+
+      <v-divider class="my-3" />
+
       <div v-if="platforms.length > 0" class="platform-list-container">
         <v-list class="platform-list" density="compact">
           <v-list-item
@@ -18,38 +22,57 @@
             :value="platform"
             class="platform-item"
           >
-            <template v-slot:prepend>
-              <div class="platform-rank" :class="{'top-rank': i < 3}">{{ i + 1 }}</div>
+            <template #prepend>
+              <div class="platform-rank" :class="{ 'top-rank': i < 3 }">
+                {{ i + 1 }}
+              </div>
             </template>
-            
-            <v-list-item-title class="platform-name">{{ platform.name }}</v-list-item-title>
-            
-            <template v-slot:append>
+
+            <v-list-item-title class="platform-name" :title="platform.name">
+              {{ platform.name }}
+            </v-list-item-title>
+
+            <template #append>
               <div class="platform-count">
                 <span class="count-value">{{ platform.count }}</span>
-                <span class="count-label">{{ t('charts.platformStat.messageUnit') }}</span>
+                <span class="count-label">{{
+                  t('charts.platformStat.messageUnit')
+                }}</span>
               </div>
             </template>
           </v-list-item>
         </v-list>
-        
+
         <div class="platform-stats-summary">
           <div class="platform-stat-item">
-            <div class="stat-label">{{ t('charts.platformStat.platformCount') }}</div>
-            <div class="stat-value">{{ platforms.length }}</div>
+            <div class="stat-label">
+              {{ t('charts.platformStat.platformCount') }}
+            </div>
+            <div class="stat-value">
+              {{ platforms.length }}
+            </div>
           </div>
-          <v-divider vertical></v-divider>
+          <v-divider vertical />
           <div class="platform-stat-item">
-            <div class="stat-label">{{ t('charts.platformStat.mostActive') }}</div>
-            <div class="stat-value">{{ mostActivePlatform }}</div>
+            <div class="stat-label">
+              {{ t('charts.platformStat.mostActive') }}
+            </div>
+            <div
+              class="stat-value stat-value-ellipsis"
+              :title="mostActivePlatform"
+            >
+              {{ mostActivePlatform }}
+            </div>
           </div>
-          <v-divider vertical></v-divider>
+          <v-divider vertical />
           <div class="platform-stat-item">
-            <div class="stat-label">{{ t('charts.platformStat.totalPercentage') }}</div>
+            <div class="stat-label">
+              {{ t('charts.platformStat.totalPercentage') }}
+            </div>
             <div class="stat-value">{{ topPlatformPercentage }}%</div>
           </div>
         </div>
-        
+
         <div class="platform-chart">
           <v-progress-linear
             v-for="(platform, i) in sortedPlatforms.slice(0, 5)"
@@ -58,65 +81,103 @@
             height="8"
             rounded
             class="platform-progress"
-            :color="i === 0 ? 'primary' : i === 1 ? 'info' : i === 2 ? 'success' : 'grey-lighten-1'"
-          ></v-progress-linear>
+            :color="
+              i === 0
+                ? 'primary'
+                : i === 1
+                  ? 'info'
+                  : i === 2
+                    ? 'success'
+                    : 'grey-lighten-1'
+            "
+          />
         </div>
       </div>
-      
+
       <div v-else class="no-data">
-        <v-icon icon="mdi-information-outline" size="40" color="grey-lighten-1"></v-icon>
-        <div class="no-data-text">{{ t('charts.platformStat.noData') }}</div>
+        <v-icon
+          icon="mdi-information-outline"
+          size="40"
+          color="grey-lighten-1"
+        />
+        <div class="no-data-text">
+          {{ t('charts.platformStat.noData') }}
+        </div>
       </div>
     </v-card-text>
   </v-card>
 </template>
 
-<script>
+<script lang="ts">
+import { defineComponent, type PropType } from 'vue';
 import { useModuleI18n } from '@/i18n/composables';
 
-export default {
+type PlatformItem = {
+  name: string;
+  count: number;
+};
+
+type PlatformStatPayload = {
+  platform?: PlatformItem[];
+};
+
+export default defineComponent({
   name: 'PlatformStat',
-  props: ['stat'],
+  props: {
+    stat: {
+      type: Object as PropType<PlatformStatPayload | null>,
+      default: null,
+    },
+  },
   setup() {
     const { tm: t } = useModuleI18n('features/dashboard');
     return { t };
   },
   data() {
     return {
-      platforms: []
+      platforms: [] as PlatformItem[],
     };
   },
   computed: {
     sortedPlatforms() {
-      return [...this.platforms].sort((a, b) => b.count - a.count);
+      return [...this.platforms].sort(
+        (a: PlatformItem, b: PlatformItem) => b.count - a.count,
+      );
     },
     totalCount() {
-      return this.platforms.reduce((sum, platform) => sum + platform.count, 0);
+      return this.platforms.reduce(
+        (sum: number, platform: PlatformItem) => sum + platform.count,
+        0,
+      );
     },
     mostActivePlatform() {
-      return this.sortedPlatforms.length > 0 ? this.sortedPlatforms[0].name : '-';
+      return this.sortedPlatforms.length > 0
+        ? this.sortedPlatforms[0].name
+        : '-';
     },
     topPlatformPercentage() {
       if (this.totalCount === 0 || this.sortedPlatforms.length === 0) return 0;
-      return Math.round((this.sortedPlatforms[0].count / this.totalCount) * 100);
-    }
+      return Math.round(
+        (this.sortedPlatforms[0].count / this.totalCount) * 100,
+      );
+    },
   },
   watch: {
     stat: {
-      handler: function (val) {
+      handler: function (val: PlatformStatPayload | null) {
         if (val && val.platform) {
           this.platforms = val.platform;
         }
       },
       deep: true,
-    }
+    },
   },
   methods: {
-    getPercentage(count) {
+    getPercentage(count: number) {
       return this.totalCount ? (count / this.totalCount) * 100 : 0;
-    }
-  }
-};
+    },
+  },
+});
 </script>
 
 <style scoped>
@@ -166,6 +227,11 @@ export default {
   margin-bottom: 4px;
   border-radius: 8px;
   transition: background-color 0.2s;
+  min-width: 0;
+}
+
+.platform-item :deep(.v-list-item__content) {
+  min-width: 0;
 }
 
 .platform-item:hover {
@@ -193,6 +259,9 @@ export default {
 
 .platform-name {
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .platform-count {
@@ -217,13 +286,15 @@ export default {
   justify-content: space-between;
   background-color: var(--v-theme-containerBg);
   border-radius: 8px;
-  padding: 12px;
+  padding: 12px 16px;
   margin-bottom: 16px;
 }
 
 .platform-stat-item {
   flex: 1;
   text-align: center;
+  min-width: 0;
+  padding: 0 6px;
 }
 
 .stat-label {
@@ -235,6 +306,12 @@ export default {
 .stat-value {
   font-weight: 600;
   color: var(--v-theme-primaryText);
+}
+
+.stat-value-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .platform-chart {

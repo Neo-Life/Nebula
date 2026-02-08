@@ -1,57 +1,29 @@
-name: 🥳 发布插件
-description: 提交插件到插件市场
-title: "[Plugin] 插件名"
-labels: ["plugin-publish"]
+name: 🙀 发布插件 (请前往 AstrBot 仓库)
+description: 此处不处理插件收录，请点击查看详情
+title: "[Invalid] 请前往 AstrBot 官方仓库提交插件"
+labels: ["invalid"]
 assignees: []
 body:
   - type: markdown
     attributes:
       value: |
-        欢迎发布插件到插件市场！
+        <br>
+        
+        前往 AstrBot 官方仓库 [Issues](https://github.com/AstrBotDevs/AstrBot/issues)  
+        或使用便捷方式在 AstrBot 仓库 [提交插件](https://pa.i0c.cc/submit)  
+        
+        此处不处理插件收录请求。
+        This repository does not handle plugin submissions.
 
-  - type: markdown
-    attributes:
-      value: |
-        ## 插件基本信息
+        请前往 **AstrBot 官方仓库** 提交您的插件信息。
+        Please submit your plugin to the official AstrBot repository.
 
-        请将插件信息填写到下方的 JSON 代码块中。其中 `tags`（插件标签）和 `social_link`（社交链接）选填。
-
-        不熟悉 JSON ？可以从 [此站](https://plugins.astrbot.app) 右下角提交。
-
-  - type: textarea
-    id: plugin-info
-    attributes:
-      label: 插件信息
-      description: 请在下方代码块中填写您的插件信息，确保反引号包裹了JSON
-      value: |
-        ```json
-        {
-          "name": "插件名，请以 astrbot_plugin_ 开头",
-          "display_name": "用于展示的插件名，方便人类阅读",
-          "desc": "插件的简短介绍",
-          "author": "作者名",
-          "repo": "插件仓库链接",
-          "tags": [],
-          "social_link": "",
-        }
-        ```
-    validations:
-      required: true
-
-  - type: markdown
-    attributes:
-      value: |
-        ## 检查
+        (请在那里选择对应的插件发布模板进行提交，或者选择便捷的方式提交插件)
 
   - type: checkboxes
-    id: checks
+    id: confirmation
     attributes:
-      label: 插件检查清单
-      description: 请确认以下所有项目
+      label: 确认(Confirmation)
       options:
-        - label: 我的插件经过完整的测试
-          required: true
-        - label: 我的插件不包含恶意代码
-          required: true
-        - label: 我已阅读并同意遵守该项目的 [行为准则](https://docs.github.com/zh/site-policy/github-terms/github-community-code-of-conduct)。
+        - label: 我已知晓此处不受理插件提交，我将前往上述链接进行操作。
           required: true
