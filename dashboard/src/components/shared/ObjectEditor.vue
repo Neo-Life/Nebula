@@ -30,247 +30,250 @@
     <v-btn size="small" color="primary" variant="tonal" @click="openDialog">
       {{ buttonText }}
     </v-btn>
-  </div>
+    <!-- Key-Value Management Dialog -->
+    <v-dialog v-model="dialog" max-width="600px">
+      <v-card>
+        <v-card-title class="text-h3 py-4" style="font-weight: normal">
+          {{ dialogTitle }}
+        </v-card-title>
 
-  <!-- Key-Value Management Dialog -->
-  <v-dialog v-model="dialog" max-width="600px">
-    <v-card>
-      <v-card-title class="text-h3 py-4" style="font-weight: normal">
-        {{ dialogTitle }}
-      </v-card-title>
-
-      <v-card-text class="pa-4" style="max-height: 400px; overflow-y: auto">
-        <!-- Regular key-value pairs (non-template) -->
-        <div v-if="nonTemplatePairs.length > 0">
-          <div
-            v-for="(pair, index) in nonTemplatePairs"
-            :key="index"
-            class="key-value-pair"
-          >
-            <v-row no-gutters align="center" class="mb-2">
-              <v-col cols="4">
-                <v-text-field
-                  v-model="pair.key"
-                  density="compact"
-                  variant="outlined"
-                  hide-details
-                  placeholder="键名"
-                  @blur="updateKey(index, pair.key)"
-                />
-              </v-col>
-              <v-col cols="7" class="pl-2 d-flex align-center justify-end">
-                <v-text-field
-                  v-if="pair.type === 'string'"
-                  v-model="pair.value"
-                  density="compact"
-                  variant="outlined"
-                  hide-details
-                  placeholder="字符串值"
-                />
-                <div
-                  v-else-if="
-                    pair.type === 'number' ||
-                    pair.type === 'float' ||
-                    pair.type === 'int'
-                  "
-                  class="d-flex align-center gap-2 flex-grow-1"
-                >
-                  <v-slider
-                    v-if="pair.slider"
-                    :model-value="Number(pair.value) || 0"
-                    :min="pair.slider.min"
-                    :max="pair.slider.max"
-                    :step="pair.slider.step"
-                    color="primary"
-                    density="compact"
-                    hide-details
-                    class="flex-grow-1"
-                    @update:model-value="pair.value = $event"
-                  />
+        <v-card-text class="pa-4" style="max-height: 400px; overflow-y: auto">
+          <!-- Regular key-value pairs (non-template) -->
+          <div v-if="nonTemplatePairs.length > 0">
+            <div
+              v-for="(pair, index) in nonTemplatePairs"
+              :key="index"
+              class="key-value-pair"
+            >
+              <v-row no-gutters align="center" class="mb-2">
+                <v-col cols="4">
                   <v-text-field
-                    v-model.number="pair.value"
-                    type="number"
+                    v-model="pair.key"
                     density="compact"
                     variant="outlined"
                     hide-details
-                    placeholder="数值"
-                    :style="pair.slider ? 'max-width: 120px;' : ''"
+                    placeholder="键名"
+                    @blur="updateKey(index, pair.key)"
                   />
-                </div>
-                <v-switch
-                  v-else-if="pair.type === 'boolean'"
-                  v-model="pair.value"
-                  density="compact"
-                  hide-details
-                  color="primary"
-                />
-                <v-text-field
-                  v-if="pair.type === 'json'"
-                  v-model="pair.value"
-                  density="compact"
-                  variant="outlined"
-                  hide-details="auto"
-                  placeholder="JSON"
-                  :error-messages="pair.jsonError"
-                  @blur="updateJSON(index, pair.value)"
-                />
-              </v-col>
-              <v-col cols="1" class="pl-2">
-                <v-btn
-                  icon
-                  variant="text"
-                  size="small"
-                  color="error"
-                  @click="removeKeyValuePairByKey(pair.key)"
-                >
-                  <v-icon>mdi-delete</v-icon>
-                </v-btn>
-              </v-col>
-            </v-row>
-          </div>
-        </div>
-
-        <!-- Template schema fields -->
-        <div v-if="hasTemplateSchema" class="mt-4">
-          <v-divider class="mb-3" />
-          <div class="text-caption text-grey mb-2">预设</div>
-          <div
-            v-for="(template, templateKey) in templateSchema"
-            :key="templateKey"
-            class="template-field"
-            :class="{
-              'template-field-inactive': !isTemplateKeyAdded(templateKey),
-            }"
-          >
-            <v-row no-gutters align="center" class="mb-2">
-              <v-col cols="4">
-                <div class="d-flex flex-column">
-                  <span class="text-caption font-weight-medium">{{
-                    template.name || template.description || templateKey
-                  }}</span>
-                  <span
-                    v-if="template.hint"
-                    class="text-caption text-grey"
-                    style="font-size: 0.7rem"
-                    >{{ template.hint }}</span
+                </v-col>
+                <v-col cols="7" class="pl-2 d-flex align-center justify-end">
+                  <v-text-field
+                    v-if="pair.type === 'string'"
+                    v-model="pair.value"
+                    density="compact"
+                    variant="outlined"
+                    hide-details
+                    placeholder="字符串值"
+                  />
+                  <div
+                    v-else-if="
+                      pair.type === 'number' ||
+                      pair.type === 'float' ||
+                      pair.type === 'int'
+                    "
+                    class="d-flex align-center gap-2 flex-grow-1"
                   >
-                </div>
-              </v-col>
-              <v-col cols="7" class="pl-2 d-flex align-center justify-end">
-                <v-text-field
-                  v-if="template.type === 'string'"
-                  :model-value="getTemplateValue(templateKey)"
-                  density="compact"
-                  variant="outlined"
-                  hide-details
-                  placeholder="字符串值"
-                  @update:model-value="updateTemplateValue(templateKey, $event)"
-                />
-                <div
-                  v-else-if="
-                    template.type === 'number' ||
-                    template.type === 'float' ||
-                    template.type === 'int'
-                  "
-                  class="d-flex align-center ga-4 flex-grow-1"
-                >
-                  <v-slider
-                    v-if="template.slider"
-                    :model-value="Number(getTemplateValue(templateKey)) || 0"
-                    :min="template.slider.min"
-                    :max="template.slider.max"
-                    :step="template.slider.step"
-                    color="primary"
+                    <v-slider
+                      v-if="pair.slider"
+                      :model-value="Number(pair.value) || 0"
+                      :min="pair.slider.min"
+                      :max="pair.slider.max"
+                      :step="pair.slider.step"
+                      color="primary"
+                      density="compact"
+                      hide-details
+                      class="flex-grow-1"
+                      @update:model-value="pair.value = $event"
+                    />
+                    <v-text-field
+                      v-model.number="pair.value"
+                      type="number"
+                      density="compact"
+                      variant="outlined"
+                      hide-details
+                      placeholder="数值"
+                      :style="pair.slider ? 'max-width: 120px;' : ''"
+                    />
+                  </div>
+                  <v-switch
+                    v-else-if="pair.type === 'boolean'"
+                    v-model="pair.value"
                     density="compact"
                     hide-details
-                    class="flex-grow-1"
-                    @update:model-value="
-                      updateTemplateValue(templateKey, $event)
-                    "
+                    color="primary"
                   />
                   <v-text-field
+                    v-if="pair.type === 'json'"
+                    v-model="pair.value"
+                    density="compact"
+                    variant="outlined"
+                    hide-details="auto"
+                    placeholder="JSON"
+                    :error-messages="pair.jsonError"
+                    @blur="updateJSON(index, pair.value)"
+                  />
+                </v-col>
+                <v-col cols="1" class="pl-2">
+                  <v-btn
+                    icon
+                    variant="text"
+                    size="small"
+                    color="error"
+                    @click="removeKeyValuePairByKey(pair.key)"
+                  >
+                    <v-icon>mdi-delete</v-icon>
+                  </v-btn>
+                </v-col>
+              </v-row>
+            </div>
+          </div>
+
+          <!-- Template schema fields -->
+          <div v-if="hasTemplateSchema" class="mt-4">
+            <v-divider class="mb-3" />
+            <div class="text-caption text-grey mb-2">预设</div>
+            <div
+              v-for="(template, templateKey) in templateSchema"
+              :key="templateKey"
+              class="template-field"
+              :class="{
+                'template-field-inactive': !isTemplateKeyAdded(templateKey),
+              }"
+            >
+              <v-row no-gutters align="center" class="mb-2">
+                <v-col cols="4">
+                  <div class="d-flex flex-column">
+                    <span class="text-caption font-weight-medium">{{
+                      template.name || template.description || templateKey
+                    }}</span>
+                    <span
+                      v-if="template.hint"
+                      class="text-caption text-grey"
+                      style="font-size: 0.7rem"
+                      >{{ template.hint }}</span
+                    >
+                  </div>
+                </v-col>
+                <v-col cols="7" class="pl-2 d-flex align-center justify-end">
+                  <v-text-field
+                    v-if="template.type === 'string'"
                     :model-value="getTemplateValue(templateKey)"
-                    type="number"
                     density="compact"
                     variant="outlined"
                     hide-details
-                    placeholder="数值"
-                    :style="template.slider ? 'max-width: 120px;' : ''"
+                    placeholder="字符串值"
                     @update:model-value="
                       updateTemplateValue(templateKey, $event)
                     "
                   />
-                </div>
-                <v-switch
-                  v-else-if="
-                    template.type === 'boolean' || template.type === 'bool'
-                  "
-                  :model-value="getTemplateValue(templateKey)"
-                  density="compact"
-                  hide-details
-                  color="primary"
-                  @update:model-value="updateTemplateValue(templateKey, $event)"
-                />
-              </v-col>
-              <v-col cols="1" class="pl-2">
-                <v-btn
-                  v-if="isTemplateKeyAdded(templateKey)"
-                  icon
-                  variant="text"
-                  size="small"
-                  color="error"
-                  @click="removeTemplateKey(templateKey)"
-                >
-                  <v-icon>mdi-close</v-icon>
-                </v-btn>
-              </v-col>
-            </v-row>
+                  <div
+                    v-else-if="
+                      template.type === 'number' ||
+                      template.type === 'float' ||
+                      template.type === 'int'
+                    "
+                    class="d-flex align-center ga-4 flex-grow-1"
+                  >
+                    <v-slider
+                      v-if="template.slider"
+                      :model-value="Number(getTemplateValue(templateKey)) || 0"
+                      :min="template.slider.min"
+                      :max="template.slider.max"
+                      :step="template.slider.step"
+                      color="primary"
+                      density="compact"
+                      hide-details
+                      class="flex-grow-1"
+                      @update:model-value="
+                        updateTemplateValue(templateKey, $event)
+                      "
+                    />
+                    <v-text-field
+                      :model-value="getTemplateValue(templateKey)"
+                      type="number"
+                      density="compact"
+                      variant="outlined"
+                      hide-details
+                      placeholder="数值"
+                      :style="template.slider ? 'max-width: 120px;' : ''"
+                      @update:model-value="
+                        updateTemplateValue(templateKey, $event)
+                      "
+                    />
+                  </div>
+                  <v-switch
+                    v-else-if="
+                      template.type === 'boolean' || template.type === 'bool'
+                    "
+                    :model-value="getTemplateValue(templateKey)"
+                    density="compact"
+                    hide-details
+                    color="primary"
+                    @update:model-value="
+                      updateTemplateValue(templateKey, $event)
+                    "
+                  />
+                </v-col>
+                <v-col cols="1" class="pl-2">
+                  <v-btn
+                    v-if="isTemplateKeyAdded(templateKey)"
+                    icon
+                    variant="text"
+                    size="small"
+                    color="error"
+                    @click="removeTemplateKey(templateKey)"
+                  >
+                    <v-icon>mdi-close</v-icon>
+                  </v-btn>
+                </v-col>
+              </v-row>
+            </div>
           </div>
-        </div>
 
-        <div
-          v-if="localKeyValuePairs.length === 0 && !hasTemplateSchema"
-          class="text-center py-8"
-        >
-          <v-icon size="64" color="grey-lighten-1"> mdi-code-json </v-icon>
-          <p class="text-grey mt-4">暂无参数</p>
-        </div>
-      </v-card-text>
+          <div
+            v-if="localKeyValuePairs.length === 0 && !hasTemplateSchema"
+            class="text-center py-8"
+          >
+            <v-icon size="64" color="grey-lighten-1"> mdi-code-json </v-icon>
+            <p class="text-grey mt-4">暂无参数</p>
+          </div>
+        </v-card-text>
 
-      <!-- Add new key-value pair section -->
-      <v-card-text class="pa-4">
-        <div class="d-flex align-center ga-2">
-          <v-text-field
-            v-model="newKey"
-            label="新键名"
-            density="compact"
-            variant="outlined"
-            hide-details
-            class="flex-grow-1"
-          />
-          <v-select
-            v-model="newValueType"
-            :items="['string', 'number', 'boolean', 'json']"
-            label="值类型"
-            density="compact"
-            variant="outlined"
-            hide-details
-            style="max-width: 120px"
-          />
-          <v-btn variant="tonal" color="primary" @click="addKeyValuePair">
-            <v-icon>mdi-plus</v-icon>
-            添加
-          </v-btn>
-        </div>
-      </v-card-text>
+        <!-- Add new key-value pair section -->
+        <v-card-text class="pa-4">
+          <div class="d-flex align-center ga-2">
+            <v-text-field
+              v-model="newKey"
+              label="新键名"
+              density="compact"
+              variant="outlined"
+              hide-details
+              class="flex-grow-1"
+            />
+            <v-select
+              v-model="newValueType"
+              :items="['string', 'number', 'boolean', 'json']"
+              label="值类型"
+              density="compact"
+              variant="outlined"
+              hide-details
+              style="max-width: 120px"
+            />
+            <v-btn variant="tonal" color="primary" @click="addKeyValuePair">
+              <v-icon>mdi-plus</v-icon>
+              添加
+            </v-btn>
+          </div>
+        </v-card-text>
 
-      <v-card-actions class="pa-4">
-        <v-spacer />
-        <v-btn variant="text" @click="cancelDialog"> 取消 </v-btn>
-        <v-btn color="primary" @click="confirmDialog"> 确认 </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+        <v-card-actions class="pa-4">
+          <v-spacer />
+          <v-btn variant="text" @click="cancelDialog"> 取消 </v-btn>
+          <v-btn color="primary" @click="confirmDialog"> 确认 </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </div>
 </template>
 
 <script setup lang="ts">
