@@ -151,7 +151,7 @@ export function useProviderSources(options: UseProviderSourcesOptions) {
 
   let suppressSourceWatch = false;
 
-  const providerTypes = [
+  const providerTypes = computed(() => [
     {
       value: 'chat_completion',
       label: tm('providers.tabs.chatCompletion'),
@@ -182,7 +182,7 @@ export function useProviderSources(options: UseProviderSourcesOptions) {
       label: tm('providers.tabs.rerank'),
       icon: 'mdi-compare-vertical',
     },
-  ];
+  ]);
 
   // ===== Computed =====
   const availableSourceTypes = computed(() => {
