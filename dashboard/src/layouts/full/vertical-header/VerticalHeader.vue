@@ -34,7 +34,7 @@ type ConfirmDialogExpose = {
 const confirmDialog = ref<ConfirmDialogExpose | null>(null);
 const isElectronApp = ref(false);
 const electronReleaseUrl =
-  'https://github.com/Neo-Revaea/Nebula/releases/latest';
+  'https://github.com/AstrBotDevs/AstrBot/releases/latest';
 
 function getVersion() {
   axios
