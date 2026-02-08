@@ -11,6 +11,31 @@ import uuid
 from astrbot import logger
 from astrbot.core.utils.astrbot_path import get_astrbot_data_path
 
+FFPROBE_TIMEOUT_SECONDS = 15.0
+FFMPEG_TIMEOUT_SECONDS = 120.0
+
+
+async def _communicate_with_timeout(
+    process: asyncio.subprocess.Process,
+    *,
+    timeout: float,
+    description: str,
+) -> tuple[bytes, bytes]:
+    try:
+        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+        return stdout or b"", stderr or b""
+    except asyncio.TimeoutError:
+        logger.warning(f"[Media Utils] {description} 超时({timeout}s)，终止子进程。")
+        try:
+            process.kill()
+        except Exception:
+            pass
+        try:
+            await process.wait()
+        except Exception:
+            pass
+        raise
+
 
 async def get_media_duration(file_path: str) -> int | None:
     """使用ffprobe获取媒体文件时长
@@ -36,7 +61,14 @@ async def get_media_duration(file_path: str) -> int | None:
             stderr=subprocess.PIPE,
         )
 
-        stdout, stderr = await process.communicate()
+        try:
+            stdout, stderr = await _communicate_with_timeout(
+                process,
+                timeout=FFPROBE_TIMEOUT_SECONDS,
+                description=f"获取媒体文件时长(ffprobe): {file_path}",
+            )
+        except asyncio.TimeoutError:
+            return None
 
         if process.returncode == 0 and stdout:
             duration_seconds = float(stdout.decode().strip())
@@ -103,7 +135,19 @@ async def convert_audio_to_opus(audio_path: str, output_path: str | None = None)
             stderr=subprocess.PIPE,
         )
 
-        stdout, stderr = await process.communicate()
+        try:
+            stdout, stderr = await _communicate_with_timeout(
+                process,
+                timeout=FFMPEG_TIMEOUT_SECONDS,
+                description=f"转换音频为opus(ffmpeg): {audio_path}",
+            )
+        except asyncio.TimeoutError:
+            if output_path and os.path.exists(output_path):
+                try:
+                    os.remove(output_path)
+                except OSError:
+                    pass
+            raise Exception("ffmpeg conversion timeout")
 
         if process.returncode != 0:
             # 清理可能已生成但无效的临时文件
@@ -175,7 +219,19 @@ async def convert_video_format(
             stderr=subprocess.PIPE,
         )
 
-        stdout, stderr = await process.communicate()
+        try:
+            stdout, stderr = await _communicate_with_timeout(
+                process,
+                timeout=FFMPEG_TIMEOUT_SECONDS,
+                description=f"转换视频格式(ffmpeg): {video_path}",
+            )
+        except asyncio.TimeoutError:
+            if output_path and os.path.exists(output_path):
+                try:
+                    os.remove(output_path)
+                except OSError:
+                    pass
+            raise Exception("ffmpeg conversion timeout")
 
         if process.returncode != 0:
             # 清理可能已生成但无效的临时文件

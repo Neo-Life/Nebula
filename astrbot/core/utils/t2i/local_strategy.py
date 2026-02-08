@@ -881,7 +881,7 @@ class MarkdownRenderer:
 
         # 获取"Powered by "和"AstrBot"的宽度以便居中
         powered_by_text = "Powered by "
-        astrbot_text = f"AstrBot v{VERSION}"
+        astrbot_text = f"Nebula v{VERSION}"
 
         powered_by_width, _ = TextMeasurer.get_text_size(powered_by_text, footer_font)
         astrbot_width, _ = TextMeasurer.get_text_size(astrbot_text, footer_font)

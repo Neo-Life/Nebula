@@ -3,7 +3,8 @@
   "include": ["vite.config.*"],
   "compilerOptions": {
     "composite": true,
-    "allowJs": true,
+    "allowJs": false,
+    "target": "ES2022",
     "types": ["node"]
   }
 }
