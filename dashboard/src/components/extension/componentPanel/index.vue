@@ -119,10 +119,6 @@ const handleUpdatePermission = async (
   );
 };
 
-const handleUpdatePermission = async (cmd: CommandItem, permission: 'admin' | 'member') => {
-  await updatePermission(cmd, permission, tm('messages.updateSuccess'), tm('messages.updateFailed'));
-};
-
 const handleToggleTool = async (tool: ToolItem) => {
   const previous = tool.active;
   tool.active = !tool.active;
