@@ -26,6 +26,9 @@ function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+// Version update checking disabled: keep helper referenced to satisfy lint.
+void isRecord;
+
 type Release = {
   tag_name: string;
   published_at: string;
@@ -50,6 +53,10 @@ enableMermaid();
 
 const { t } = useI18n();
 const router = useRouter();
+
+// Version update checking disabled: keep auth/router referenced to satisfy lint.
+void useAuthStore;
+void router;
 
 const display = useDisplay();
 
@@ -160,90 +167,97 @@ function isPreRelease(tagName: string) {
 
 function onSourceChannelChanged() {
   releaseMessage.value = '';
-  checkUpdate();
-  getReleases();
+  // Version update checking disabled (do not detect updates)
+  // checkUpdate();
+  // getReleases();
 }
 
 async function checkUpdate() {
-  setUpdateStatusKey('core.header.updateDialog.status.checking');
-  try {
-    const res = await axios.get('/api/update/check', {
-      params: { channel: sourceUpdateChannel.value },
-    });
-
-    hasNewVersion.value = !!res.data.data.has_new_version;
-    dashboardHasNewVersion.value = !!res.data.data.dashboard_has_new_version;
-
-    emit('updateFlags', {
-      hasNewVersion: hasNewVersion.value,
-      dashboardHasNewVersion: dashboardHasNewVersion.value,
-    });
-
-    if (hasNewVersion.value) {
-      releaseMessage.value = res.data.message;
-      setUpdateStatusKey('core.header.version.hasNewVersion');
-    } else {
-      // 后端 message 可能是固定中文句子；这里用 i18n key，保证切换语言时能立即更新
-      setUpdateStatusKey('core.header.updateDialog.dashboardUpdate.isLatest');
-    }
-  } catch (err: unknown) {
-    if (axios.isAxiosError(err) && err.response?.status === 401) {
-      const authStore = useAuthStore();
-      authStore.logout();
-      router.push('/auth/login');
-      return;
-    }
-    setUpdateStatusText(err);
-  } finally {
-    lastCheckedAt.value = new Date();
-  }
+  // Version update checking disabled (do not detect updates)
+  // setUpdateStatusKey('core.header.updateDialog.status.checking');
+  // try {
+  //   const res = await axios.get('/api/update/check', {
+  //     params: { channel: sourceUpdateChannel.value },
+  //   });
+  //
+  //   hasNewVersion.value = !!res.data.data.has_new_version;
+  //   dashboardHasNewVersion.value = !!res.data.data.dashboard_has_new_version;
+  //
+  //   emit('updateFlags', {
+  //     hasNewVersion: hasNewVersion.value,
+  //     dashboardHasNewVersion: dashboardHasNewVersion.value,
+  //   });
+  //
+  //   if (hasNewVersion.value) {
+  //     releaseMessage.value = res.data.message;
+  //     setUpdateStatusKey('core.header.version.hasNewVersion');
+  //   } else {
+  //     // 后端 message 可能是固定中文句子；这里用 i18n key，保证切换语言时能立即更新
+  //     setUpdateStatusKey('core.header.updateDialog.dashboardUpdate.isLatest');
+  //   }
+  // } catch (err: unknown) {
+  //   if (axios.isAxiosError(err) && err.response?.status === 401) {
+  //     const authStore = useAuthStore();
+  //     authStore.logout();
+  //     router.push('/auth/login');
+  //     return;
+  //   }
+  //   setUpdateStatusText(err);
+  // } finally {
+  //   lastCheckedAt.value = new Date();
+  // }
 }
 
 async function getReleases() {
-  try {
-    const res = await axios.get('/api/update/releases', {
-      params: { channel: sourceUpdateChannel.value },
-    });
-
-    const data = res.data?.data;
-    const items: unknown[] = Array.isArray(data) ? data : [];
-
-    releases.value = items.map((itemUnknown): Release => {
-      const item = isRecord(itemUnknown) ? itemUnknown : {};
-
-      const tagNameRaw = item.tag_name;
-      const tag_name = typeof tagNameRaw === 'string' ? tagNameRaw : '';
-
-      const publishedAtRaw = item.published_at;
-      const published_at =
-        typeof publishedAtRaw === 'string' || typeof publishedAtRaw === 'number'
-          ? new Date(publishedAtRaw).toLocaleString()
-          : publishedAtRaw instanceof Date
-            ? publishedAtRaw.toLocaleString()
-            : new Date(Number.NaN).toLocaleString();
-
-      const zipballUrlRaw = item.zipball_url;
-      const zipball_url =
-        typeof zipballUrlRaw === 'string' ? zipballUrlRaw : undefined;
-
-      const bodyRaw = item.body;
-      const body = typeof bodyRaw === 'string' ? bodyRaw : '';
-
-      const nameRaw = item.name;
-      const name = typeof nameRaw === 'string' ? nameRaw : undefined;
-
-      return {
-        tag_name,
-        published_at,
-        zipball_url,
-        body,
-        name,
-      };
-    });
-  } catch (err) {
-    console.log(err);
-  }
+  // Version update checking disabled (do not detect updates)
+  // try {
+  //   const res = await axios.get('/api/update/releases', {
+  //     params: { channel: sourceUpdateChannel.value },
+  //   });
+  //
+  //   const data = res.data?.data;
+  //   const items: unknown[] = Array.isArray(data) ? data : [];
+  //
+  //   releases.value = items.map((itemUnknown): Release => {
+  //     const item = isRecord(itemUnknown) ? itemUnknown : {};
+  //
+  //     const tagNameRaw = item.tag_name;
+  //     const tag_name = typeof tagNameRaw === 'string' ? tagNameRaw : '';
+  //
+  //     const publishedAtRaw = item.published_at;
+  //     const published_at =
+  //       typeof publishedAtRaw === 'string' || typeof publishedAtRaw === 'number'
+  //         ? new Date(publishedAtRaw).toLocaleString()
+  //         : publishedAtRaw instanceof Date
+  //           ? publishedAtRaw.toLocaleString()
+  //           : new Date(Number.NaN).toLocaleString();
+  //
+  //     const zipballUrlRaw = item.zipball_url;
+  //     const zipball_url =
+  //       typeof zipballUrlRaw === 'string' ? zipballUrlRaw : undefined;
+  //
+  //     const bodyRaw = item.body;
+  //     const body = typeof bodyRaw === 'string' ? bodyRaw : '';
+  //
+  //     const nameRaw = item.name;
+  //     const name = typeof nameRaw === 'string' ? nameRaw : undefined;
+  //
+  //     return {
+  //       tag_name,
+  //       published_at,
+  //       zipball_url,
+  //       body,
+  //       name,
+  //     };
+  //   });
+  // } catch (err) {
+  //   console.log(err);
+  // }
 }
+
+// Version update checking disabled: keep functions referenced to satisfy lint.
+void checkUpdate;
+void getReleases;
 
 async function switchVersion(tag: string) {
   setUpdateStatusKey('core.header.updateDialog.status.switching');
@@ -312,14 +326,16 @@ watch(
   (open) => {
     if (open) {
       updateTab.value = 'source';
-      checkUpdate();
-      getReleases();
+      // Version update checking disabled (do not detect updates)
+      // checkUpdate();
+      // getReleases();
     }
   },
 );
 
 onMounted(() => {
-  checkUpdate();
+  // Version update checking disabled (do not detect updates)
+  // checkUpdate();
 });
 
 const dialogModel = computed({

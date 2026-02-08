@@ -61,53 +61,74 @@ class UpdateRoute(Route):
 
         try:
             dv = await get_dashboard_version()
+            # Version update checking disabled (do not detect updates)
             if type_ == "dashboard":
                 return (
                     Response()
-                    .ok({"has_new_version": dv != f"v{VERSION}", "current_version": dv})
+                    .ok({"has_new_version": False, "current_version": dv})
                     .__dict__
                 )
 
-            if channel == "nebula":
-                return Response(
-                    status="success",
-                    message="该更新渠道不提供 releases 版本列表，将直接拉取默认分支最新源码。",
-                    data={
-                        "version": f"v{VERSION}",
-                        "has_new_version": False,
-                        "dashboard_version": dv,
-                        "dashboard_has_new_version": bool(dv and dv != f"v{VERSION}"),
-                        "channel": channel,
-                    },
-                ).__dict__
-
-            ret = await self.astrbot_updator.check_update(None, None, False)
             return Response(
                 status="success",
-                message=str(ret) if ret is not None else "已经是最新版本了。",
+                message="已禁用版本更新检测。",
                 data={
                     "version": f"v{VERSION}",
-                    "has_new_version": ret is not None,
+                    "has_new_version": False,
                     "dashboard_version": dv,
-                    "dashboard_has_new_version": bool(dv and dv != f"v{VERSION}"),
+                    "dashboard_has_new_version": False,
                     "channel": channel,
                 },
             ).__dict__
+
+            # Original implementation (network-based) intentionally disabled:
+            #
+            # if channel == "nebula":
+            #     return Response(
+            #         status="success",
+            #         message="该更新渠道不提供 releases 版本列表，将直接拉取默认分支最新源码。",
+            #         data={
+            #             "version": f"v{VERSION}",
+            #             "has_new_version": False,
+            #             "dashboard_version": dv,
+            #             "dashboard_has_new_version": bool(dv and dv != f"v{VERSION}"),
+            #             "channel": channel,
+            #         },
+            #     ).__dict__
+            #
+            # ret = await self.astrbot_updator.check_update(None, None, False)
+            # return Response(
+            #     status="success",
+            #     message=str(ret) if ret is not None else "已经是最新版本了。",
+            #     data={
+            #         "version": f"v{VERSION}",
+            #         "has_new_version": ret is not None,
+            #         "dashboard_version": dv,
+            #         "dashboard_has_new_version": bool(dv and dv != f"v{VERSION}"),
+            #         "channel": channel,
+            #     },
+            # ).__dict__
         except Exception as e:
-            logger.warning(f"检查更新失败: {e!s} (不影响除项目更新外的正常使用)")
+            # Version update checking disabled: avoid noisy logs.
+            # logger.warning(f"检查更新失败: {e!s} (不影响除项目更新外的正常使用)")
             return Response().error(e.__str__()).__dict__
 
     async def get_releases(self):
-        channel = request.args.get("channel", "official")
-        if channel == "nebula":
-            # 该渠道通常没有 releases；面板侧会提供“更新到最新源码”按钮。
-            return Response().ok([]).__dict__
-        try:
-            ret = await self.astrbot_updator.get_releases()
-            return Response().ok(ret).__dict__
-        except Exception as e:
-            logger.error(f"/api/update/releases: {traceback.format_exc()}")
-            return Response().error(e.__str__()).__dict__
+        _channel = request.args.get("channel", "official")
+        # Version update checking disabled (do not detect updates)
+        return Response().ok([]).__dict__
+
+        # Original implementation (network-based) intentionally disabled:
+        #
+        # if channel == "nebula":
+        #     # 该渠道通常没有 releases；面板侧会提供“更新到最新源码”按钮。
+        #     return Response().ok([]).__dict__
+        # try:
+        #     ret = await self.astrbot_updator.get_releases()
+        #     return Response().ok(ret).__dict__
+        # except Exception as e:
+        #     logger.error(f"/api/update/releases: {traceback.format_exc()}")
+        #     return Response().error(e.__str__()).__dict__
 
     async def update_project(self):
         data = await request.json
