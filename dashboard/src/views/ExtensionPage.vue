@@ -126,6 +126,10 @@ const {
                 <v-icon class="mr-2"> mdi-puzzle </v-icon>
                 {{ tm('tabs.installedPlugins') }}
               </v-tab>
+              <v-tab value="market">
+                <v-icon class="mr-2"> mdi-store </v-icon>
+                {{ tm('tabs.market') }}
+              </v-tab>
               <v-tab value="mcp">
                 <v-icon class="mr-2"> mdi-server-network </v-icon>
                 {{ tm('tabs.installedMcpServers') }}
@@ -133,10 +137,6 @@ const {
               <v-tab value="skills">
                 <v-icon class="mr-2"> mdi-lightning-bolt </v-icon>
                 {{ tm('tabs.skills') }}
-              </v-tab>
-              <v-tab value="market">
-                <v-icon class="mr-2"> mdi-store </v-icon>
-                {{ tm('tabs.market') }}
               </v-tab>
               <v-tab value="components">
                 <v-icon class="mr-2"> mdi-wrench </v-icon>
