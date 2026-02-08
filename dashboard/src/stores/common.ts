@@ -20,13 +20,18 @@ export const useCommonStore = defineStore('common', {
     pluginMarketData: [],
   }),
   actions: {
-    getStartTime() {
+    async fetchStartTime(): Promise<number> {
+      const res = await axios.get('/api/stat/start-time');
+      this.startTime = res.data.data.start_time;
+      return this.startTime;
+    },
+
+    getStartTime(): number {
       if (this.startTime !== -1) {
         return this.startTime;
       }
-      axios.get('/api/stat/start-time').then((res) => {
-        this.startTime = res.data.data.start_time;
-      });
+      this.fetchStartTime().catch(() => {});
+      return this.startTime;
     },
 
     async getPluginCollections(
