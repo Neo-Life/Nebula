@@ -82,6 +82,7 @@ const {
   renameDialog,
   detailsDialog,
   toggleCommand,
+  updatePermission,
   openRenameDialog,
   confirmRename,
   openDetailsDialog,
@@ -103,6 +104,18 @@ const handleToggleCommand = async (cmd: CommandItem) => {
     cmd,
     tm('messages.toggleSuccess'),
     tm('messages.toggleFailed'),
+  );
+};
+
+const handleUpdatePermission = async (
+  cmd: CommandItem,
+  permission: 'admin' | 'member',
+) => {
+  await updatePermission(
+    cmd,
+    permission,
+    tm('messages.updateSuccess'),
+    tm('messages.updateFailed'),
   );
 };
 
@@ -298,6 +311,7 @@ watch(viewMode, async (mode) => {
               @toggle-command="handleToggleCommand"
               @rename="openRenameDialog"
               @view-details="openDetailsDialog"
+              @update-permission="handleUpdatePermission"
             />
           </div>
 

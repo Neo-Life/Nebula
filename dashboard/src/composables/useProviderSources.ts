@@ -395,6 +395,12 @@ export function useProviderSources(options: UseProviderSourcesOptions) {
     if (isRecord(apiBaseField)) {
       apiBaseField.hint = tm('providerSources.hints.apiBase');
     }
+    // 为 proxy 字段添加描述和提示
+    const proxyField = items.proxy;
+    if (isRecord(proxyField)) {
+      proxyField.description = tm('providerSources.labels.proxy');
+      proxyField.hint = tm('providerSources.hints.proxy');
+    }
 
     return customSchema;
   });

@@ -209,6 +209,31 @@ export function useCommandActions(
     return classes.length > 0 ? { class: classes.join(' ') } : {};
   };
 
+  /**
+   * 更新指令权限
+   */
+  const updatePermission = async (
+    cmd: CommandItem,
+    permission: 'admin' | 'member',
+    successMessage: string,
+    errorMessage: string,
+  ) => {
+    try {
+      const res = await axios.post('/api/commands/permission', {
+        handler_full_name: cmd.handler_full_name,
+        permission: permission,
+      });
+      if (res.data.status === 'ok') {
+        toast(successMessage, 'success');
+        await fetchCommands();
+      } else {
+        toast(res.data.message || errorMessage, 'error');
+      }
+    } catch (err: unknown) {
+      toast(getErrorMessage(err, errorMessage), 'error');
+    }
+  };
+
   return {
     // 状态
     renameDialog,
@@ -216,6 +241,7 @@ export function useCommandActions(
 
     // 方法
     toggleCommand,
+    updatePermission,
     openRenameDialog,
     confirmRename,
     openDetailsDialog,
