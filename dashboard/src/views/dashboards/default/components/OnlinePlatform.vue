@@ -1,51 +1,93 @@
 <template>
-  <v-card elevation="1" class="stat-card platform-card">
-    <v-card-text>
-      <div class="d-flex align-start">
+  <item-card
+    :item="stat"
+    class="stat-card platform-card stat-item-card"
+    :class="{ 'is-dark': isDark }"
+    :hide-header="true"
+    variant="text"
+  >
+    <template #item-details>
+      <div class="d-flex align-start content-wrapper">
         <div class="icon-wrapper">
-          <v-icon icon="mdi-server-network" size="24"></v-icon>
+          <v-icon icon="mdi-server-network" size="24" />
         </div>
-        
+
         <div class="stat-content">
-          <div class="stat-title">{{ t('stats.onlinePlatform.title') }}</div>
-          <div class="stat-value-wrapper">
-            <h2 class="stat-value">{{ stat.platform_count || 0 }}</h2>
+          <div class="stat-title">
+            {{ t('stats.onlinePlatform.title') }}
           </div>
-          <div class="stat-subtitle">{{ t('stats.onlinePlatform.subtitle') }}</div>
+          <div class="stat-value-wrapper">
+            <h2 class="stat-value">
+              {{ stat.platform_count || 0 }}
+            </h2>
+          </div>
+          <div class="stat-subtitle">
+            {{ t('stats.onlinePlatform.subtitle') }}
+          </div>
         </div>
       </div>
-    </v-card-text>
-  </v-card>
+    </template>
+  </item-card>
 </template>
 
-<script>
+<script lang="ts">
+import { computed } from 'vue';
+import { useTheme } from 'vuetify';
 import { useModuleI18n } from '@/i18n/composables';
+import ItemCard from '@/components/shared/ItemCard.vue';
 
 export default {
   name: 'OnlinePlatform',
+  components: { ItemCard },
   props: ['stat'],
   setup() {
     const { tm: t } = useModuleI18n('features/dashboard');
-    return { t };
-  }
+    const theme = useTheme();
+    const isDark = computed(() => theme.global.current.value.dark);
+    return { t, isDark };
+  },
 };
 </script>
 
 <style scoped>
 .stat-card {
+  --custom-text: #5e35b1;
+  --custom-text-muted: rgba(94, 53, 177, 0.7);
+  --custom-border: rgba(94, 53, 177, 0.2);
+  --custom-bg-hover: rgba(94, 53, 177, 0.05);
+  --icon-bg: rgba(94, 53, 177, 0.1);
+}
+
+.stat-card.is-dark {
+  --custom-text: #bca3eb;
+  --custom-text-muted: rgba(209, 196, 233, 0.7);
+  --custom-border: rgba(209, 196, 233, 0.3);
+  --custom-bg-hover: rgba(209, 196, 233, 0.1);
+  --icon-bg: rgba(209, 196, 233, 0.15);
+}
+
+.stat-card {
   height: 100%;
-  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+  border-radius: 16px;
+  border: 3px solid var(--custom-border) !important;
+  color: var(--custom-text) !important;
+  background: transparent !important;
+
+  transition: all 0.2s ease;
   overflow: hidden;
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  background: var(--custom-bg-hover) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  border-color: var(--custom-text) !important;
 }
 
-.platform-card {
-  background-color: #2196f3;
-  color: white;
+.content-wrapper {
+  padding: 16px;
+  height: 100%;
 }
 
 .icon-wrapper {
@@ -56,7 +98,8 @@ export default {
   height: 48px;
   border-radius: 8px;
   margin-right: 16px;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--icon-bg);
+  color: var(--custom-text);
 }
 
 .stat-content {
@@ -66,7 +109,7 @@ export default {
 .stat-title {
   font-size: 14px;
   font-weight: 500;
-  opacity: 0.9;
+  color: var(--custom-text);
   margin-bottom: 4px;
 }
 
@@ -75,16 +118,21 @@ export default {
   align-items: baseline;
   margin-bottom: 4px;
 }
-
 .stat-value {
   font-size: 32px;
   font-weight: 600;
   line-height: 1.2;
   margin-right: 8px;
+  color: var(--custom-text);
 }
 
 .stat-subtitle {
   font-size: 12px;
-  opacity: 0.7;
+  color: var(--custom-text-muted);
+}
+
+.stat-item-card :deep(.v-card-title),
+.stat-item-card :deep(.v-card-actions) {
+  display: none;
 }
 </style>

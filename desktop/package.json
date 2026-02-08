@@ -22,8 +22,8 @@
     "dist": "pnpm run sync:version && electron-builder"
   },
   "devDependencies": {
-    "electron": "^30.0.0",
-    "electron-builder": "^24.13.0"
+    "electron": "^35.7.5",
+    "electron-builder": "^26.7.0"
   },
   "build": {
     "appId": "com.astrbot.desktop",

@@ -1,82 +1,103 @@
 <template>
+  <div
+    style="
+      background-color: var(--v-theme-surface, #fff);
+      padding: 8px;
+      padding-left: 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    "
+  >
+    <v-list lines="two">
+      <v-list-subheader>{{ tm('network.title') }}</v-list-subheader>
 
-    <div style="background-color: var(--v-theme-surface, #fff); padding: 8px; padding-left: 16px; border-radius: 8px; margin-bottom: 16px;">
+      <v-list-item>
+        <ProxySelector />
+      </v-list-item>
 
-        <v-list lines="two">
-            <v-list-subheader>{{ tm('network.title') }}</v-list-subheader>
+      <v-list-subheader>{{ tm('sidebar.title') }}</v-list-subheader>
 
-            <v-list-item>
-                <ProxySelector></ProxySelector>
-            </v-list-item>
+      <v-list-item
+        :subtitle="tm('sidebar.customize.subtitle')"
+        :title="tm('sidebar.customize.title')"
+      >
+        <SidebarCustomizer />
+      </v-list-item>
 
-            <v-list-subheader>{{ tm('sidebar.title') }}</v-list-subheader>
+      <v-list-subheader>{{ tm('theme.title') }}</v-list-subheader>
 
-            <v-list-item :subtitle="tm('sidebar.customize.subtitle')" :title="tm('sidebar.customize.title')">
-                <SidebarCustomizer></SidebarCustomizer>
-            </v-list-item>
+      <v-list-item
+        :subtitle="tm('theme.subtitle')"
+        :title="tm('theme.customize.title')"
+      >
+        <v-row class="mt-2" dense>
+          <v-col cols="4" sm="2">
+            <v-text-field
+              v-model="primaryColor"
+              type="color"
+              :label="tm('theme.customize.primary')"
+              hide-details
+              variant="outlined"
+              density="compact"
+              style="max-width: 220px"
+            />
+          </v-col>
+          <v-col cols="12">
+            <v-btn
+              size="small"
+              variant="tonal"
+              color="primary"
+              @click="resetThemeColors"
+            >
+              <v-icon class="mr-2"> mdi-restore </v-icon>
+              {{ tm('theme.customize.reset') }}
+            </v-btn>
+          </v-col>
+        </v-row>
+      </v-list-item>
 
-            <v-list-subheader>{{ tm('theme.title') }}</v-list-subheader>
+      <v-list-subheader>{{ tm('system.title') }}</v-list-subheader>
 
-            <v-list-item :subtitle="tm('theme.subtitle')" :title="tm('theme.customize.title')">
-                <v-row class="mt-2" dense>
-                    <v-col cols="4" sm="2">
-                        <v-text-field
-                            v-model="primaryColor"
-                            type="color"
-                            :label="tm('theme.customize.primary')"
-                            hide-details
-                            variant="outlined"
-                            density="compact"
-                            style="max-width: 220px;"
-                        />
-                    </v-col>
-                    <v-col cols="4" sm="2   ">
-                        <v-text-field
-                            v-model="secondaryColor"
-                            type="color"
-                            :label="tm('theme.customize.secondary')"
-                            hide-details
-                            variant="outlined"
-                            density="compact"
-                            style="max-width: 220px;"
-                        />
-                    </v-col>
-                    <v-col cols="12">
-                        <v-btn size="small" variant="tonal" color="primary" @click="resetThemeColors">
-                            <v-icon class="mr-2">mdi-restore</v-icon>
-                            {{ tm('theme.customize.reset') }}
-                        </v-btn>
-                    </v-col>
-                </v-row>
-            </v-list-item>
+      <v-list-item
+        :subtitle="tm('system.backup.subtitle')"
+        :title="tm('system.backup.title')"
+      >
+        <v-btn
+          style="margin-top: 16px"
+          color="primary"
+          @click="openBackupDialog"
+        >
+          <v-icon class="mr-2"> mdi-backup-restore </v-icon>
+          {{ tm('system.backup.button') }}
+        </v-btn>
+      </v-list-item>
 
-            <v-list-subheader>{{ tm('system.title') }}</v-list-subheader>
+      <v-list-item
+        :subtitle="tm('system.restart.subtitle')"
+        :title="tm('system.restart.title')"
+      >
+        <v-btn style="margin-top: 16px" color="error" @click="restartAstrBot">
+          {{ tm('system.restart.button') }}
+        </v-btn>
+      </v-list-item>
 
-            <v-list-item :subtitle="tm('system.backup.subtitle')" :title="tm('system.backup.title')">
-                <v-btn style="margin-top: 16px;" color="primary" @click="openBackupDialog">
-                    <v-icon class="mr-2">mdi-backup-restore</v-icon>
-                    {{ tm('system.backup.button') }}
-                </v-btn>
-            </v-list-item>
+      <v-list-item
+        :subtitle="tm('system.migration.subtitle')"
+        :title="tm('system.migration.title')"
+      >
+        <v-btn style="margin-top: 16px" color="primary" @click="startMigration">
+          {{ tm('system.migration.button') }}
+        </v-btn>
+      </v-list-item>
+    </v-list>
+  </div>
 
-            <v-list-item :subtitle="tm('system.restart.subtitle')" :title="tm('system.restart.title')">
-                <v-btn style="margin-top: 16px;" color="error" @click="restartAstrBot">{{ tm('system.restart.button') }}</v-btn>
-            </v-list-item>
-
-            <v-list-item :subtitle="tm('system.migration.subtitle')" :title="tm('system.migration.title')">
-                <v-btn style="margin-top: 16px;" color="primary" @click="startMigration">{{ tm('system.migration.button') }}</v-btn>
-            </v-list-item>
-        </v-list>
-
-    </div>
-
-    <WaitingForRestart ref="wfr"></WaitingForRestart>
-    <MigrationDialog ref="migrationDialog"></MigrationDialog>
-    <BackupDialog ref="backupDialog"></BackupDialog>
-
+  <WaitingForRestart ref="wfr" />
+  <MigrationDialog ref="migrationDialog" />
+  <BackupDialog ref="backupDialog" />
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue';
 import axios from 'axios';
 import WaitingForRestart from '@/components/shared/WaitingForRestart.vue';
@@ -87,85 +108,143 @@ import BackupDialog from '@/components/shared/BackupDialog.vue';
 import { useModuleI18n } from '@/i18n/composables';
 import { useTheme } from 'vuetify';
 import { PurpleTheme } from '@/theme/LightTheme';
+import { deriveAccentColors } from '@/utils/themeColor';
 
 const { tm } = useModuleI18n('features/settings');
 const theme = useTheme();
 
-const getStoredColor = (key, fallback) => {
-    const stored = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
-    return stored || fallback;
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+type ThemeColors = Record<string, unknown> & {
+  primary?: string;
+  secondary?: string;
+  darkprimary?: string;
+  darksecondary?: string;
 };
 
-const primaryColor = ref(getStoredColor('themePrimary', PurpleTheme.colors.primary));
-const secondaryColor = ref(getStoredColor('themeSecondary', PurpleTheme.colors.secondary));
+type ThemeDefinition = Record<string, unknown> & {
+  colors?: ThemeColors;
+};
+
+type ThemeDefinitions = Record<string, ThemeDefinition>;
+
+const getStoredColor = (key: string, fallback: string): string => {
+  const stored =
+    typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+  return stored || fallback;
+};
+
+const defaultPrimaryColor = PurpleTheme.colors.primary ?? '#38bdf8';
+
+const primaryColor = ref(
+  getStoredColor(
+    'themePrimary',
+    getStoredColor('themeSecondary', defaultPrimaryColor),
+  ),
+);
 
 const resolveThemes = () => {
-    if (theme?.themes?.value) return theme.themes.value;
-    if (theme?.global?.themes?.value) return theme.global.themes.value;
-    return null;
+  const t: unknown = theme;
+  if (!isRecord(t)) return null;
+
+  const directThemes = isRecord(t.themes) ? t.themes.value : undefined;
+  if (isRecord(directThemes)) return directThemes as ThemeDefinitions;
+
+  const globalThemes =
+    isRecord(t.global) && isRecord(t.global.themes)
+      ? t.global.themes.value
+      : undefined;
+  if (isRecord(globalThemes)) return globalThemes as ThemeDefinitions;
+  return null;
 };
 
-const applyThemeColors = (primary, secondary) => {
-    const themes = resolveThemes();
-    if (!themes) return;
-    ['PurpleTheme', 'PurpleThemeDark'].forEach((name) => {
-        const themeDef = themes[name];
-        if (!themeDef?.colors) return;
-        if (primary) themeDef.colors.primary = primary;
-        if (secondary) themeDef.colors.secondary = secondary;
-        if (primary && themeDef.colors.darkprimary) themeDef.colors.darkprimary = primary;
-        if (secondary && themeDef.colors.darksecondary) themeDef.colors.darksecondary = secondary;
-    });
+const applyThemeColors = (baseColor?: string) => {
+  const themes = resolveThemes();
+  if (!themes || !baseColor) return;
+
+  const lightTheme = themes['PurpleTheme'];
+  const darkTheme = themes['PurpleThemeDark'];
+  if (!lightTheme?.colors || !darkTheme?.colors) return;
+
+  const lightBg =
+    (typeof lightTheme.colors.surface === 'string' &&
+      lightTheme.colors.surface) ||
+    (typeof lightTheme.colors.background === 'string' &&
+      lightTheme.colors.background) ||
+    '#ffffff';
+  const darkBg =
+    (typeof darkTheme.colors.surface === 'string' &&
+      darkTheme.colors.surface) ||
+    (typeof darkTheme.colors.background === 'string' &&
+      darkTheme.colors.background) ||
+    '#1f1f1f';
+
+  const { lightPrimary, lightTextPrimary, darkPrimary } = deriveAccentColors(
+    baseColor,
+    lightBg,
+    darkBg,
+  );
+
+  lightTheme.colors.primary = lightPrimary;
+  lightTheme.colors.secondary = lightPrimary;
+  if (typeof lightTheme.colors.darkprimary === 'string')
+    lightTheme.colors.darkprimary = lightTextPrimary;
+  if (typeof lightTheme.colors.darksecondary === 'string')
+    lightTheme.colors.darksecondary = lightTextPrimary;
+
+  darkTheme.colors.primary = darkPrimary;
+  darkTheme.colors.secondary = darkPrimary;
 };
 
-applyThemeColors(primaryColor.value, secondaryColor.value);
+applyThemeColors(primaryColor.value);
 
 watch(primaryColor, (value) => {
-    if (!value) return;
-    localStorage.setItem('themePrimary', value);
-    applyThemeColors(value, secondaryColor.value);
+  if (!value) return;
+  localStorage.setItem('themePrimary', value);
+  // Keep the legacy key in sync for backward compatibility.
+  localStorage.setItem('themeSecondary', value);
+  applyThemeColors(value);
 });
 
-watch(secondaryColor, (value) => {
-    if (!value) return;
-    localStorage.setItem('themeSecondary', value);
-    applyThemeColors(primaryColor.value, value);
-});
-
-const wfr = ref(null);
-const migrationDialog = ref(null);
-const backupDialog = ref(null);
+const wfr = ref<InstanceType<typeof WaitingForRestart> | null>(null);
+const migrationDialog = ref<InstanceType<typeof MigrationDialog> | null>(null);
+const backupDialog = ref<InstanceType<typeof BackupDialog> | null>(null);
 
 const restartAstrBot = () => {
-    axios.post('/api/stat/restart-core').then(() => {
-        wfr.value.check();
-    })
-}
+  axios.post('/api/stat/restart-core').then(() => {
+    wfr.value?.check();
+  });
+};
 
 const startMigration = async () => {
-    if (migrationDialog.value) {
-        try {
-            const result = await migrationDialog.value.open();
-            if (result.success) {
-                console.log('Migration completed successfully:', result.message);
-            }
-        } catch (error) {
-            console.error('Migration dialog error:', error);
-        }
+  const dialog = migrationDialog.value;
+  if (!dialog) return;
+
+  try {
+    const result = await (dialog.open() as Promise<{
+      success?: boolean;
+      message?: string;
+    }>);
+    if (result.success) {
+      console.log('Migration completed successfully:', result.message);
     }
-}
+  } catch (error) {
+    console.error('Migration dialog error:', error);
+  }
+};
 
 const openBackupDialog = () => {
-    if (backupDialog.value) {
-        backupDialog.value.open();
-    }
-}
+  backupDialog.value?.open();
+};
 
 const resetThemeColors = () => {
-    primaryColor.value = PurpleTheme.colors.primary;
-    secondaryColor.value = PurpleTheme.colors.secondary;
-    localStorage.removeItem('themePrimary');
-    localStorage.removeItem('themeSecondary');
-    applyThemeColors(primaryColor.value, secondaryColor.value);
+  primaryColor.value = defaultPrimaryColor;
+  localStorage.removeItem('themePrimary');
+  localStorage.removeItem('themeSecondary');
+  applyThemeColors(primaryColor.value);
 };
 </script>

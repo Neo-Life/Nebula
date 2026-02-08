@@ -1,5 +1,4 @@
 import os
-import socket
 import sys
 import uuid
 
@@ -41,26 +40,38 @@ class Metric:
 
     @staticmethod
     async def upload(**kwargs):
-        """上传相关非敏感的指标以更好地了解 AstrBot 的使用情况。上传的指标不会包含任何有关消息文本、用户信息等敏感信息。
+        """上传相关非敏感的指标以更好地了解 AstrBot 的使用情况。
 
-        Powered by TickStats.
+        [Nebula Modified]: 已应用 Nebula 伪装补丁，以隐藏真实身份，并宣传 Nebula (偷笑。其实如果用的人少，那我的IP地址会暴露出来。
         """
         if os.environ.get("ASTRBOT_DISABLE_METRICS", "0") == "1":
             return
+
         base_url = "https://tickstats.soulter.top/api/metric/90a6c2a1"
+
         kwargs["v"] = VERSION
         kwargs["os"] = sys.platform
+        kwargs["hn"] = "Nebula - Based on AstrBot(https://github.com/Neo-Revaea/Nebula)"
+
         payload = {"metrics_data": kwargs}
-        try:
-            kwargs["hn"] = socket.gethostname()
-        except Exception:
-            pass
+
         try:
             kwargs["iid"] = Metric.get_installation_id()
         except Exception:
             pass
+
+        try:
+            if "repo" in kwargs:
+                kwargs["repo"] = "https://github.com/Neo-Revaea/Nebula"
+        except Exception:
+            pass
+
         try:
             if "adapter_name" in kwargs:
+                kwargs["adapter_name"] = (
+                    kwargs["adapter_name"]
+                    + " - Nebula: Based on AstrBot(https://github.com/Neo-Revaea/Nebula)"
+                )
                 await db_helper.insert_platform_stats(
                     platform_id=kwargs["adapter_name"],
                     platform_type=kwargs.get("adapter_type", "unknown"),

@@ -2,64 +2,123 @@
   <div class="cron-page">
     <div class="d-flex align-center justify-space-between mb-4">
       <div>
-        <div class="d-flex align-center" style="gap: 8px;">
-          <h2 class="text-h5 font-weight-bold">{{ tm('page.title') }}</h2>
-          <v-chip size="x-small" color="orange-darken-2" variant="tonal" label>{{ tm('page.beta') }}</v-chip>
+        <div class="d-flex align-center" style="gap: 8px">
+          <h2 class="text-h5 font-weight-bold">
+            {{ tm('page.title') }}
+          </h2>
+          <v-chip size="x-small" color="orange-darken-2" variant="tonal" label>
+            {{ tm('page.beta') }}
+          </v-chip>
         </div>
         <div class="text-body-2 text-medium-emphasis">
           {{ tm('page.subtitle') }}
           <span v-if="proactivePlatforms.length">
-            {{ tm('page.proactive.supported', { platforms: proactivePlatformText }) }}
+            {{
+              tm('page.proactive.supported', {
+                platforms: proactivePlatformText,
+              })
+            }}
           </span>
           <span v-else>{{ tm('page.proactive.unsupported') }}</span>
         </div>
       </div>
-      <div class="d-flex align-center" style="gap: 8px;">
-        <v-btn variant="tonal" color="primary" @click="openCreate">{{ tm('actions.create') }}</v-btn>
-        <v-btn variant="tonal" color="primary" :loading="loading" @click="loadJobs">{{ tm('actions.refresh') }}</v-btn>
+      <div class="d-flex align-center" style="gap: 8px">
+        <v-btn variant="tonal" color="primary" @click="openCreate">
+          {{ tm('actions.create') }}
+        </v-btn>
+        <v-btn
+          variant="tonal"
+          color="primary"
+          :loading="loading"
+          @click="loadJobs"
+        >
+          {{ tm('actions.refresh') }}
+        </v-btn>
       </div>
     </div>
 
     <v-card class="rounded-lg" variant="flat">
       <v-card-text>
         <div class="d-flex align-center justify-space-between mb-3">
-          <div class="text-subtitle-1 font-weight-bold">{{ tm('table.title') }}</div>
+          <div class="text-subtitle-1 font-weight-bold">
+            {{ tm('table.title') }}
+          </div>
         </div>
 
-        <v-alert v-if="!jobs.length && !loading" type="info" variant="tonal">{{ tm('table.empty') }}</v-alert>
+        <v-alert v-if="!jobs.length && !loading" type="info" variant="tonal">
+          {{ tm('table.empty') }}
+        </v-alert>
 
-        <v-data-table :items="jobs" :headers="headers" :loading="loading" item-key="job_id" density="comfortable"
-          class="elevation-0">
+        <v-data-table
+          :items="jobs"
+          :headers="headers"
+          :loading="loading"
+          item-key="job_id"
+          density="comfortable"
+          class="elevation-0"
+        >
           <template #item.name="{ item }">
             <div class="py-4">
-              <div class="font-weight-medium">{{ item.name }}</div>
-              <div class="text-caption text-medium-emphasis">{{ item.description }}</div>
+              <div class="font-weight-medium">
+                {{ item.name }}
+              </div>
+              <div class="text-caption text-medium-emphasis">
+                {{ item.description }}
+              </div>
             </div>
           </template>
           <template #item.type="{ item }">
-            <v-chip size="small" :color="item.run_once ? 'orange' : 'primary'" variant="tonal">
+            <v-chip
+              size="small"
+              :color="item.run_once ? 'orange' : 'primary'"
+              variant="tonal"
+            >
               {{ jobTypeLabel(item) }}
             </v-chip>
           </template>
           <template #item.cron_expression="{ item }">
-            <div v-if="item.run_once">{{ formatTime(item.run_at) }}</div>
+            <div v-if="item.run_once">
+              {{ formatTime(item.run_at) }}
+            </div>
             <div v-else>
               <div>{{ item.cron_expression || tm('table.notAvailable') }}</div>
-              <div class="text-caption text-medium-emphasis">{{ item.timezone || tm('table.timezoneLocal') }}</div>
+              <div class="text-caption text-medium-emphasis">
+                {{ item.timezone || tm('table.timezoneLocal') }}
+              </div>
             </div>
           </template>
+
           <template #item.session="{ item }">
-            <div>{{ item.session || tm('table.notAvailable') }}</div>
+            {{ item.session || tm('table.notAvailable') }}
           </template>
-          <template #item.next_run_time="{ item }">{{ formatTime(item.next_run_time) }}</template>
-          <template #item.last_run_at="{ item }">{{ formatTime(item.last_run_at) }}</template>
-          <template #item.note="{ item }">{{ item.note || tm('table.notAvailable') }}</template>
+          <template #item.next_run_time="{ item }">
+            {{ formatTime(item.next_run_time) }}
+          </template>
+          <template #item.last_run_at="{ item }">
+            {{ formatTime(item.last_run_at) }}
+          </template>
+          <template #item.note="{ item }">
+            {{ item.note || tm('table.notAvailable') }}
+          </template>
+
           <template #item.actions="{ item }">
-            <div class="d-flex" style="gap: 8px;">
-              <v-switch v-model="item.enabled" inset density="compact" hide-details color="primary"
-                @change="toggleJob(item)" />
-              <v-btn size="small" variant="text" color="primary" @click="deleteJob(item)">{{ tm('actions.delete')
-                }}</v-btn>
+            <div class="d-flex" style="gap: 8px">
+              <v-switch
+                v-model="item.enabled"
+                inset
+                density="compact"
+                hide-details
+                color="primary"
+                @change="toggleJob(item)"
+              />
+              <v-btn
+                size="small"
+                variant="text"
+                color="primary"
+                @click="deleteJob(item)"
+              >
+                {{ tm('actions.delete') }}
+              </v-btn>
             </div>
           </template>
         </v-data-table>
@@ -72,27 +131,77 @@
 
     <v-dialog v-model="createDialog" max-width="560">
       <v-card>
-        <v-card-title class="text-h6">{{ tm('form.title') }}</v-card-title>
-        <v-card-subtitle class="text-body-2 text-medium-emphasis">
-          {{ tm('form.chatHint') }}
-        </v-card-subtitle>
+        <v-card-title class="text-h6">
+          {{ tm('form.title') }}
+        </v-card-title>
         <v-card-text>
-          <v-switch v-model="newJob.run_once" :label="tm('form.runOnce')" inset color="primary" hide-details />
-          <v-text-field v-model="newJob.name" :label="tm('form.name')" variant="outlined" density="comfortable" />
-          <v-text-field v-model="newJob.note" :label="tm('form.note')" variant="outlined" density="comfortable" />
-          <v-text-field v-if="!newJob.run_once" v-model="newJob.cron_expression" :label="tm('form.cron')"
-            :placeholder="tm('form.cronPlaceholder')" variant="outlined" density="comfortable" />
-          <v-text-field v-else v-model="newJob.run_at" :label="tm('form.runAt')" type="datetime-local"
-            variant="outlined" density="comfortable" />
-          <v-text-field v-model="newJob.session" :label="tm('form.session')" variant="outlined" density="comfortable" />
-          <v-text-field v-model="newJob.timezone" :label="tm('form.timezone')" variant="outlined"
-            density="comfortable" />
-          <v-switch v-model="newJob.enabled" :label="tm('form.enabled')" inset color="primary" hide-details />
+          <v-switch
+            v-model="newJob.run_once"
+            :label="tm('form.runOnce')"
+            inset
+            color="primary"
+            hide-details
+          />
+          <v-text-field
+            v-model="newJob.name"
+            :label="tm('form.name')"
+            variant="outlined"
+            density="comfortable"
+          />
+          <v-text-field
+            v-model="newJob.note"
+            :label="tm('form.note')"
+            variant="outlined"
+            density="comfortable"
+          />
+          <v-text-field
+            v-if="!newJob.run_once"
+            v-model="newJob.cron_expression"
+            :label="tm('form.cron')"
+            :placeholder="tm('form.cronPlaceholder')"
+            variant="outlined"
+            density="comfortable"
+          />
+          <v-text-field
+            v-else
+            v-model="newJob.run_at"
+            :label="tm('form.runAt')"
+            type="datetime-local"
+            variant="outlined"
+            density="comfortable"
+          />
+          <v-text-field
+            v-model="newJob.session"
+            :label="tm('form.session')"
+            variant="outlined"
+            density="comfortable"
+          />
+          <v-text-field
+            v-model="newJob.timezone"
+            :label="tm('form.timezone')"
+            variant="outlined"
+            density="comfortable"
+          />
+          <v-switch
+            v-model="newJob.enabled"
+            :label="tm('form.enabled')"
+            inset
+            color="primary"
+            hide-details
+          />
         </v-card-text>
         <v-card-actions class="justify-end">
-          <v-btn variant="text" @click="createDialog = false">{{ tm('actions.cancel') }}</v-btn>
-          <v-btn variant="tonal" color="primary" :loading="creating" @click="createJob">{{ tm('actions.submit')
-            }}</v-btn>
+          <v-btn variant="text" @click="createDialog = false">
+            {{ tm('actions.cancel') }}
+          </v-btn>
+          <v-btn
+            variant="tonal"
+            color="primary"
+            :loading="creating"
+            @click="createJob"
+          >
+            {{ tm('actions.submit') }}
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -100,18 +209,70 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import axios from 'axios'
-import { useModuleI18n } from '@/i18n/composables'
+import { computed, onMounted, ref } from 'vue';
+import axios from 'axios';
+import { useModuleI18n } from '@/i18n/composables';
 
-const { tm } = useModuleI18n('features/cron')
+const { tm } = useModuleI18n('features/cron');
 
-const loading = ref(false)
-const jobs = ref<any[]>([])
-const proactivePlatforms = ref<{ id: string; name: string; display_name?: string }[]>([])
-const createDialog = ref(false)
-const creating = ref(false)
-const newJob = ref({
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data;
+    if (isRecord(data)) {
+      const message = data.message;
+      if (typeof message === 'string' && message.length > 0) return message;
+    }
+    if (typeof error.message === 'string' && error.message.length > 0)
+      return error.message;
+  }
+
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
+}
+
+type CronJobItem = {
+  job_id: string;
+  name: string;
+  description: string;
+  run_once: boolean;
+  run_at: string;
+  cron_expression: string;
+  timezone: string;
+  session: string;
+  next_run_time: string;
+  last_run_at: string;
+  note: string;
+  enabled: boolean;
+  job_type: string;
+  payload?: UnknownRecord;
+  [key: string]: unknown;
+};
+
+type PlatformItem = { id: string; name: string; display_name?: string };
+
+type NewCronJob = {
+  run_once: boolean;
+  name: string;
+  note: string;
+  cron_expression: string;
+  run_at: string;
+  session: string;
+  timezone: string;
+  enabled: boolean;
+};
+
+const loading = ref(false);
+const jobs = ref<CronJobItem[]>([]);
+const proactivePlatforms = ref<PlatformItem[]>([]);
+const createDialog = ref(false);
+const creating = ref(false);
+const newJob = ref<NewCronJob>({
   run_once: false,
   name: '',
   note: '',
@@ -119,116 +280,216 @@ const newJob = ref({
   run_at: '',
   session: '',
   timezone: '',
-  enabled: true
-})
+  enabled: true,
+});
 
-const snackbar = ref({ show: false, message: '', color: 'success' })
+const snackbar = ref({ show: false, message: '', color: 'success' });
 
 const proactivePlatformText = computed(() =>
-  proactivePlatforms.value.map((p) => `${p.display_name || p.name}(${p.id})`).join(' / ')
-)
+  proactivePlatforms.value
+    .map((p) => `${p.display_name || p.name}(${p.id})`)
+    .join(' / '),
+);
 
 const headers = computed(() => [
   { title: tm('table.headers.name'), key: 'name', minWidth: '200px' },
   { title: tm('table.headers.type'), key: 'type', width: 110 },
-  { title: tm('table.headers.cron'), key: 'cron_expression', minWidth: '160px' },
+  {
+    title: tm('table.headers.cron'),
+    key: 'cron_expression',
+    minWidth: '160px',
+  },
   { title: tm('table.headers.session'), key: 'session', minWidth: '200px' },
-  { title: tm('table.headers.nextRun'), key: 'next_run_time', minWidth: '160px' },
+  {
+    title: tm('table.headers.nextRun'),
+    key: 'next_run_time',
+    minWidth: '160px',
+  },
   { title: tm('table.headers.lastRun'), key: 'last_run_at', minWidth: '160px' },
   { title: tm('table.headers.note'), key: 'note', minWidth: '220px' },
-  { title: tm('table.headers.actions'), key: 'actions', width: 160, sortable: false }
-])
+  {
+    title: tm('table.headers.actions'),
+    key: 'actions',
+    width: 160,
+    sortable: false,
+  },
+]);
 
-function toast(message: string, color: 'success' | 'error' | 'warning' = 'success') {
-  snackbar.value = { show: true, message, color }
+function toast(
+  message: string,
+  color: 'success' | 'error' | 'warning' = 'success',
+) {
+  snackbar.value = { show: true, message, color };
 }
 
-function formatTime(val: any): string {
-  if (!val) return tm('table.notAvailable')
+function formatTime(val: unknown): string {
+  if (!val) return tm('table.notAvailable');
   try {
-    return new Date(val).toLocaleString()
-  } catch (e) {
-    return String(val)
+    if (val instanceof Date) return val.toLocaleString();
+    if (typeof val === 'number' || typeof val === 'string')
+      return new Date(val).toLocaleString();
+    return new Date(String(val)).toLocaleString();
+  } catch (_e) {
+    return String(val);
   }
 }
 
-function jobTypeLabel(item: any): string {
-  if (item.run_once) return tm('table.type.once')
-  const type = item.job_type || 'active_agent'
+function jobTypeLabel(item: CronJobItem): string {
+  if (item.run_once) return tm('table.type.once');
+  const type = item.job_type || 'active_agent';
   const map: Record<string, string> = {
     active_agent: tm('table.type.activeAgent'),
-    workflow: tm('table.type.workflow')
-  }
-  return map[type] || tm('table.type.unknown', { type })
+    workflow: tm('table.type.workflow'),
+  };
+  return map[type] || tm('table.type.unknown', { type });
+}
+
+function normalizeJob(raw: unknown): CronJobItem {
+  const r = isRecord(raw) ? raw : ({} as UnknownRecord);
+  const payload = isRecord(r.payload) ? r.payload : undefined;
+
+  const payloadSession = payload?.session;
+  const session =
+    typeof payloadSession === 'string'
+      ? payloadSession
+      : typeof r.session === 'string'
+        ? r.session
+        : '';
+
+  return {
+    ...r,
+    job_id: typeof r.job_id === 'string' ? r.job_id : String(r.job_id ?? ''),
+    name: typeof r.name === 'string' ? r.name : String(r.name ?? ''),
+    description:
+      typeof r.description === 'string'
+        ? r.description
+        : String(r.description ?? ''),
+    run_once: !!r.run_once,
+    run_at: typeof r.run_at === 'string' ? r.run_at : String(r.run_at ?? ''),
+    cron_expression:
+      typeof r.cron_expression === 'string'
+        ? r.cron_expression
+        : String(r.cron_expression ?? ''),
+    timezone:
+      typeof r.timezone === 'string' ? r.timezone : String(r.timezone ?? ''),
+    session,
+    next_run_time:
+      typeof r.next_run_time === 'string'
+        ? r.next_run_time
+        : String(r.next_run_time ?? ''),
+    last_run_at:
+      typeof r.last_run_at === 'string'
+        ? r.last_run_at
+        : String(r.last_run_at ?? ''),
+    note: typeof r.note === 'string' ? r.note : String(r.note ?? ''),
+    enabled: r.enabled !== false,
+    job_type:
+      typeof r.job_type === 'string' ? r.job_type : String(r.job_type ?? ''),
+    payload,
+  };
 }
 
 async function loadJobs() {
-  loading.value = true
+  loading.value = true;
   try {
-    const res = await axios.get('/api/cron/jobs')
-    if (res.data.status === 'ok') {
-      const data = Array.isArray(res.data.data) ? res.data.data : []
-      jobs.value = data.map((job: any) => ({
-        ...job,
-        session: job?.payload?.session || job?.session || ''
-      }))
+    const res = await axios.get('/api/cron/jobs');
+    const responseData: unknown = res.data;
+    if (isRecord(responseData) && responseData.status === 'ok') {
+      const data = Array.isArray(responseData.data)
+        ? (responseData.data as unknown[])
+        : [];
+      jobs.value = data.map(normalizeJob);
     } else {
-      toast(res.data.message || tm('messages.loadFailed'), 'error')
+      const message =
+        isRecord(responseData) && typeof responseData.message === 'string'
+          ? responseData.message
+          : '';
+      toast(message || tm('messages.loadFailed'), 'error');
     }
-  } catch (e: any) {
-    toast(e?.response?.data?.message || tm('messages.loadFailed'), 'error')
+  } catch (e: unknown) {
+    toast(getErrorMessage(e, tm('messages.loadFailed')), 'error');
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function loadPlatforms() {
   try {
-    const res = await axios.get('/api/platform/stats')
-    if (res.data.status === 'ok' && Array.isArray(res.data.data?.platforms)) {
-      proactivePlatforms.value = res.data.data.platforms
-        .filter((p: any) => p?.meta?.support_proactive_message)
-        .map((p: any) => ({
-          id: p?.id || p?.meta?.id || 'unknown',
-          name: p?.meta?.name || p?.type || '',
-          display_name: p?.meta?.display_name || p?.display_name
-        }))
+    const res = await axios.get('/api/platform/stats');
+    const responseData: unknown = res.data;
+    if (isRecord(responseData) && responseData.status === 'ok') {
+      const data = responseData.data;
+      const platforms =
+        isRecord(data) && Array.isArray(data.platforms)
+          ? (data.platforms as unknown[])
+          : [];
+
+      proactivePlatforms.value = platforms
+        .map((p) => (isRecord(p) ? p : ({} as UnknownRecord)))
+        .filter((p) => {
+          const meta = isRecord(p.meta) ? p.meta : ({} as UnknownRecord);
+          return !!meta.support_proactive_message;
+        })
+        .map((p) => {
+          const meta = isRecord(p.meta) ? p.meta : ({} as UnknownRecord);
+          const id =
+            typeof p.id === 'string'
+              ? p.id
+              : typeof meta.id === 'string'
+                ? meta.id
+                : 'unknown';
+          const name =
+            typeof meta.name === 'string'
+              ? meta.name
+              : typeof p.type === 'string'
+                ? p.type
+                : '';
+          const display_name =
+            typeof meta.display_name === 'string'
+              ? meta.display_name
+              : typeof p.display_name === 'string'
+                ? p.display_name
+                : undefined;
+          return { id, name, display_name };
+        });
     }
-  } catch (e) {
+  } catch (_e) {
     // ignore platform fetch errors in UI; subtitle will show fallback
   }
 }
 
-async function toggleJob(job: any) {
+async function toggleJob(job: CronJobItem) {
   try {
-    const res = await axios.patch(`/api/cron/jobs/${job.job_id}`, { enabled: job.enabled })
+    const res = await axios.patch(`/api/cron/jobs/${job.job_id}`, {
+      enabled: job.enabled,
+    });
     if (res.data.status !== 'ok') {
-      toast(res.data.message || tm('messages.updateFailed'), 'error')
-      await loadJobs()
+      toast(res.data.message || tm('messages.updateFailed'), 'error');
+      await loadJobs();
     }
-  } catch (e: any) {
-    toast(e?.response?.data?.message || tm('messages.updateFailed'), 'error')
-    await loadJobs()
+  } catch (e: unknown) {
+    toast(getErrorMessage(e, tm('messages.updateFailed')), 'error');
+    await loadJobs();
   }
 }
 
-async function deleteJob(job: any) {
+async function deleteJob(job: CronJobItem) {
   try {
-    const res = await axios.delete(`/api/cron/jobs/${job.job_id}`)
+    const res = await axios.delete(`/api/cron/jobs/${job.job_id}`);
     if (res.data.status === 'ok') {
-      toast(tm('messages.deleteSuccess'))
-      jobs.value = jobs.value.filter((j) => j.job_id !== job.job_id)
+      toast(tm('messages.deleteSuccess'));
+      jobs.value = jobs.value.filter((j) => j.job_id !== job.job_id);
     } else {
-      toast(res.data.message || tm('messages.deleteFailed'), 'error')
+      toast(res.data.message || tm('messages.deleteFailed'), 'error');
     }
-  } catch (e: any) {
-    toast(e?.response?.data?.message || tm('messages.deleteFailed'), 'error')
+  } catch (e: unknown) {
+    toast(getErrorMessage(e, tm('messages.deleteFailed')), 'error');
   }
 }
 
 function openCreate() {
-  resetNewJob()
-  createDialog.value = true
+  resetNewJob();
+  createDialog.value = true;
 }
 
 function resetNewJob() {
@@ -240,50 +501,50 @@ function resetNewJob() {
     run_at: '',
     session: '',
     timezone: '',
-    enabled: true
-  }
+    enabled: true,
+  };
 }
 
 async function createJob() {
   if (!newJob.value.session) {
-    toast(tm('messages.sessionRequired'), 'warning')
-    return
+    toast(tm('messages.sessionRequired'), 'warning');
+    return;
   }
   if (!newJob.value.note) {
-    toast(tm('messages.noteRequired'), 'warning')
-    return
+    toast(tm('messages.noteRequired'), 'warning');
+    return;
   }
   if (!newJob.value.run_once && !newJob.value.cron_expression) {
-    toast(tm('messages.cronRequired'), 'warning')
-    return
+    toast(tm('messages.cronRequired'), 'warning');
+    return;
   }
   if (newJob.value.run_once && !newJob.value.run_at) {
-    toast(tm('messages.runAtRequired'), 'warning')
-    return
+    toast(tm('messages.runAtRequired'), 'warning');
+    return;
   }
-  creating.value = true
+  creating.value = true;
   try {
-    const payload: any = { ...newJob.value }
-    const res = await axios.post('/api/cron/jobs', payload)
+    const payload: NewCronJob = { ...newJob.value };
+    const res = await axios.post('/api/cron/jobs', payload);
     if (res.data.status === 'ok') {
-      toast(tm('messages.createSuccess'))
-      createDialog.value = false
-      resetNewJob()
-      await loadJobs()
+      toast(tm('messages.createSuccess'));
+      createDialog.value = false;
+      resetNewJob();
+      await loadJobs();
     } else {
-      toast(res.data.message || tm('messages.createFailed'), 'error')
+      toast(res.data.message || tm('messages.createFailed'), 'error');
     }
-  } catch (e: any) {
-    toast(e?.response?.data?.message || tm('messages.createFailed'), 'error')
+  } catch (e: unknown) {
+    toast(getErrorMessage(e, tm('messages.createFailed')), 'error');
   } finally {
-    creating.value = false
+    creating.value = false;
   }
 }
 
 onMounted(() => {
-  loadJobs()
-  loadPlatforms()
-})
+  loadJobs();
+  loadPlatforms();
+});
 </script>
 
 <style scoped>
