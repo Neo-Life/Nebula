@@ -108,6 +108,7 @@ import BackupDialog from '@/components/shared/BackupDialog.vue';
 import { useModuleI18n } from '@/i18n/composables';
 import { useTheme } from 'vuetify';
 import { PurpleTheme } from '@/theme/LightTheme';
+import { deriveAccentColors } from '@/utils/themeColor';
 
 const { tm } = useModuleI18n('features/settings');
 const theme = useTheme();
@@ -161,21 +162,42 @@ const resolveThemes = () => {
   return null;
 };
 
-const applyThemeColors = (color?: string) => {
+const applyThemeColors = (baseColor?: string) => {
   const themes = resolveThemes();
-  if (!themes) return;
-  ['PurpleTheme', 'PurpleThemeDark'].forEach((name) => {
-    const themeDef = themes[name];
-    if (!themeDef?.colors) return;
-    if (color) {
-      themeDef.colors.primary = color;
-      themeDef.colors.secondary = color;
-      if (typeof themeDef.colors.darkprimary === 'string')
-        themeDef.colors.darkprimary = color;
-      if (typeof themeDef.colors.darksecondary === 'string')
-        themeDef.colors.darksecondary = color;
-    }
-  });
+  if (!themes || !baseColor) return;
+
+  const lightTheme = themes['PurpleTheme'];
+  const darkTheme = themes['PurpleThemeDark'];
+  if (!lightTheme?.colors || !darkTheme?.colors) return;
+
+  const lightBg =
+    (typeof lightTheme.colors.surface === 'string' &&
+      lightTheme.colors.surface) ||
+    (typeof lightTheme.colors.background === 'string' &&
+      lightTheme.colors.background) ||
+    '#ffffff';
+  const darkBg =
+    (typeof darkTheme.colors.surface === 'string' &&
+      darkTheme.colors.surface) ||
+    (typeof darkTheme.colors.background === 'string' &&
+      darkTheme.colors.background) ||
+    '#1f1f1f';
+
+  const { lightPrimary, lightTextPrimary, darkPrimary } = deriveAccentColors(
+    baseColor,
+    lightBg,
+    darkBg,
+  );
+
+  lightTheme.colors.primary = lightPrimary;
+  lightTheme.colors.secondary = lightPrimary;
+  if (typeof lightTheme.colors.darkprimary === 'string')
+    lightTheme.colors.darkprimary = lightTextPrimary;
+  if (typeof lightTheme.colors.darksecondary === 'string')
+    lightTheme.colors.darksecondary = lightTextPrimary;
+
+  darkTheme.colors.primary = darkPrimary;
+  darkTheme.colors.secondary = darkPrimary;
 };
 
 applyThemeColors(primaryColor.value);

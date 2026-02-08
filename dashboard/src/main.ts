@@ -13,6 +13,7 @@ import { loader } from '@guolao/vue-monaco-editor';
 import axios from 'axios';
 import { initShikiWasm } from '@/composables/shikiWasm';
 import { MarkdownCodeBlockNode, setCustomComponents } from 'markstream-vue';
+import { deriveAccentColors } from '@/utils/themeColor';
 
 const mountApp = () => {
   const app = createApp(App);
@@ -36,16 +37,27 @@ const mountApp = () => {
       localStorage.getItem('themeSecondary');
     if (storedThemeColor) {
       const themes = vuetify.theme.themes.value;
-      ['PurpleTheme', 'PurpleThemeDark'].forEach((name) => {
-        const theme = themes[name];
-        if (!theme?.colors) return;
-        theme.colors.primary = storedThemeColor;
-        theme.colors.secondary = storedThemeColor;
-        if (theme.colors.darkprimary)
-          theme.colors.darkprimary = storedThemeColor;
-        if (theme.colors.darksecondary)
-          theme.colors.darksecondary = storedThemeColor;
-      });
+      const lightTheme = themes['PurpleTheme'];
+      const darkTheme = themes['PurpleThemeDark'];
+      if (!lightTheme?.colors || !darkTheme?.colors) return;
+
+      const lightBg =
+        lightTheme.colors.surface || lightTheme.colors.background || '#ffffff';
+      const darkBg =
+        darkTheme.colors.surface || darkTheme.colors.background || '#1f1f1f';
+
+      const { lightPrimary, lightTextPrimary, darkPrimary } =
+        deriveAccentColors(storedThemeColor, lightBg, darkBg);
+
+      lightTheme.colors.primary = lightPrimary;
+      lightTheme.colors.secondary = lightPrimary;
+      if (lightTheme.colors.darkprimary)
+        lightTheme.colors.darkprimary = lightTextPrimary;
+      if (lightTheme.colors.darksecondary)
+        lightTheme.colors.darksecondary = lightTextPrimary;
+
+      darkTheme.colors.primary = darkPrimary;
+      darkTheme.colors.secondary = darkPrimary;
     }
   });
 };
