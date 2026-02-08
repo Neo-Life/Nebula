@@ -12,6 +12,7 @@ import AboutPage from '@/views/AboutPage.vue';
 import UpdateDialog from '@/components/header/UpdateDialog.vue';
 import AccountDialog from '@/components/header/AccountDialog.vue';
 import LanguageMenu from '@/components/header/LanguageMenu.vue';
+import ConfirmDialog from '@/components/ConfirmDialog.vue';
 
 const customizer = useCustomizerStore();
 const theme = useTheme();
@@ -25,6 +26,15 @@ let hasNewVersion = ref(false);
 let botCurrVersion = ref('');
 let dashboardHasNewVersion = ref(false);
 let dashboardCurrentVersion = ref('');
+
+type ConfirmDialogExpose = {
+  open: (options?: { title?: string; message?: string }) => Promise<boolean>;
+};
+
+const confirmDialog = ref<ConfirmDialogExpose | null>(null);
+const isElectronApp = ref(false);
+const electronReleaseUrl =
+  'https://github.com/AstrBotDevs/AstrBot/releases/latest';
 
 function getVersion() {
   axios
@@ -46,7 +56,20 @@ function getVersion() {
     });
 }
 
-function openUpdateDialog() {
+async function openUpdateDialog() {
+  if (isElectronApp.value) {
+    const ok =
+      (await confirmDialog.value?.open({
+        title: t('core.header.updateDialog.redirectConfirm.title'),
+        message: t('core.header.updateDialog.redirectConfirm.message'),
+      })) ?? true;
+
+    if (ok) {
+      window.open(electronReleaseUrl, '_blank');
+    }
+    return;
+  }
+
   updateStatusDialog.value = true;
 }
 
@@ -89,6 +112,18 @@ function syncViewModeFromRoute(path: string) {
 
 onMounted(() => {
   syncViewModeFromRoute(route.path);
+});
+
+onMounted(async () => {
+  try {
+    isElectronApp.value = !!window.astrbotDesktop?.isElectron;
+    if (!isElectronApp.value) {
+      isElectronApp.value =
+        (await window.astrbotDesktop?.isElectronRuntime?.()) ?? false;
+    }
+  } catch {
+    isElectronApp.value = false;
+  }
 });
 
 watch(
@@ -310,6 +345,8 @@ const isChristmas = computed(() => {
         }
       "
     />
+
+    <ConfirmDialog ref="confirmDialog" />
 
     <AccountDialog v-model="dialog" :warning="accountWarning" />
 

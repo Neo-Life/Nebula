@@ -9,13 +9,13 @@ from urllib.parse import unquote, urlparse
 class FileTokenService:
     """维护一个简单的基于令牌的文件下载服务，支持超时和懒清除。"""
 
-    def __init__(self, default_timeout: float = 300):
+    def __init__(self, default_timeout: float = 300) -> None:
         self.lock = asyncio.Lock()
         # token: (file_path, expire_time, consume_on_read)
         self.staged_files = {}
         self.default_timeout = default_timeout
 
-    async def _cleanup_expired_tokens(self):
+    async def _cleanup_expired_tokens(self) -> None:
         """清理过期的令牌"""
         now = time.time()
         expired_tokens = [

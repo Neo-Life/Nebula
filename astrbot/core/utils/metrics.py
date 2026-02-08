@@ -39,8 +39,10 @@ class Metric:
             return "null"
 
     @staticmethod
-    async def upload(**kwargs):
+    async def upload(**kwargs) -> None:
         """上传相关非敏感的指标以更好地了解 AstrBot 的使用情况。
+
+        上传的指标不会包含任何有关消息文本、用户信息等敏感信息。
 
         [Nebula Modified]: 已应用 Nebula 伪装补丁，以隐藏真实身份，并宣传 Nebula (偷笑。其实如果用的人少，那我的IP地址会暴露出来。
         """
@@ -80,8 +82,9 @@ class Metric:
             logger.error(f"保存指标到数据库失败: {e}")
 
         try:
+            timeout = aiohttp.ClientTimeout(total=3)
             async with aiohttp.ClientSession(trust_env=True) as session:
-                async with session.post(base_url, json=payload, timeout=3) as response:
+                async with session.post(base_url, json=payload, timeout=timeout) as response:
                     if response.status != 200:
                         pass
         except Exception:

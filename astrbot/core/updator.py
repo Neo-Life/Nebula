@@ -34,7 +34,7 @@ class AstrBotUpdator(RepoZipUpdator):
         logger.info("下载 AstrBot Core 更新文件完成，正在执行解压...")
         self.unzip_file("temp.zip", self.MAIN_PATH)
 
-    def terminate_child_processes(self):
+    def terminate_child_processes(self) -> None:
         """终止当前进程的所有子进程
         使用 psutil 库获取当前进程的所有子进程，并尝试终止它们
         """
@@ -55,7 +55,7 @@ class AstrBotUpdator(RepoZipUpdator):
         except psutil.NoSuchProcess:
             pass
 
-    def _reboot(self, delay: int = 3):
+    def _reboot(self, delay: int = 3) -> None:
         """重启当前程序
         在指定的延迟后，终止所有子进程并重新启动程序
         这里只能使用 os.exec* 来重启程序
@@ -109,7 +109,7 @@ class AstrBotUpdator(RepoZipUpdator):
         version: str | None = None,
         proxy: str = "",
         channel: str = "official",
-    ):
+    ) -> None:
         file_url = None
 
         if os.environ.get("ASTRBOT_CLI"):

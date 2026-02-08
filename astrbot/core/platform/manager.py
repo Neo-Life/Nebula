@@ -54,7 +54,7 @@ class PlatformManager:
         if wrapper_task:
             try:
                 await asyncio.wait_for(wrapper_task, timeout=timeout_sec)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.warning(
                     "平台 %s 的后台任务未能在 %.1fs 内停止，强制取消。",
                     platform_id,
@@ -70,7 +70,7 @@ class PlatformManager:
         if run_task:
             try:
                 await asyncio.wait_for(run_task, timeout=timeout_sec)
-            except (asyncio.TimeoutError, asyncio.CancelledError):
+            except (TimeoutError, asyncio.CancelledError):
                 return
             except Exception:
                 logger.error(traceback.format_exc())

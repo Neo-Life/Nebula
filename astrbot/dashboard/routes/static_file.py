@@ -17,7 +17,7 @@ class StaticFileRoute(Route):
         self.app.add_url_rule("/", view_func=self.index)
 
         @self.app.errorhandler(404)
-        async def page_not_found(e):
+        async def page_not_found(e):  # pyright: ignore[reportUnusedFunction]
             # 1. API 接口请求 -> 返回 JSON 404
             if request.path.startswith("/api"):
                 return {"status": "error", "message": "API endpoint not found"}, 404
