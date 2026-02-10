@@ -281,7 +281,7 @@ class LiveChatRoute(Route):
 
                     try:
                         result = await asyncio.wait_for(back_queue.get(), timeout=0.5)
-                    except asyncio.TimeoutError:
+                    except TimeoutError:
                         continue
 
                     if not result:

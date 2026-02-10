@@ -32,7 +32,7 @@ class FileTokenService:
     async def register_file(
         self,
         file_path: str,
-        timeout: float | None = None,
+        timeout: float | None = None,  # noqa: ASYNC109
         *,
         consume_on_read: bool = True,
     ) -> str:

@@ -380,7 +380,7 @@ class ChatRoute(Route):
                         result = None
                         try:
                             result = await asyncio.wait_for(back_queue.get(), timeout=1)
-                        except asyncio.TimeoutError:
+                        except TimeoutError:
                             continue
                         except asyncio.CancelledError:
                             logger.debug(f"[WebChat] 用户 {username} 断开聊天长连接。")

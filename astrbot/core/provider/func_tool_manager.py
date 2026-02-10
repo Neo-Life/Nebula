@@ -97,7 +97,7 @@ async def _quick_test_mcp_connection(config: dict) -> tuple[bool, str]:
                         return True, ""
                     return False, f"HTTP {response.status}: {response.reason}"
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         return False, f"连接超时: {timeout}秒"
     except Exception as e:
         return False, f"{e!s}"
@@ -321,7 +321,7 @@ class FunctionToolManager:
         config: dict,
         event: asyncio.Event | None = None,
         ready_future: asyncio.Future | None = None,
-        timeout: int = 30,
+        timeout: int = 30,  # noqa: ASYNC109
     ) -> None:
         """Enable_mcp_server a new MCP server to the manager and initialize it.
 
@@ -347,7 +347,8 @@ class FunctionToolManager:
             self._init_mcp_client_task_wrapper(name, config, event, ready_future),
         )
         try:
-            await asyncio.wait_for(ready_future, timeout=timeout)
+            async with asyncio.timeout(timeout):
+                await ready_future
         finally:
             self.mcp_client_event[name] = event
 
@@ -359,7 +360,7 @@ class FunctionToolManager:
     async def disable_mcp_server(
         self,
         name: str | None = None,
-        timeout: float = 10,
+        timeout: float = 10,  # noqa: ASYNC109
     ) -> None:
         """Disable an MCP server by its name.
 
@@ -377,7 +378,8 @@ class FunctionToolManager:
                 return
             client_running_event = client.running_event
             try:
-                await asyncio.wait_for(client_running_event.wait(), timeout=timeout)
+                async with asyncio.timeout(timeout):
+                    await client_running_event.wait()
             finally:
                 self.mcp_client_event.pop(name, None)
                 self.func_list = [
@@ -393,7 +395,8 @@ class FunctionToolManager:
                 event.set()
             # waiting for all clients to finish
             try:
-                await asyncio.wait_for(asyncio.gather(*running_events), timeout=timeout)
+                async with asyncio.timeout(timeout):
+                    await asyncio.gather(*running_events)
             finally:
                 self.mcp_client_event.clear()
                 self.mcp_client_dict.clear()

@@ -1,8 +1,7 @@
 import asyncio
-import sys
 import uuid
 from collections.abc import Awaitable, Callable
-from typing import Any, cast
+from typing import Any, cast, override
 
 import quart
 from requests import Response
@@ -27,11 +26,6 @@ from astrbot.core.platform.astr_message_event import MessageSesion
 from astrbot.core.utils.webhook_utils import log_webhook_info
 
 from .weixin_offacc_event import WeixinOfficialAccountPlatformEvent
-
-if sys.version_info >= (3, 12):
-    from typing import override
-else:
-    from typing_extensions import override
 
 
 class WeixinOfficialAccountServer:
@@ -206,7 +200,7 @@ class WeixinOfficialAccountPlatformAdapter(Platform):
                     logger.debug(f"Got future result: {result}")
                     self.wexin_event_workers.pop(str(cast(str | int, msg.id)), None)
                     return result  # xml. see weixin_offacc_event.py
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 pass
             except Exception as e:
                 logger.error(f"转换消息时出现异常: {e}")

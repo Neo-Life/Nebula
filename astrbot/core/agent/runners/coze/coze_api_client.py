@@ -90,7 +90,7 @@ class CozeAPIClient:
                 logger.debug(f"[Coze] 图片上传成功，file_id: {file_id}")
                 return file_id
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.error("文件上传超时")
             raise Exception("文件上传超时")
         except Exception as e:
@@ -128,7 +128,7 @@ class CozeAPIClient:
         conversation_id: str | None = None,
         auto_save_history: bool = True,
         stream: bool = True,
-        timeout: float = 120,
+        timeout: float = 120,  # noqa: ASYNC109
     ) -> AsyncGenerator[dict[str, Any], None]:
         """发送聊天消息并返回流式响应
 
@@ -203,7 +203,7 @@ class CozeAPIClient:
                                     except json.JSONDecodeError:
                                         event_data = {"content": data_str}
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             raise Exception(f"Coze API 流式请求超时 ({timeout}秒)")
         except Exception as e:
             raise Exception(f"Coze API 流式请求失败: {e!s}")
@@ -236,7 +236,7 @@ class CozeAPIClient:
                 except json.JSONDecodeError:
                     raise Exception("Coze API 返回非JSON格式")
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             raise Exception("Coze API 请求超时")
         except aiohttp.ClientError as e:
             raise Exception(f"Coze API 请求失败: {e!s}")

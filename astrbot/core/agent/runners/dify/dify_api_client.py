@@ -47,7 +47,7 @@ class DifyAPIClient:
         response_mode: str = "streaming",
         conversation_id: str = "",
         files: list[dict[str, Any]] | None = None,
-        timeout: float = 60,
+        timeout: float = 60,  # noqa: ASYNC109
     ) -> AsyncGenerator[dict[str, Any], None]:
         if files is None:
             files = []
@@ -76,7 +76,7 @@ class DifyAPIClient:
         user: str,
         response_mode: str = "streaming",
         files: list[dict[str, Any]] | None = None,
-        timeout: float = 60,
+        timeout: float = 60,  # noqa: ASYNC109
     ):
         if files is None:
             files = []

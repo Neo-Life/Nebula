@@ -2,7 +2,7 @@ import asyncio
 import threading
 import typing as T
 from collections.abc import Awaitable, Callable
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -1379,7 +1379,7 @@ class SQLiteDatabase(BaseDatabase):
         async with self.get_db() as session:
             session: AsyncSession
             async with session.begin():
-                values: dict[str, T.Any] = {"updated_at": datetime.now(timezone.utc)}
+                values: dict[str, T.Any] = {"updated_at": datetime.now(UTC)}
                 if display_name is not None:
                     values["display_name"] = display_name
 
@@ -1467,7 +1467,7 @@ class SQLiteDatabase(BaseDatabase):
         async with self.get_db() as session:
             session: AsyncSession
             async with session.begin():
-                values: dict[str, T.Any] = {"updated_at": datetime.now(timezone.utc)}
+                values: dict[str, T.Any] = {"updated_at": datetime.now(UTC)}
                 if title is not None:
                     values["title"] = title
                 if emoji is not None:

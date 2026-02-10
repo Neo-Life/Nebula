@@ -26,7 +26,7 @@ import base64
 import json
 import os
 import uuid
-from enum import Enum
+from enum import StrEnum
 
 from pydantic.v1 import BaseModel
 
@@ -35,7 +35,7 @@ from astrbot.core.utils.astrbot_path import get_astrbot_data_path
 from astrbot.core.utils.io import download_file, download_image_by_url, file_to_base64
 
 
-class ComponentType(str, Enum):
+class ComponentType(StrEnum):
     # Basic Segment Types
     Plain = "Plain"  # plain text message
     Image = "Image"  # image

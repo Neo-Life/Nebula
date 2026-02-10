@@ -80,7 +80,7 @@ class LogRoute(Route):
                         )
                         current_ts = message.get("time", time.time())
                         yield _format_log_sse(message, current_ts)
-                    except asyncio.TimeoutError:
+                    except TimeoutError:
                         yield f": ping {time.time()}\n\n"
 
             except asyncio.CancelledError:

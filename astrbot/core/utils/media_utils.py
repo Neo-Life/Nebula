@@ -18,13 +18,14 @@ FFMPEG_TIMEOUT_SECONDS = 120.0
 async def _communicate_with_timeout(
     process: asyncio.subprocess.Process,
     *,
-    timeout: float,
+    timeout: float,  # noqa: ASYNC109
     description: str,
 ) -> tuple[bytes, bytes]:
     try:
-        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+        async with asyncio.timeout(timeout):
+            stdout, stderr = await process.communicate()
         return stdout or b"", stderr or b""
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning(f"[Media Utils] {description} 超时({timeout}s)，终止子进程。")
         try:
             process.kill()
@@ -67,7 +68,7 @@ async def get_media_duration(file_path: str) -> int | None:
                 timeout=FFPROBE_TIMEOUT_SECONDS,
                 description=f"获取媒体文件时长(ffprobe): {file_path}",
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return None
 
         if process.returncode == 0 and stdout:
@@ -141,7 +142,7 @@ async def convert_audio_to_opus(audio_path: str, output_path: str | None = None)
                 timeout=FFMPEG_TIMEOUT_SECONDS,
                 description=f"转换音频为opus(ffmpeg): {audio_path}",
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             if output_path and os.path.exists(output_path):
                 try:
                     os.remove(output_path)
@@ -225,7 +226,7 @@ async def convert_video_format(
                 timeout=FFMPEG_TIMEOUT_SECONDS,
                 description=f"转换视频格式(ffmpeg): {video_path}",
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             if output_path and os.path.exists(output_path):
                 try:
                     os.remove(output_path)

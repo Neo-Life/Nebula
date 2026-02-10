@@ -59,7 +59,7 @@ class LocalShellComponent(ShellComponent):
         command: str,
         cwd: str | None = None,
         env: dict[str, str] | None = None,
-        timeout: int | None = 30,
+        timeout: int | None = 30,  # noqa: ASYNC109
         shell: bool = True,
         background: bool = False,
     ) -> dict[str, Any]:
@@ -106,7 +106,7 @@ class LocalPythonComponent(PythonComponent):
         self,
         code: str,
         kernel_id: str | None = None,
-        timeout: int = 30,
+        timeout: int = 30,  # noqa: ASYNC109
         silent: bool = False,
     ) -> dict[str, Any]:
         def _run() -> dict[str, Any]:
