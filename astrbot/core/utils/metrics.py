@@ -84,7 +84,9 @@ class Metric:
         try:
             timeout = aiohttp.ClientTimeout(total=3)
             async with aiohttp.ClientSession(trust_env=True) as session:
-                async with session.post(base_url, json=payload, timeout=timeout) as response:
+                async with session.post(
+                    base_url, json=payload, timeout=timeout
+                ) as response:
                     if response.status != 200:
                         pass
         except Exception:
