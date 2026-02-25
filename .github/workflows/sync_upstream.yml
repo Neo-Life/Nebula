@@ -2,6 +2,8 @@ name: Sync Upstream
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 0 1,15 * *"
 
 concurrency:
   group: dashboard-ci-${{ github.workflow }}-${{ github.ref_name }}
