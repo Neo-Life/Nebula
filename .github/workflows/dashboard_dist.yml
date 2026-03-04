@@ -90,7 +90,7 @@ jobs:
           echo "ZIPPED=${ZIP_NAME}" >> $GITHUB_ENV
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: dashboard-dist-${{ env.COMMIT_SHA }}
           path: ${{ env.ZIPPED }}
@@ -98,7 +98,7 @@ jobs:
 
       - name: Upload latest pointer
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: dashboard-dist-latest
           path: dashboard/dist/assets/version
